@@ -34,13 +34,6 @@ import {
   ChatGptHandoffState,
 } from "./providerSetup.ts";
 import * as Schema from "effect/Schema";
-import {
-  RoadmapBoard,
-  RoadmapView,
-  RoadmapError,
-  RoadmapReadInput,
-  RoadmapSaveInput,
-} from "./roadmap.ts";
 import * as Rpc from "effect/rpc/Rpc";
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import * as RpcMiddleware from "effect/rpc/RpcMiddleware";
@@ -415,8 +408,6 @@ import { Project, ProjectMutation, ProjectMutationError } from "./project.ts";
 export const WS_METHODS = {
   projectsListEntries: "projects.listEntries",
   projectsListIgnoredFiles: "projects.listIgnoredFiles",
-  roadmapRead: "omid.roadmap.read",
-  roadmapSave: "omid.roadmap.save",
   projectsReadFile: "projects.readFile",
   projectsSearchContents: "projects.searchContents",
   projectsSearchEntries: "projects.searchEntries",
@@ -2105,16 +2096,6 @@ export const WsRpcGroup = RpcGroup.make(
   WsSubscribeProjectClonesRpc,
   WsProjectsListEntriesRpc,
   WsProjectsListIgnoredFilesRpc,
-  Rpc.make(WS_METHODS.roadmapRead, {
-    payload: RoadmapReadInput,
-    success: RoadmapView,
-    error: Schema.Union([RoadmapError, EnvironmentAuthorizationError]),
-  }),
-  Rpc.make(WS_METHODS.roadmapSave, {
-    payload: RoadmapSaveInput,
-    success: RoadmapBoard,
-    error: Schema.Union([RoadmapError, EnvironmentAuthorizationError]),
-  }),
   WsProjectsReadFileRpc,
   WsProjectsSearchContentsRpc,
   WsProjectsSearchEntriesRpc,
