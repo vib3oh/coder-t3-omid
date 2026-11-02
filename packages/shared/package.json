@@ -522,6 +522,10 @@
     "./cloneUrl": {
       "types": "./src/cloneUrl.ts",
       "import": "./src/cloneUrl.ts"
+    },
+    "./projectChangelog": {
+      "types": "./src/projectChangelog.ts",
+      "import": "./src/projectChangelog.ts"
     }
   },
   "scripts": {

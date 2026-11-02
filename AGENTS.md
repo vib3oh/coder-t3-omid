@@ -1,3 +1,9 @@
+# Fork workflow
+
+Always use the `vibe-*` skills for work in this project, including worktree setup,
+implementation, review, publishing and shipping. Use `vibe-publish` to open a
+draft PR; publishing does not authorize review, marking ready or merging.
+
 # T3 Code
 
 T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provider CLIs and agents (Codex, Claude Code, Cursor, Grok, OpenCode, Antigravity) and serves web, desktop, and mobile clients.

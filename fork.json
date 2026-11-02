@@ -1,0 +1,42 @@
+{
+  "name": "coder-t3-omid",
+  "upstream": {
+    "repository": "https://github.com/pingdotgg/t3code",
+    "branch": "main"
+  },
+  "extensions": {
+    "changelog": {
+      "ownedPaths": [
+        "packages/contracts/src/changelog.ts",
+        "packages/shared/src/projectChangelog.ts",
+        "packages/shared/src/projectChangelog.test.ts",
+        "apps/server/src/roadmap/ChangelogService.ts",
+        "apps/server/src/roadmap/ChangelogService.test.ts",
+        "apps/server/src/roadmap/ChangelogHttp.ts",
+        "apps/web/src/roadmap/ChangelogPage.tsx",
+        "apps/web/src/roadmap/changelogState.ts",
+        "apps/web/src/routes/_chat.changelog.tsx"
+      ],
+      "integrationPaths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/rpc.ts",
+        "packages/contracts/src/clientRpcPermissions.ts",
+        "packages/shared/package.json",
+        "apps/server/src/auth/RpcAuthorization.ts",
+        "apps/server/src/observability/RpcInstrumentation.ts",
+        "apps/server/src/server.ts",
+        "apps/server/src/ws.ts",
+        "apps/web/src/components/sidebar/SidebarChrome.tsx",
+        "apps/web/src/components/sidebar/mainAppLocation.ts",
+        "apps/web/src/components/CommandPalette.tsx",
+        "apps/web/src/routeTree.gen.ts"
+      ],
+      "verificationPaths": [
+        "packages/client-runtime/src/state/commandPermissions.test.ts",
+        "apps/server/src/ws.test.ts"
+      ]
+    }
+  }
+}
