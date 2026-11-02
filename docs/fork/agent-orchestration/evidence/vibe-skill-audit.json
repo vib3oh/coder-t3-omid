@@ -1,0 +1,660 @@
+{
+  "schemaVersion": 1,
+  "kind": "static-audit-receipt-not-runtime-configuration",
+  "inspectedAt": "2026-11-02",
+  "vibeSkillCount": 31,
+  "vibeInScope": 30,
+  "coreCandidates": 19,
+  "conditionalExtensions": 11,
+  "hypercoderInScope": 14,
+  "combinedInScopeSourceEntries": 44,
+  "excluded": ["vibe-game-design", "hypergames"],
+  "codexMirrorDrift": [],
+  "method": {
+    "inventory": "Read installed entry points and scanned command bodies as inert text; recorded file identities.",
+    "contractAudit": "Targeted lifecycle, review, authorization, artifact, evidence, scheduling, environment and correspondence sections; shared delivery contract and local repository policy.",
+    "notPerformed": [
+      "Executing source workflows",
+      "Exhaustive recursive review of every linked reference/helper",
+      "Behavioral or model/provider parity tests",
+      "Provisioning or installing runtime skill packages"
+    ]
+  },
+  "items": [
+    {
+      "name": "vibe-adopt",
+      "disposition": "core",
+      "canonicalFamily": "workspace.rescue-known",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "Preserve staged/unstaged work; explicit rescue scope.",
+      "files": [
+        {
+          "path": "skills/vibe-adopt/SKILL.md",
+          "sha256": "475fb17abc746ff983bae797884962a55ea7884ceb2703480fdf0506db8ec64a",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-adopt/COMMAND.md",
+          "sha256": "75cf2511e41935ab0d42191bf22315e673d0ba5c0ca470342841f8c9ab4cfc82",
+          "lines": 159,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-automate",
+      "disposition": "extension",
+      "canonicalFamily": "automation.plan",
+      "hypercoderOverlap": [],
+      "requiredAdaptation": "Use T3 scheduling and bounded policies; no implicit host jobs.",
+      "files": [
+        {
+          "path": "skills/vibe-automate/SKILL.md",
+          "sha256": "dd0befd0b288a6525489dffa164aa8adc02b2ec520976654739ccdbe5ef4a51e",
+          "lines": 59,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-build",
+      "disposition": "core",
+      "canonicalFamily": "implementation.build",
+      "hypercoderOverlap": ["workspaces", "commit", "new-pr"],
+      "requiredAdaptation": "Reuse one execution runtime and explicit finish target.",
+      "files": [
+        {
+          "path": "skills/vibe-build/SKILL.md",
+          "sha256": "37536c74ccce08900bad29d6b2570fe55ef92e2940fc15ddb29e43abdec8cedf",
+          "lines": 13,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-build/COMMAND.md",
+          "sha256": "b00bb1990f88e1cf171552433690222f45e62fd211b038650a3aeece05591a90",
+          "lines": 623,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-cleanup",
+      "disposition": "extension",
+      "canonicalFamily": "workspace.cleanup",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "Dry-run and approval; separate from merge completion.",
+      "files": [
+        {
+          "path": "skills/vibe-cleanup/SKILL.md",
+          "sha256": "86acaa36d657e25b50cd483728c00d56aa4b12786f0ad6da625fe98c854f8338",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-cleanup/COMMAND.md",
+          "sha256": "5fe969d729a62a25af9f191919085808ad2d0e2a64dd2ed9650647b5bade99dc",
+          "lines": 344,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-clonedb",
+      "disposition": "extension",
+      "canonicalFamily": "data.clone-db",
+      "hypercoderOverlap": [],
+      "requiredAdaptation": "Local Postgres profile only; explicit source and clone identity.",
+      "files": [
+        {
+          "path": "skills/vibe-clonedb/SKILL.md",
+          "sha256": "fd3aeccd4269b997aefb191e4e461f3e4d011c4b57ae875e9d4cb6ae58c16f8f",
+          "lines": 10,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-clonedb/COMMAND.md",
+          "sha256": "fdd9e96f4e4fc2f1a0af10236f4ac4f8fe82ec1a60e48c6d9690380e59d45d9e",
+          "lines": 46,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-copilot",
+      "disposition": "extension",
+      "canonicalFamily": "operations.dispatch",
+      "hypercoderOverlap": ["roadmap", "workspaces"],
+      "requiredAdaptation": "Explicit selected scope; GitHub-native selection must not require route labels.",
+      "files": [
+        {
+          "path": "skills/vibe-copilot/SKILL.md",
+          "sha256": "a856436f7e86395e2874f5c9c014d7bd14d16870c6fc8a91adb3610716983b05",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-copilot/COMMAND.md",
+          "sha256": "dfe734885f10539403676c1b0db8b9dbc230f7b19aa415f36ecfcea0785b3549",
+          "lines": 195,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-create",
+      "disposition": "extension",
+      "canonicalFamily": "project.create",
+      "hypercoderOverlap": ["hyperspace-init"],
+      "requiredAdaptation": "Stack-specific provider profiles; no silent cloud provisioning.",
+      "files": [
+        {
+          "path": "skills/vibe-create/SKILL.md",
+          "sha256": "f92453577f3a768bcffcf3fd99915bac8896f4c6ebe2a5d4325e4707f66808e7",
+          "lines": 115,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-decide",
+      "disposition": "core",
+      "canonicalFamily": "decisions.resolve",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "T3 durable questions; human-only choices stay human-owned.",
+      "files": [
+        {
+          "path": "skills/vibe-decide/SKILL.md",
+          "sha256": "64180ac683635467feceafc0aae5aabbe8508b2a05fdd0678a82b8f3321a43ef",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-decide/COMMAND.md",
+          "sha256": "babdfd4782de2a7f9b0672de47b6be7159ab8f0b254c9990eff034ebf8da5c97",
+          "lines": 188,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-deliver",
+      "disposition": "core",
+      "canonicalFamily": "delivery.coordinate",
+      "hypercoderOverlap": ["ship-it"],
+      "requiredAdaptation": "Explicit attended invocation only; reviewed-result workflows do not imply merge.",
+      "files": [
+        {
+          "path": "skills/vibe-deliver/SKILL.md",
+          "sha256": "6d8a494f9365a337b5285e7b32ce728de8a8fe4ca62e69f96f441492d29ddd71",
+          "lines": 14,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-deliver/COMMAND.md",
+          "sha256": "c045d88c2a6585f22991d6c2b5dfb210821627f3e785e2c241af10a344888670",
+          "lines": 137,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-deploy",
+      "disposition": "extension",
+      "canonicalFamily": "deployment.run",
+      "hypercoderOverlap": [],
+      "requiredAdaptation": "Explicit target and scoped approval; no blanket environment approval.",
+      "files": [
+        {
+          "path": "skills/vibe-deploy/SKILL.md",
+          "sha256": "3ea741b5898de35f488ed9c13df96e59f75c2bead39acb2241f28ee212199aa5",
+          "lines": 13,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-deploy/COMMAND.md",
+          "sha256": "6f31384a84e0e566e1dc5e34a84b608f05e0abe6801c70d15b95e3d75bae6fc9",
+          "lines": 237,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-design",
+      "disposition": "core",
+      "canonicalFamily": "design.work",
+      "hypercoderOverlap": ["prototype"],
+      "requiredAdaptation": "Preserve shape/create/improve/audit intent and evidence.",
+      "files": [
+        {
+          "path": "skills/vibe-design/SKILL.md",
+          "sha256": "177a64134ac292561d2c6e8ff1bc896f0c57f3f13d89fbb991d716a65933d04b",
+          "lines": 12,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-design/COMMAND.md",
+          "sha256": "d40feb6767ed3b9dae67add801c34f826ecf6f511adba5882761510a7b5a1bd4",
+          "lines": 101,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-dirty",
+      "disposition": "core",
+      "canonicalFamily": "workspace.audit",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "Audit first; mutation only for authorized resolution.",
+      "files": [
+        {
+          "path": "skills/vibe-dirty/SKILL.md",
+          "sha256": "af7eb9449b97a960004b5180671a6dfec5f4622ebb403481378de781a2eef70e",
+          "lines": 13,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-dirty/COMMAND.md",
+          "sha256": "2d86d48ebd5647caa06207191af972ffc763583de7b6c3f3a6160f8efcc389ee",
+          "lines": 309,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-email",
+      "disposition": "extension",
+      "canonicalFamily": "communications.draft-human",
+      "hypercoderOverlap": [],
+      "requiredAdaptation": "Private profiles excluded from product defaults; separate from peer messages.",
+      "files": [
+        {
+          "path": "skills/vibe-email/SKILL.md",
+          "sha256": "47680dddab2b14ab2a4c8b1ef522153eed391aff5ae831dcc9c3c8ada3d19966",
+          "lines": 17,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-email/COMMAND.md",
+          "sha256": "09fbfcad7e2c6c44635021de9380590cbf12dfc30c542d2608d85fbabd2af418",
+          "lines": 226,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-game-design",
+      "disposition": "excluded",
+      "canonicalFamily": "excluded.games",
+      "hypercoderOverlap": ["hypergames"],
+      "requiredAdaptation": "Games excluded by user.",
+      "files": [
+        {
+          "path": "skills/vibe-game-design/SKILL.md",
+          "sha256": "841498879e09922b063df0540b90f678077fd7536380b460aa01860647d969b9",
+          "lines": 20,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-game-design/COMMAND.md",
+          "sha256": "bd9eb0f3992d3b59ec3de55ade408f7500b21ea75afdf420117dd45f34dfd18e",
+          "lines": 231,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-hypercoder",
+      "disposition": "extension",
+      "canonicalFamily": "host.compatibility",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "Optional external-host adapter; T3 has no Hypercoder baseline requirement.",
+      "files": [
+        {
+          "path": "skills/vibe-hypercoder/SKILL.md",
+          "sha256": "09fe14ff50b618a6afc5f8fa8b282e2f75e9f02d1c699ad9858a44ee56e54fcb",
+          "lines": 49,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-idea",
+      "disposition": "extension",
+      "canonicalFamily": "discovery.evaluate",
+      "hypercoderOverlap": [],
+      "requiredAdaptation": "Research only; do not bootstrap a product or contact prospects.",
+      "files": [
+        {
+          "path": "skills/vibe-idea/SKILL.md",
+          "sha256": "90f412d401a4668ef743fdaf2c6f0366ddf168e03f1ae65c9ebcf8fb163fbae2",
+          "lines": 304,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-init",
+      "disposition": "core",
+      "canonicalFamily": "project.prepare",
+      "hypercoderOverlap": ["hyperspace-init"],
+      "requiredAdaptation": "Preserve existing repository conventions and local policy.",
+      "files": [
+        {
+          "path": "skills/vibe-init/SKILL.md",
+          "sha256": "31333d970c841c7a9e67552509d8e71c4ad7e2c833021b94b0b47bcf8c8171da",
+          "lines": 24,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-init/COMMAND.md",
+          "sha256": "ff3237e298e55d83993d65a720b458d7b7ca7c4b7dcc3aa57add2ece55cb66c6",
+          "lines": 318,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-issue",
+      "disposition": "core",
+      "canonicalFamily": "planning.capture",
+      "hypercoderOverlap": ["roadmap"],
+      "requiredAdaptation": "Intake only; no automatic implementation or routing labels.",
+      "files": [
+        {
+          "path": "skills/vibe-issue/SKILL.md",
+          "sha256": "e27ffdefd5510aca399c8e485ecf0e330ea4d2d3e13f106cf629010b0da7852f",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-issue/COMMAND.md",
+          "sha256": "80c55c3443b9ef3b6260dfc3c25279d5979610e6266a1e261c453158aab633da",
+          "lines": 210,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-patch",
+      "disposition": "core",
+      "canonicalFamily": "implementation.patch",
+      "hypercoderOverlap": ["debug"],
+      "requiredAdaptation": "Small focused fix; no implicit ship.",
+      "files": [
+        {
+          "path": "skills/vibe-patch/SKILL.md",
+          "sha256": "fb21ee20b3f5d353615ac3168ae8db1d4ad327eaf46f59a9981fa35dbfd42170",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-patch/COMMAND.md",
+          "sha256": "225b4cfbd90f1b9e5541431268dd7dc0686c87d9472ec04c2587ae5c8290b511",
+          "lines": 55,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-prd",
+      "disposition": "core",
+      "canonicalFamily": "planning.product",
+      "hypercoderOverlap": ["spec"],
+      "requiredAdaptation": "Product contract only when needed; keep separate from feature spec.",
+      "files": [
+        {
+          "path": "skills/vibe-prd/SKILL.md",
+          "sha256": "ff6563c4e91bfeec814c4b389deefa3ee76226cc2196f7a858f2a23b99eb7493",
+          "lines": 30,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-prd/COMMAND.md",
+          "sha256": "c7f87eb1a5cc5ef65052843dc830979da78a6a3893f7a490c733764310bccf3c",
+          "lines": 185,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-publish",
+      "disposition": "core",
+      "canonicalFamily": "publication.pr",
+      "hypercoderOverlap": ["new-pr"],
+      "requiredAdaptation": "One draft PR and current checks; no review/merge or labels in GitHub-native mode.",
+      "files": [
+        {
+          "path": "skills/vibe-publish/SKILL.md",
+          "sha256": "e24dc11ba01a912201014ee7ea67e0a049301063f5dfb9f56f60195e8441f5eb",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-publish/COMMAND.md",
+          "sha256": "e705f0de2f1778753d6c8f39d90b4011adabca14979599ee3a9c568dfcfa93fa",
+          "lines": 136,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-queue-review",
+      "disposition": "extension",
+      "canonicalFamily": "operations.review-queue",
+      "hypercoderOverlap": ["review-pr", "ship-it"],
+      "requiredAdaptation": "Report-first; repair/merge require separate authority and proper ownership.",
+      "files": [
+        {
+          "path": "skills/vibe-queue-review/SKILL.md",
+          "sha256": "9c12436ee1d06e1073a7db14c8194b8cbeb3e3dfe0edb6d541abde51b711c441",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-queue-review/COMMAND.md",
+          "sha256": "2de408983ba8e21fe8a0893bd5bbf92359ae0ae7d321fdddaf63406527688c7c",
+          "lines": 242,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-review",
+      "disposition": "core",
+      "canonicalFamily": "review",
+      "hypercoderOverlap": ["review-pr"],
+      "requiredAdaptation": "Separate independent inspection from managed repair.",
+      "files": [
+        {
+          "path": "skills/vibe-review/SKILL.md",
+          "sha256": "3934f5679e81b71ab5b3d3ed28913e1700ccc9fbaf81f1eafbd74ae7182e1092",
+          "lines": 13,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-review/COMMAND.md",
+          "sha256": "b49f331a70d537881a4439fa406397338d487fe47b57ab88d7873329e652fc31",
+          "lines": 510,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-screenshot",
+      "disposition": "core",
+      "canonicalFamily": "evidence.capture",
+      "hypercoderOverlap": ["prototype", "ios-simulator"],
+      "requiredAdaptation": "Use real client/device and revision-bound evidence.",
+      "files": [
+        {
+          "path": "skills/vibe-screenshot/SKILL.md",
+          "sha256": "8ea5f1e33b901f4950dd05c53fec115fb599ead7395e6596f36ef2a0563fe134",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-screenshot/COMMAND.md",
+          "sha256": "c6c351baed7e22aacc855609cc1957ee2e54680555856a6406cf2a3f6ff0e260",
+          "lines": 170,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-ship",
+      "disposition": "core",
+      "canonicalFamily": "delivery.merge",
+      "hypercoderOverlap": ["ship-it"],
+      "requiredAdaptation": "Explicit current-head authorization and required checks.",
+      "files": [
+        {
+          "path": "skills/vibe-ship/SKILL.md",
+          "sha256": "439705091456e4f59d1a52d0aa47d35c330508531caeae8a7ca8a259b912a862",
+          "lines": 13,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-ship/COMMAND.md",
+          "sha256": "ea6c8a5f8fe42be7795be109c8d22f3f8b4009fc454660bde1977c4a601f4262",
+          "lines": 451,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-spec",
+      "disposition": "core",
+      "canonicalFamily": "planning.specify",
+      "hypercoderOverlap": ["spec", "roadmap-audit"],
+      "requiredAdaptation": "Reuse accepted decisions and canonical artifact location.",
+      "files": [
+        {
+          "path": "skills/vibe-spec/SKILL.md",
+          "sha256": "0cee0f59449eea6133beee74905cd653967f030b6ecfddcf731e7ba41af88189",
+          "lines": 12,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-spec/COMMAND.md",
+          "sha256": "f6021c8794fe88f70fad991b57d201e6b29fe3497444b6df52ede276688947e9",
+          "lines": 421,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-start",
+      "disposition": "core",
+      "canonicalFamily": "workspace.start",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "Existing worktree owner and T3 binding; no second worktree manager.",
+      "files": [
+        {
+          "path": "skills/vibe-start/SKILL.md",
+          "sha256": "23db570983f3b9752b2fb503afab26caa334ef7f292e77aa01217d994fe09f74",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-start/COMMAND.md",
+          "sha256": "5d129460683cfe80dcde46dd820f28f24ea38a1b33903e4b56faf7ac9cb17084",
+          "lines": 205,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-status",
+      "disposition": "core",
+      "canonicalFamily": "status.read",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "Read-only product status; expose any source read-repair separately.",
+      "files": [
+        {
+          "path": "skills/vibe-status/SKILL.md",
+          "sha256": "24dbd4a9485f6d3bc53a73ffb6ddb00ceac3a70e6afa993fc5293e7ac4bd60fb",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-status/COMMAND.md",
+          "sha256": "470f0bfea1c69dac45b1f8945f3852146ad832193e669146870300e3e89950e2",
+          "lines": 204,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-sync",
+      "disposition": "extension",
+      "canonicalFamily": "operations.sync",
+      "hypercoderOverlap": [],
+      "requiredAdaptation": "Fleet scope explicit; no automatic default-branch or cleanup mutations.",
+      "files": [
+        {
+          "path": "skills/vibe-sync/SKILL.md",
+          "sha256": "04ce7ace63e9a48423e0c8b4155f392b96d7242eaa05bf4053fe21abceb3cf38",
+          "lines": 13,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-sync/COMMAND.md",
+          "sha256": "719eadff588834c25dc14e001abb5235769099c0e9e2ada375e56cd9f5316b04",
+          "lines": 147,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-wins",
+      "disposition": "core",
+      "canonicalFamily": "report.activity",
+      "hypercoderOverlap": ["changelog"],
+      "requiredAdaptation": "Separate progress from shipped facts; clipboard/send are separate actions.",
+      "files": [
+        {
+          "path": "skills/vibe-wins/SKILL.md",
+          "sha256": "b4d5d89cc2dfcd4f3bf0218bd5cc0c261329e405beabf6ffc1309e1c27d9c346",
+          "lines": 11,
+          "codexMirrorMatches": true
+        },
+        {
+          "path": "skills/vibe-wins/COMMAND.md",
+          "sha256": "d40f57be8b4521bbb0ef32770549fb0978a1703d9d8b18d3a03ab9c200f07dc7",
+          "lines": 176,
+          "codexMirrorMatches": true
+        }
+      ]
+    },
+    {
+      "name": "vibe-worktrees",
+      "disposition": "core",
+      "canonicalFamily": "workspace.policy",
+      "hypercoderOverlap": ["workspaces"],
+      "requiredAdaptation": "Passive ownership discipline over existing host services.",
+      "files": [
+        {
+          "path": "skills/vibe-worktrees/SKILL.md",
+          "sha256": "4d4a22b7d3fbcf123d354dcaa614c5e1571393c3e376e04b60045bc3fce7d7b8",
+          "lines": 151,
+          "codexMirrorMatches": true
+        }
+      ]
+    }
+  ],
+  "sharedContracts": [
+    {
+      "path": "skills/vibe-deliver/references/shared-contract.md",
+      "sha256": "c1463c228cc5e5586d4a6a02089da5e3e1684ee4c171352f180c5cdfcd4549e5"
+    },
+    {
+      "path": "skills/pr-processing-lock/SKILL.md",
+      "sha256": "b7884801d34cd01532ba680b668aed984faedaa9e2bbdbace840ac83d1d4b014"
+    },
+    {
+      "path": "skills/vibe-build/references/pr-body.md",
+      "sha256": "8031508331de1109f299c171c580d2b2542049f253d3cbe43db9641f1dce7782"
+    }
+  ]
+}

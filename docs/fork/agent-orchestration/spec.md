@@ -18,13 +18,16 @@ T3 can delegate work, but users must repeatedly explain roles, assemble context,
 
 ### Skill migration and availability
 
+- [ ] Build one versioned skill library into T3, covering all 30 non-game Vibe entries and the 14 Hypercoder migration entries. Preserve familiar entry-point aliases while deduplicating shared procedures. The [combined audit](skill-audit.md) defines source overlap, modes and prerequisites; it does not claim that 44 source names require 44 independent procedures.
+- [ ] The supported built-in path works without a personal Vibe installation. Include or replace declared runtime dependencies and resources through T3 services; an existing local Vibe installation is an explicit compatibility backend with a visible version and policy, not a hidden requirement.
+- [ ] Address the audit's review inspect/repair, lifecycle-mode, invocation-authority, ownership, evidence, human/peer communication and host-dependency conflicts before marking the affected procedures runnable. Retain 19 core candidates and 11 capability-gated Vibe extensions in the catalog; catalog presence does not grant execution rights.
 - [ ] Account for all 14 non-game Hypercoder workflows in the [skill migration matrix](skills.md), including the four commands packaged as skills for Codex. The inventory contains 15 workflows; games are explicitly excluded by the user. Record adapted/verified, optional-with-prerequisites or deferred-with-reason per in-scope entry; do not claim full parity for deferred capabilities.
 - [ ] Use applicable Vibe workflows as the primary implementation of spec, worktree, build, publish, review and shipping behavior. T3-specific wrappers translate service/tool boundaries and preserve repository-local policy, including worktrees loading primary-checkout policy where required.
 - [ ] Supply the five core roles with small required/optional skill bundles. Resolve actual instructions, transitive dependencies, executable/tool capabilities and effective authorization on the destination environment before advertising a role as ready.
 - [ ] Make loaded, on-demand, missing and unsupported skill states visible in role settings and assignment startup. Snapshot versions/content hashes and provider packaging; preserve active assignments when the catalog updates. Do not preload the entire catalog into every context.
 - [ ] Preserve user-invocation and side-effect authorization across provider formats. A loaded skill cannot authorize commit, publish, merge, install, device operation or outgoing communication by itself.
 - [ ] Defer missing kits/pane-template capabilities explicitly; support an optional workflow only when its real prerequisites are satisfied. Games are out of scope. Do not execute Hypercoder-specific commands as a fallback.
-- [ ] Use independently authored procedures and existing Vibe instructions with recorded provenance. User-attached third-party skills require compatibility and provenance checks; automatic global-skill copying and arbitrary plugin installation remain outside scope.
+- [ ] Use audited Vibe procedures and independently authored Hypercoder adaptations with recorded provenance. User-attached third-party skills require compatibility and provenance checks; automatic global-skill copying, personal correspondence profiles and arbitrary plugin installation remain outside scope.
 - [ ] Before shipping executable skill definitions, run focused service tests and model-facing evals against their actual source for the providers claimed as supported. The current design-only package does not install or execute those definitions.
 
 ### Workflow and evidence
@@ -108,6 +111,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 - Replacing provider-native subagents, existing delegation or the existing Claude workflow mechanism.
 - Arbitrary repository-supplied executable plugins, automatic skill installation, silent provider/model/account switching.
 - Built-in games, games-menu integration and game-authoring skill migration.
+- Enabling fleet operations, cloud provisioning, deployment, human correspondence or cleanup merely by loading an optional catalog entry. Those procedures require their own capabilities and task authorization.
 - Automatic PR creation/merge/deployment by virtue of an agent's role.
 
 ## Risks and rollback
@@ -122,6 +126,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 ## Open questions
 
 - Scope settled: the user selected supervised workflows first. Unrestricted teams remain out of scope.
+- Catalog scope settled: build in the Vibe procedures after auditing them against Hypercoder; games are excluded. The proposed core/extension grouping and adapter details remain subject to design review.
 - Should role authoring be project-only initially, or also include personal presets copied into a project? Recommended initial scope: project roles.
 - Are the proposed default attempt/concurrency limits appropriate? They are product defaults to validate, not measured performance claims.
 - Confirm the extension metadata store and minimal upstream hooks described in the technical design before treating the plan as implementation-ready.
@@ -131,7 +136,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 
 - PRD: Not established for this feature.
 - Requirements: None with existing stable ids.
-- Decisions: supervised workflows first, confirmed by the user. Other recommendations remain proposals.
+- Decisions: supervised workflows first, built-in Vibe procedures after a combined audit, and games excluded, confirmed by the user. Catalog tiering and other technical recommendations remain proposals.
 - Product delta: material capability proposal.
 - PRD sync: no product files changed. Accepted decisions should be reconciled before build routing if a central product package is introduced.
 - Spec route: discuss remaining details; no workflow state or issue created.
@@ -142,6 +147,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 - [Launch, assignment and monitoring UX](ux.md)
 - [Technical design](technical-design.md)
 - [Skill inventory, migration and role bundles](skills.md)
+- [Combined Vibe and Hypercoder contract audit](skill-audit.md)
 - [Expandable communication concept](communication.html)
 - Repository: `AGENTS.md`, `docs/fork/maintenance.md`, `docs/fork/roadmap.md`, `fork.json`
 - Existing runtime/contracts: `packages/contracts/src/orchestratorMcp.ts`, `apps/server/src/mcp/delegatedTaskModes.ts`, `apps/server/src/mcp/OrchestratorMcpService.ts`

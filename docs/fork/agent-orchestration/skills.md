@@ -1,9 +1,15 @@
 # Skill migration for role-based agents
 
 Proposal: carry over the useful behavior of Hypercoder's non-game workflows through
-T3-native skills and existing Vibe workflows. Availability depends on the actual
+T3-native skills and built-in Vibe procedures. Availability depends on the actual
 tools in the destination environment. This document defines the migration;
 it does not install skills or claim feature parity.
+
+The [combined audit](skill-audit.md) is the catalog-level decision: 30 non-game
+Vibe entries and 14 Hypercoder entries reconciled through common procedures and
+explicit modes. Vibe names remain familiar entry points. The supported built-in
+path must not require a personal Vibe installation; existing local Vibe is an
+optional, explicitly selected compatibility backend.
 
 ## Inventory and scope
 
@@ -103,8 +109,9 @@ publication authority.
 
 ## Packaging and provenance
 
-Write independent T3 procedures/wrappers around the existing Vibe workflows.
-Keep versioned definitions in the fork's owned extension modules, with provider
+Package Vibe's audited behavior as built-in procedures, adding independently
+authored T3 adaptations for Hypercoder behavior. Keep versioned definitions in
+the fork's owned extension modules, with provider
 packaging generated from that source if necessary. Choose the actual packaging
 path during implementation; no runtime skill directory is added by this design PR.
 
@@ -128,6 +135,11 @@ adapted and verified, optional with explicit prerequisites, or deferred with a
 concrete missing capability. A deferred entry is not parity. Core role bundles
 must have their required skills verified before those roles are advertised as
 ready for the supervised template.
+
+The same coverage rule applies to all 30 in-scope Vibe entries. Preserve aliases,
+deduplicate compatible procedures and keep distinct authority/evidence modes
+where the audit found a conflict. Both game workflows are excluded. The audit
+receipt and migration inventory are evidence, not executable registries.
 
 For implemented skills, validate dependency resolution, provider packaging,
 instruction composition, missing-tool behavior, permission boundaries and

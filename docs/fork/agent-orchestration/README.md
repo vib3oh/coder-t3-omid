@@ -11,10 +11,11 @@ Start with the [UX](ux.md) for how a person launches and follows work, then the
 delegation and thread services. The [investigation](understanding.md) separates
 recovered Hypercoder behavior from recommendations and unknowns.
 
-The [skill migration matrix](skills.md) covers the 14 non-game bundled workflows,
-maps them to Vibe/T3 procedures and identifies deferred capabilities. It defines
-how each role gets a small, versioned bundle of available skills. Games are
-explicitly outside this feature's scope.
+The [combined skill audit](skill-audit.md) covers the installed Vibe set and the
+14 non-game Hypercoder workflows. It identifies contract conflicts, core versus
+conditional procedures and requirements for a built-in T3 library. The detailed
+[migration matrix](skills.md) maps Hypercoder behavior into that library. Each
+role gets a small, versioned bundle; games remain outside scope.
 
 Two self-contained HTML concepts illustrate the proposal:
 

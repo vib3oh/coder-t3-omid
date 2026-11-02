@@ -128,15 +128,31 @@ Hypercoder packages. One additional game workflow is inventory evidence only,
 explicitly excluded from the feature. Kits/pane templates remain a declared
 capability gap. Catalog coverage is not a claim that every workflow is executable.
 
+The [combined audit](skill-audit.md) adds all 30 non-game Vibe entry points and
+resolves their overlap with Hypercoder. Ship one versioned built-in package and
+canonical procedure graph, preserving public aliases and explicit modes. Nineteen
+Vibe entries are core candidates; eleven are conditional extensions. Neither tier
+changes authorization, and these are proposed release dispositions rather than
+implemented capability claims.
+
 Resolve each required skill and its transitive dependencies from a versioned
 catalog on the destination environment. A proposed `SkillDefinition` contains
-identity, version, source/provenance, instructions, dependency refs, tool and
-provider requirements, invocation policy and output contract. `RoleSnapshot`
+identity/aliases, canonical family, supported modes, tier, version,
+source/provenance, instructions, dependency refs, tool and provider requirements,
+invocation policy and output contract. `RoleSnapshot`
 captures the resolved versions/hashes and whether each instruction was loaded,
 available on demand or unsupported. Cycles, missing required instructions or
 unavailable required tools prevent dispatch with a clear reason.
 
-Use existing Vibe procedures for project lifecycle behavior. Provider-native
+The supported built-in package includes or replaces its audited dependencies;
+it cannot assume helper scripts, stores or profiles under a developer's home.
+Use T3 environment services for workspace, task, question, scheduling and evidence
+operations. Optional external integrations declare prerequisites and remain
+unavailable when those prerequisites are missing. An explicit local-Vibe backend
+can preserve legacy integrations with reported version/policy, but must not become
+a second executor or require installing that backend to use the built-in path.
+
+Use audited Vibe procedures for project lifecycle behavior. Provider-native
 skill packaging is optional generated output of the same authored definitions;
 the common T3 context/tool path remains available when the provider supports it.
 Preserve user-only invocation boundaries across formats and avoid rewriting
@@ -148,6 +164,13 @@ fork, a linked worktree without its own policy reads it from the primary checkou
 The current policy uses GitHub-native lifecycle with unattended shipping disabled;
 ported instructions must not introduce workflow labels or conductors. Skills
 that commit, publish, merge, install or message do not grant their own authority.
+
+Review has explicit inspect and managed-repair modes. The Reviewer role receives
+inspect; a separately authorized writer receives repairs. Preserve distinct
+reporting modes for shipped facts and progress. Status reads do not silently run
+cleanup. Operator deployment, merge, fleet and correspondence procedures cannot
+be triggered by passive skill discovery. Resolve these modes at the service
+boundary, not by asking a UI label or a role prompt to enforce them.
 
 No runtime definitions are added by this design. When implementing them, verify
 provider packaging, dependency resolution and actual role behavior with focused
@@ -327,6 +350,7 @@ Roll out behind a feature flag: role snapshots first; then messaging/artifacts a
 - [Acceptance criteria and scope](spec.md)
 - [Launch, assignment and monitoring UX](ux.md)
 - [Skill migration and role bundles](skills.md)
+- [Combined contract audit and complete Vibe disposition](skill-audit.md)
 - [Human-readable communication concept](communication.html)
 - T3 sources and baseline are listed in the investigation's E6 evidence register.
 - `docs/fork/roadmap.md`: board owns planning; T3 owns execution.

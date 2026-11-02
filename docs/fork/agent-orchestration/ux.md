@@ -38,6 +38,13 @@ required dependency gives a specific remedy before launch. Bundles follow the
 [skill migration plan](skills.md); agents receive the skills appropriate to the
 assignment rather than the entire catalog. Games are excluded.
 
+The catalog distinguishes Built in from an explicitly configured external
+backend, and core procedures from conditional extensions. Show missing tools and
+available modes beside each entry. Operator actions such as deploy, merge or
+fleet sync remain outside a worker's default bundle. The [combined audit](skill-audit.md)
+defines these dispositions; an entry appearing in the catalog is not a claim
+that it is ready or authorized to run.
+
 An assignment gives a role actual work: an objective, relevant context, criteria,
 expected deliverable, workspace and manager. Its details preserve the exact role
 configuration used. Editing a preset affects future assignments; changes to work
