@@ -121,6 +121,41 @@ Compile one immutable assignment brief from:
 
 Use the current task input channel for the first version's role/assignment brief. Do not overwrite provider configuration to make a role appear stronger. If provider-specific instruction channels are later used, adapters own their composition and advertise support. Show whether a skill was loaded in full, referenced for on-demand reading or unavailable. Refuse a missing required skill before launching; optional omissions remain visible.
 
+### Skill catalog and role bundles
+
+The [migration matrix](skills.md) covers 14 non-game workflows from the installed
+Hypercoder packages. One additional game workflow is inventory evidence only,
+explicitly excluded from the feature. Kits/pane templates remain a declared
+capability gap. Catalog coverage is not a claim that every workflow is executable.
+
+Resolve each required skill and its transitive dependencies from a versioned
+catalog on the destination environment. A proposed `SkillDefinition` contains
+identity, version, source/provenance, instructions, dependency refs, tool and
+provider requirements, invocation policy and output contract. `RoleSnapshot`
+captures the resolved versions/hashes and whether each instruction was loaded,
+available on demand or unsupported. Cycles, missing required instructions or
+unavailable required tools prevent dispatch with a clear reason.
+
+Use existing Vibe procedures for project lifecycle behavior. Provider-native
+skill packaging is optional generated output of the same authored definitions;
+the common T3 context/tool path remains available when the provider supports it.
+Preserve user-only invocation boundaries across formats and avoid rewriting
+agent configuration. Load the small core role bundle first, with optional skill
+discovery on demand, rather than copying the full catalog into every task.
+
+Local policy resolution must follow the real repository configuration. In this
+fork, a linked worktree without its own policy reads it from the primary checkout.
+The current policy uses GitHub-native lifecycle with unattended shipping disabled;
+ported instructions must not introduce workflow labels or conductors. Skills
+that commit, publish, merge, install or message do not grant their own authority.
+
+No runtime definitions are added by this design. When implementing them, verify
+provider packaging, dependency resolution and actual role behavior with focused
+tests and evals of the canonical source. The migration document records the
+provenance and independently authored adapter approach.
+
+### Deliverables
+
 Require a deliverable schema per assignment kind. This is the effective specialization:
 
 - Planner: problem, scope/non-goals, criteria, dependencies, unresolved decisions and accepted-spec artifact.
@@ -291,6 +326,7 @@ Roll out behind a feature flag: role snapshots first; then messaging/artifacts a
 - [Evidence and Hypercoder findings](understanding.md)
 - [Acceptance criteria and scope](spec.md)
 - [Launch, assignment and monitoring UX](ux.md)
+- [Skill migration and role bundles](skills.md)
 - [Human-readable communication concept](communication.html)
 - T3 sources and baseline are listed in the investigation's E6 evidence register.
 - `docs/fork/roadmap.md`: board owns planning; T3 owns execution.

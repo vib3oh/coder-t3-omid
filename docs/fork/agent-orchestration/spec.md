@@ -16,6 +16,17 @@ T3 can delegate work, but users must repeatedly explain roles, assemble context,
 - [ ] Compose instructions without dropping configured project/provider guidance. Resolve actual skill content or report missing required skills before launch. Do not claim a named skill was loaded merely because it appears in a prompt.
 - [ ] Every assignment names the objective, immutable input/spec revision, acceptance criteria, deliverable, responsible manager, workspace, finish condition and relevant permissions. Ambiguous product choices are recorded as questions.
 
+### Skill migration and availability
+
+- [ ] Account for all 14 non-game Hypercoder workflows in the [skill migration matrix](skills.md), including the four commands packaged as skills for Codex. The inventory contains 15 workflows; games are explicitly excluded by the user. Record adapted/verified, optional-with-prerequisites or deferred-with-reason per in-scope entry; do not claim full parity for deferred capabilities.
+- [ ] Use applicable Vibe workflows as the primary implementation of spec, worktree, build, publish, review and shipping behavior. T3-specific wrappers translate service/tool boundaries and preserve repository-local policy, including worktrees loading primary-checkout policy where required.
+- [ ] Supply the five core roles with small required/optional skill bundles. Resolve actual instructions, transitive dependencies, executable/tool capabilities and effective authorization on the destination environment before advertising a role as ready.
+- [ ] Make loaded, on-demand, missing and unsupported skill states visible in role settings and assignment startup. Snapshot versions/content hashes and provider packaging; preserve active assignments when the catalog updates. Do not preload the entire catalog into every context.
+- [ ] Preserve user-invocation and side-effect authorization across provider formats. A loaded skill cannot authorize commit, publish, merge, install, device operation or outgoing communication by itself.
+- [ ] Defer missing kits/pane-template capabilities explicitly; support an optional workflow only when its real prerequisites are satisfied. Games are out of scope. Do not execute Hypercoder-specific commands as a fallback.
+- [ ] Use independently authored procedures and existing Vibe instructions with recorded provenance. User-attached third-party skills require compatibility and provenance checks; automatic global-skill copying and arbitrary plugin installation remain outside scope.
+- [ ] Before shipping executable skill definitions, run focused service tests and model-facing evals against their actual source for the providers claimed as supported. The current design-only package does not install or execute those definitions.
+
 ### Workflow and evidence
 
 - [ ] A user can start a supervised workflow from a roadmap card or an existing T3 thread. Thread-only workflows support projects without a card or GitHub repository.
@@ -96,6 +107,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 - Automatic parallel-builder integration, conflict-resolution bots and a new Git/worktree manager.
 - Replacing provider-native subagents, existing delegation or the existing Claude workflow mechanism.
 - Arbitrary repository-supplied executable plugins, automatic skill installation, silent provider/model/account switching.
+- Built-in games, games-menu integration and game-authoring skill migration.
 - Automatic PR creation/merge/deployment by virtue of an agent's role.
 
 ## Risks and rollback
@@ -129,6 +141,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 - [Hypercoder findings and evidence register](understanding.md)
 - [Launch, assignment and monitoring UX](ux.md)
 - [Technical design](technical-design.md)
+- [Skill inventory, migration and role bundles](skills.md)
 - [Expandable communication concept](communication.html)
 - Repository: `AGENTS.md`, `docs/fork/maintenance.md`, `docs/fork/roadmap.md`, `fork.json`
 - Existing runtime/contracts: `packages/contracts/src/orchestratorMcp.ts`, `apps/server/src/mcp/delegatedTaskModes.ts`, `apps/server/src/mcp/OrchestratorMcpService.ts`

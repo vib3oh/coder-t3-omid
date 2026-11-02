@@ -11,6 +11,11 @@ Start with the [UX](ux.md) for how a person launches and follows work, then the
 delegation and thread services. The [investigation](understanding.md) separates
 recovered Hypercoder behavior from recommendations and unknowns.
 
+The [skill migration matrix](skills.md) covers the 14 non-game bundled workflows,
+maps them to Vibe/T3 procedures and identifies deferred capabilities. It defines
+how each role gets a small, versioned bundle of available skills. Games are
+explicitly outside this feature's scope.
+
 Two self-contained HTML concepts illustrate the proposal:
 
 - [Role responsibilities and workflow](workflow.html)

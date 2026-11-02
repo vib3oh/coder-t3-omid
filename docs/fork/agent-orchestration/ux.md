@@ -32,6 +32,12 @@ presets. A user can clone a preset, such as a Frontend Builder, and edit its
 purpose, instructions, skill references, deliverable requirements and preferred
 provider/model. Saving a role does not start an agent or consume a model turn.
 
+The role's Skills section distinguishes required and optional workflows and shows
+whether each is loaded, available on demand, missing or unsupported. A missing
+required dependency gives a specific remedy before launch. Bundles follow the
+[skill migration plan](skills.md); agents receive the skills appropriate to the
+assignment rather than the entire catalog. Games are excluded.
+
 An assignment gives a role actual work: an objective, relevant context, criteria,
 expected deliverable, workspace and manager. Its details preserve the exact role
 configuration used. Editing a preset affects future assignments; changes to work
