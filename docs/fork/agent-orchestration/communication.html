@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #0a0a0a;
+        --foreground: #ededed;
+        --muted-foreground: #a3a3a3;
+        --card: #141414;
+        --secondary: #262626;
+        --border: #303030;
+        --primary: #82aaff;
+        --primary-foreground: #10131a;
+        --accent: #1b2b48;
+        --ring: #82aaff;
+        --warning: #f0b45b;
+        --warning-surface: #332710;
+        --destructive: #ff8e91;
+        --destructive-surface: #351c22;
+        --code-background: #101010;
+        --radius: 8px;
+        --font-sans: system-ui, sans-serif;
+        --font-mono: ui-monospace, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--foreground);
+        font: 14px/1.5 var(--font-sans, system-ui, sans-serif);
+      }
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+      button,
+      summary {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button {
+        cursor: pointer;
+        color: inherit;
+      }
+      button:focus-visible,
+      summary:focus-visible,
+      textarea:focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 3px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 0;
+        font-weight: 600;
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 14px;
+      }
+      .hint,
+      .muted {
+        color: var(--muted-foreground);
+      }
+      .hint {
+        font-size: 12px;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .tab {
+        border: 0;
+        background: transparent;
+        padding: 7px 11px;
+        border-radius: var(--radius);
+        font-size: 12px;
+        color: var(--muted-foreground);
+        min-height: 36px;
+      }
+      .tab[aria-selected="true"] {
+        color: var(--foreground);
+        background: var(--secondary);
+      }
+      .tab:hover {
+        background: var(--secondary);
+      }
+      .panel[hidden] {
+        display: none;
+      }
+      .feed {
+        display: grid;
+        gap: 6px;
+      }
+      .comm {
+        border-radius: var(--radius);
+        background: var(--card);
+        border: 1px solid var(--border);
+        overflow: hidden;
+      }
+      .comm[open] {
+        border-color: color-mix(in srgb, var(--border), var(--foreground) 16%);
+      }
+      summary {
+        list-style: none;
+        cursor: pointer;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 13px;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      .chevron {
+        flex: none;
+        width: 13px;
+        height: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-foreground);
+        font-size: 19px;
+        line-height: 13px;
+      }
+      .comm[open] > summary > .chevron {
+        transform: rotate(90deg);
+      }
+      .route {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        flex: 0 0 111px;
+      }
+      .copy {
+        font-size: 13px;
+        min-width: 0;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 450;
+      }
+      .badge {
+        font-size: 10px;
+        font-weight: 550;
+        white-space: nowrap;
+        border-radius: 5px;
+        padding: 2px 6px;
+        background: var(--secondary);
+        color: var(--muted-foreground);
+        flex: none;
+      }
+      .badge.waiting {
+        color: var(--warning);
+        background: var(--warning-surface, var(--secondary));
+      }
+      .badge.attention {
+        color: var(--primary);
+        background: var(--accent);
+      }
+      .badge.fail {
+        color: var(--destructive);
+        background: var(--destructive-surface, var(--secondary));
+      }
+      .time {
+        font-size: 10px;
+        color: var(--muted-foreground);
+        flex: none;
+      }
+      .body {
+        border-top: 1px solid var(--border);
+        padding: 16px;
+      }
+      .context {
+        font-size: 11px;
+        color: var(--muted-foreground);
+        margin: 0 0 14px;
+      }
+      .exchange {
+        display: grid;
+        gap: 14px;
+      }
+      .entry {
+        padding-left: 12px;
+        border-left: 2px solid var(--border);
+      }
+      .entry.latest {
+        border-left-color: var(--primary);
+      }
+      .who {
+        font-size: 11px;
+        color: var(--muted-foreground);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .who b {
+        color: var(--foreground);
+        font-weight: 550;
+      }
+      .entry p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .result {
+        margin-top: 16px;
+        border-radius: var(--radius);
+        padding: 12px;
+        background: var(--secondary);
+        font-size: 12px;
+      }
+      .result b {
+        font-weight: 550;
+        display: block;
+        margin-bottom: 3px;
+      }
+      .count {
+        font-size: 10px;
+        margin-left: 3px;
+        opacity: 0.8;
+      }
+      .raw {
+        margin-top: 14px;
+      }
+      .raw > summary {
+        padding: 5px 0;
+        min-height: 32px;
+        justify-content: flex-start;
+        font-size: 11px;
+        color: var(--muted-foreground);
+      }
+      .raw > summary:before {
+        content: "›";
+        font-size: 15px;
+        width: 10px;
+      }
+      .raw[open] > summary:before {
+        content: "⌄";
+      }
+      .raw pre {
+        margin: 8px 0 0;
+        padding: 12px;
+        background: var(--code-background, var(--secondary));
+        border-radius: var(--radius);
+        font: 11px/1.7 var(--font-mono, monospace);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        color: var(--muted-foreground);
+      }
+      .note {
+        font-size: 11px;
+        color: var(--muted-foreground);
+        margin: 14px 0 0;
+        line-height: 1.6;
+      }
+      .actionbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .action {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--secondary);
+        padding: 7px 11px;
+        font-size: 12px;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .action.primary {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: transparent;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted-foreground);
+        margin: 0;
+      }
+      .attention-note {
+        margin: 0 0 12px;
+        font-size: 12px;
+        color: var(--muted-foreground);
+      }
+      .reply {
+        margin-top: 14px;
+        display: grid;
+        gap: 9px;
+      }
+      .reply label {
+        font-size: 12px;
+      }
+      .reply textarea {
+        width: 100%;
+        resize: vertical;
+        min-height: 80px;
+        padding: 10px 12px;
+        border-radius: var(--radius);
+        background: var(--background);
+        border: 1px solid var(--border);
+        color: var(--foreground);
+        font-size: 13px;
+      }
+      .feedback {
+        min-height: 18px;
+        font-size: 12px;
+        color: var(--primary);
+        margin: 10px 0 0;
+      }
+      @media (max-width: 560px) {
+        .top {
+          align-items: flex-start;
+        }
+        .top .hint {
+          max-width: 140px;
+          text-align: right;
+        }
+        .comm > summary {
+          display: grid;
+          grid-template-columns: 13px 1fr auto;
+          column-gap: 9px;
+          row-gap: 4px;
+          min-height: 68px;
+        }
+        .chevron {
+          grid-row: 1/3;
+        }
+        .route {
+          grid-column: 2;
+          font-size: 10px;
+        }
+        .copy {
+          grid-column: 2/4;
+          grid-row: 2;
+          font-size: 12px;
+        }
+        .badge {
+          grid-column: 3;
+          grid-row: 1;
+        }
+        .time {
+          display: none;
+        }
+        .body {
+          padding: 14px;
+        }
+        .actionbar {
+          align-items: flex-start;
+        }
+        .tabs {
+          gap: 2px;
+        }
+        .tab {
+          padding: 7px 9px;
+          min-height: 40px;
+        }
+        .action {
+          min-height: 44px;
+        }
+        .raw > summary {
+          min-height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top">
+      <h2>Agent communications</h2>
+      <span class="hint" id="activity">No action needed</span>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Communication examples">
+      <button
+        class="tab"
+        id="tab-progress"
+        role="tab"
+        aria-controls="progress"
+        aria-selected="true"
+        tabindex="0"
+      >
+        Progress
+      </button>
+      <button
+        class="tab"
+        id="tab-question"
+        role="tab"
+        aria-controls="question"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        Needs your input
+      </button>
+      <button
+        class="tab"
+        id="tab-failure"
+        role="tab"
+        aria-controls="failure"
+        aria-selected="false"
+        tabindex="-1"
+      >
+        Delivery failed
+      </button>
+    </div>
+    <section class="panel" id="progress" role="tabpanel" aria-labelledby="tab-progress">
+      <div class="feed">
+        <details class="comm" id="handoff">
+          <summary>
+            <span class="chevron" aria-hidden="true">›</span
+            ><span class="route">Planner → Builder</span
+            ><span class="copy">Requested another native validation attempt</span
+            ><span class="badge">Handoff</span><span class="time">5:56</span>
+          </summary>
+          <div class="body">
+            <p class="context">A request from the planner, addressed to the builder.</p>
+            <div class="entry">
+              <div class="who"><b>Planner</b><span>5:56 PM</span></div>
+              <p>
+                Run native validation again when the device has a fresh idle window. Keep the pull
+                request in draft until the required checks complete.
+              </p>
+            </div>
+            <details class="raw">
+              <summary>Technical details</summary>
+              <pre>
+Kind: handoff
+Transport: submitted to the builder
+Execution result: not supplied by this message
+Original command, illustrative:
+hc agent send --pane &lt;builder-pane&gt; "&lt;retry brief&gt;"</pre>
+            </details>
+          </div>
+        </details>
+        <details class="comm" id="progress-exchange">
+          <summary>
+            <span class="chevron" aria-hidden="true">›</span
+            ><span class="route">Builder → Planner</span
+            ><span class="copy">Native tests are waiting for an idle window</span
+            ><span class="badge waiting">Waiting<span class="count">· 3 updates</span></span
+            ><span class="time">5:59</span>
+          </summary>
+          <div class="body">
+            <p class="context">3 related updates · the builder's latest report is shown above.</p>
+            <div class="exchange">
+              <div class="entry">
+                <div class="who"><b>Builder</b><span>5:57 PM</span></div>
+                <p>
+                  The new native validation attempt has started on the reviewed commit. The previous
+                  attempt's processes have stopped.
+                </p>
+              </div>
+              <div class="entry">
+                <div class="who"><b>Builder</b><span>5:58 PM</span></div>
+                <p>
+                  Build and shared fixtures passed. Native execution is waiting for the device to be
+                  idle.
+                </p>
+              </div>
+              <div class="entry latest">
+                <div class="who"><b>Builder</b><span>5:59 PM</span></div>
+                <p>
+                  Shared checks passed. Native tests are still waiting for the required idle time;
+                  the final result is pending.
+                </p>
+              </div>
+            </div>
+            <div class="result">
+              <b>What this means</b>The builder is waiting on the device. Native validation has not
+              been verified. No decision is currently requested from you.
+            </div>
+            <details class="raw">
+              <summary>Technical details · original message</summary>
+              <pre>
+Source: agent-reported progress
+Message kind: update
+Assignment: native-validation (example)
+Reply chain: none
+Transport: submitted; task completion is separate
+Original payload excerpt:
+"Build/shared fixtures passed; first native fixture phase is
+still in ordinary &gt;=120s HID wait ... full outcome pending."
+
+Process ids, log locations and the reviewed revision would
+appear here when attached to the real message.</pre>
+            </details>
+          </div>
+        </details>
+        <details class="comm" id="pr-state">
+          <summary>
+            <span class="chevron" aria-hidden="true">›</span><span class="route">Planner → You</span
+            ><span class="copy">PR #39 stays in draft pending native validation</span
+            ><span class="badge">Draft</span><span class="time">5:59</span>
+          </summary>
+          <div class="body">
+            <div class="entry">
+              <div class="who"><b>Planner</b><span>5:59 PM</span></div>
+              <p>
+                Web and shared checks passed. Native validation remains unverified, so the pull
+                request stays in draft while the attempt continues.
+              </p>
+            </div>
+            <details class="raw">
+              <summary>Technical details</summary>
+              <pre>
+Report: planner summary
+Reference: PR #39
+Native validation evidence: not yet available
+A draft PR is not a completed workflow.</pre>
+            </details>
+          </div>
+        </details>
+      </div>
+      <p class="note">
+        Expand any row to read the exchange. Commands and diagnostic data stay one level deeper.
+      </p>
+    </section>
+    <section class="panel" id="question" role="tabpanel" aria-labelledby="tab-question" hidden>
+      <p class="attention-note">
+        Example state: a decision is required. It remains visible until answered.
+      </p>
+      <details class="comm" id="question-exchange">
+        <summary>
+          <span class="chevron" aria-hidden="true">›</span><span class="route">Planner → You</span
+          ><span class="copy">Keep waiting for the device, or stop this attempt?</span
+          ><span class="badge attention" id="question-badge">Needs you</span>
+        </summary>
+        <div class="body">
+          <div class="entry">
+            <div class="who"><b>Planner</b><span>Question</span></div>
+            <p>
+              Native validation is still blocked on device access. Should I keep this attempt
+              waiting, or stop it and retain the unverified result?
+            </p>
+          </div>
+          <div class="reply">
+            <label for="answer">Your reply</label
+            ><textarea id="answer" placeholder="Tell the planner how to proceed…"></textarea>
+            <div class="actions">
+              <button class="action primary" id="reply-button">
+                <span aria-hidden="true">↗</span>Preview reply
+              </button>
+            </div>
+          </div>
+          <details class="raw">
+            <summary>Technical details</summary>
+            <pre>
+Kind: question
+Reply relation: explicit question id (example)
+A reply answers only this question.
+Stopping this attempt does not waive validation requirements.</pre>
+          </details>
+          <p class="feedback" id="answer-result" role="status"></p>
+        </div>
+      </details>
+      <div class="actionbar">
+        <p class="small">Waiting on your decision</p>
+        <button class="action primary" id="open-answer">
+          <span aria-hidden="true">↩</span>Answer question
+        </button>
+      </div>
+    </section>
+    <section class="panel" id="failure" role="tabpanel" aria-labelledby="tab-failure" hidden>
+      <p class="attention-note">
+        Example state: communication failed. The request remains inspectable.
+      </p>
+      <details class="comm" id="failed-exchange">
+        <summary>
+          <span class="chevron" aria-hidden="true">›</span
+          ><span class="route">Planner → Builder</span
+          ><span class="copy">The retry request did not reach the builder</span
+          ><span class="badge fail" id="failure-badge">Not delivered</span>
+        </summary>
+        <div class="body">
+          <div class="entry">
+            <div class="who"><b>Planner</b><span>Handoff</span></div>
+            <p>
+              Retry native validation in a fresh idle window and keep the pull request in draft.
+            </p>
+          </div>
+          <div class="result">
+            <b>Delivery failed</b>The builder was disconnected. This message does not confirm that
+            another validation attempt started.
+          </div>
+          <details class="raw">
+            <summary>Technical details</summary>
+            <pre>
+Transport: failed
+Reason: recipient disconnected (illustrative)
+Retry uses this message's identity and current assignment.
+It does not replay arbitrary shell commands.</pre>
+          </details>
+        </div>
+      </details>
+      <div class="actionbar">
+        <p class="small">No new attempt is confirmed</p>
+        <button class="action" id="retry"><span aria-hidden="true">↻</span>Preview retry</button>
+      </div>
+      <p class="feedback" id="retry-result" role="status"></p>
+    </section>
+    <p class="note">
+      Design concept only. Names and state examples are illustrative; progress wording is adapted
+      from your screenshot.
+    </p>
+    <script>
+      const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+      function pick(tab) {
+        tabs.forEach((t) => {
+          const active = t === tab;
+          t.setAttribute("aria-selected", String(active));
+          t.tabIndex = active ? 0 : -1;
+          document.getElementById(t.getAttribute("aria-controls")).hidden = !active;
+        });
+        document.getElementById("activity").textContent =
+          tab.id === "tab-question"
+            ? "1 decision needs you"
+            : tab.id === "tab-failure"
+              ? "1 delivery needs attention"
+              : "No action needed";
+      }
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => pick(tab));
+        tab.addEventListener("keydown", (e) => {
+          let target;
+          if (e.key === "ArrowRight") target = tabs[(index + 1) % tabs.length];
+          if (e.key === "ArrowLeft") target = tabs[(index + tabs.length - 1) % tabs.length];
+          if (e.key === "Home") target = tabs[0];
+          if (e.key === "End") target = tabs[tabs.length - 1];
+          if (target) {
+            e.preventDefault();
+            pick(target);
+            target.focus();
+          }
+        });
+      });
+      document.getElementById("open-answer").addEventListener("click", () => {
+        document.getElementById("question-exchange").open = true;
+        document.getElementById("answer").focus();
+      });
+      document.getElementById("reply-button").addEventListener("click", () => {
+        const a = document.getElementById("answer");
+        const result = document.getElementById("answer-result");
+        if (!a.value.trim()) {
+          result.textContent = "Write a reply first.";
+          a.focus();
+          return;
+        }
+        result.textContent = "Preview: your reply is linked to this question. No message was sent.";
+      });
+      document.getElementById("retry").addEventListener("click", () => {
+        document.getElementById("retry-result").textContent =
+          "Preview: retry delivery using the same message identity. No retry was sent.";
+      });
+      if (document.documentElement.dataset.preview === "expanded")
+        document.getElementById("progress-exchange").open = true;
+    </script>
+  </body>
+</html>

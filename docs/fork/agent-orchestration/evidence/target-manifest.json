@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0-nightly.20261102.290.1",
+  "asarSha256": "845f0daab03e7183873212ba7fe8c50b2c10c0c15d5ccf372707ee0f85a3b1a7",
+  "files": {
+    "hc-project.mjs": "ca91b4c541b91c270324397db634781e79234f1c8148f30fac607b627b79960f",
+    "renderer.js": "ac1a5f27181c56f74ba859f9b25a52f717106a7e20caa00cc48744de148b9284",
+    "preload.mjs": "0df672c478da671b689ca1d8483e8d4e1cc3496ab4f12ff5960f9efeae6564b9",
+    "main.js": "f4204e3aef8b4aaf535654cad644d7a57a6f5f599627ff88151fb0464bacba22",
+    "hc-workspace.mjs": "b79fec4506126b285e9a6bf90b83813995e1939a674cce131ea2c25b26fd98bf",
+    "main-G1ilvf_H.js": "8baf4ee7fa0dac6ee7a8b25acccff2fc43c497d0cb7f8a327f22997104035c11",
+    "hc-control.mjs": "4cf2ebf685b751062528cbcdfe9411ced6cb66656a004ed3605fc449a5f52166",
+    "hc-agent.mjs": "7728a0a700405b756dad2942ba793a6baf702645c58656618aabbd1e10b1a82b"
+  },
+  "installedWorkflowSha256": "53a584ba83f785011c8533805e8242aaaa8e09a7e21c4dcc5bfba86ffc9afdfa",
+  "_publication": {
+    "sourceFileSha256": "df8c83d9cad3d6807fa6d1adddbcf297807f664c633c0143598e8e9b18da2160",
+    "normalization": "Investigation-local absolute path prefix replaced with /tmp/hypercoder-analysis; embedded REA evidence ids refer to the original unmodified results.",
+    "localArtifactsIncluded": false
+  }
+}
