@@ -1,11 +1,23 @@
 import * as Schema from "effect/Schema";
 import { NonNegativeInt, ProjectId, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { ThreadPullRequestLink } from "./threadPullRequest.ts";
+import { ModelSelection } from "./modelSelection.ts";
+import { ProviderInteractionMode, RuntimeMode } from "./providerPolicy.ts";
 
 export const RoadmapCard = Schema.Struct({
   id: TrimmedNonEmptyString.check(Schema.isMaxLength(128)),
   title: TrimmedNonEmptyString.check(Schema.isMaxLength(200)),
   summary: Schema.String.check(Schema.isMaxLength(20_000)),
+  specPath: Schema.optional(Schema.NullOr(TrimmedNonEmptyString.check(Schema.isMaxLength(2_000)))),
+  acceptanceCriteria: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        id: TrimmedNonEmptyString.check(Schema.isMaxLength(128)),
+        text: TrimmedNonEmptyString.check(Schema.isMaxLength(2_000)),
+        checked: Schema.Boolean,
+      }),
+    ).check(Schema.isMaxLength(200)),
+  ),
   type: Schema.Literals(["feature", "bug", "chore", "spike"]),
   effort: Schema.Literals(["XS", "S", "M", "L", "XL"]),
   lane: Schema.Literals(["backlog", "upNext"]),
@@ -27,6 +39,9 @@ export const RoadmapLinkedThread = Schema.Struct({
   title: Schema.String,
   archivedAt: Schema.NullOr(Schema.String),
   pullRequests: Schema.Array(ThreadPullRequestLink),
+  modelSelection: ModelSelection,
+  runtimeMode: RuntimeMode,
+  interactionMode: ProviderInteractionMode,
 });
 export type RoadmapLinkedThread = typeof RoadmapLinkedThread.Type;
 

@@ -2,31 +2,16 @@ import { useAtomValue } from "@effect/atom-react";
 import { scopedProjectKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
-import {
-  type RoadmapBoard,
-  type RoadmapCard,
-  type RoadmapLinkedThread,
-  ThreadId,
-} from "@t3tools/contracts";
+import { type RoadmapBoard, type RoadmapCard, type RoadmapLinkedThread } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import * as Option from "effect/Option";
 import { ArrowDownIcon, ArrowUpIcon, KanbanIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
-import {
-  Dialog,
-  DialogPopup,
-  DialogTitle,
-  DialogDescription,
-  DialogHeader,
-  DialogPanel,
-  DialogFooter,
-} from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { SidebarInset, SidebarTrigger } from "../components/ui/sidebar";
-import { Textarea } from "../components/ui/textarea";
 import { WorkspacePageHeader } from "../components/WorkspacePageHeader";
 import { isElectron } from "../env";
 import { randomUUID } from "../lib/utils";
@@ -34,7 +19,18 @@ import { useNewThreadHandler } from "../hooks/useHandleNewThread";
 import { useProjects, useThreadShells } from "../state/entities";
 import { useAtomCommand } from "../state/use-atom-command";
 import { useAtomQueryRunner } from "../state/use-atom-query-runner";
-import { mergeRoadmapEdit, moveRoadmapCard, roadmapColumn, ROADMAP_COLUMNS } from "./roadmap.logic";
+import {
+  mergeRoadmapEdit,
+  moveRoadmapCard,
+  roadmapColumn,
+  roadmapDropAction,
+  ROADMAP_COLUMNS,
+  type RoadmapColumn,
+} from "./roadmap.logic";
+import { threadEnvironment } from "../state/threads";
+import { CardDrawer } from "./CardDrawer";
+import { RoadmapDrag, RoadmapDragCard, RoadmapDropZone } from "./RoadmapDrag";
+import { useRoadmapWork } from "./useRoadmapWork";
 import { roadmapRead, roadmapSave } from "./roadmapState";
 
 const SELECT = "rounded-md border border-input bg-background px-2 py-1.5 text-sm";
@@ -98,19 +94,25 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
   const result = useAtomValue(roadmapRead(target));
   const canSave = useAtomValue(roadmapSave.permissionAtom(project.environmentId));
   const saveCommand = useAtomCommand(roadmapSave, { reportFailure: false });
+  const archiveThread = useAtomCommand(threadEnvironment.archive, { reportFailure: false });
   const reload = useAtomQueryRunner(roadmapRead, { refresh: true });
   const threads = useThreadShells().filter(
     (t) => t.environmentId === project.environmentId && t.projectId === project.id,
   );
   const [saved, setSaved] = useState<RoadmapBoard | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savePending = useRef(false);
+  const transitioning = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<{ card: RoadmapCard; board: RoadmapBoard } | null>(null);
   const view = Option.getOrNull(AsyncResult.value(result));
   const fetched = view?.board ?? null;
   const board = saved && (!fetched || saved.revision > fetched.revision) ? saved : fetched;
+  const work = useRoadmapWork(project, save);
+  const busy = saving || work.working;
   const threadsById = new Map(
     [...threads, ...(view?.linkedThreads ?? [])].map((thread) => [thread.id, thread]),
   );
@@ -119,37 +121,83 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
 
   async function save(cards: ReadonlyArray<RoadmapCard>, revision?: number) {
     const expectedRevision = revision ?? board?.revision;
-    if (expectedRevision === undefined || busy || !canSave) return false;
-    setBusy(true);
+    if (expectedRevision === undefined || savePending.current || !canSave) return null;
+    savePending.current = true;
+    setSaving(true);
     const outcome = await saveCommand({
       environmentId: project.environmentId,
       input: { projectId: project.id, expectedRevision, cards },
     });
-    setBusy(false);
+    savePending.current = false;
+    setSaving(false);
     if (outcome._tag === "Failure") {
-      const cause = squashAtomCommandFailure(outcome);
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Could not save the roadmap. Reload and try again.",
-      );
-      return false;
+      setError(commandError(outcome));
+      return null;
     }
     setSaved(outcome.value);
     setError(null);
-    return true;
+    return outcome.value;
   }
 
-  function move(id: string, lane: RoadmapCard["lane"], beforeId?: string) {
-    if (!board) return;
-    const card = board.cards.find((c) => c.id === id);
-    if (
-      !card ||
-      card.archived ||
-      !["backlog", "upNext"].includes(roadmapColumn(card, threadFor(card)))
-    )
+  async function drop(id: string, column: RoadmapColumn, beforeId?: string) {
+    if (!board || busy || !canSave || showArchived || transitioning.current) return;
+    const card = board.cards.find((row) => row.id === id);
+    if (!card || card.archived) return;
+    const thread = threadFor(card);
+    const current = roadmapColumn(card, thread);
+    if (current === column) {
+      await save(moveRoadmapCard(board.cards, id, card.lane, beforeId));
       return;
-    void save(moveRoadmapCard(board.cards, id, lane, beforeId));
+    }
+    const action = roadmapDropAction(card, column, thread);
+    if (action.type === "blocked") {
+      setError(action.message);
+      return;
+    }
+    transitioning.current = true;
+    setError(null);
+    setNotice(null);
+    if (action.type === "work") {
+      const next = card.completed
+        ? await save(
+            board.cards.map((row) => (row.id === id ? { ...row, completed: false } : row)),
+            board.revision,
+          )
+        : board;
+      if (next) {
+        const failure = await work.run({ ...card, completed: false }, next, action.mode, thread);
+        if (failure) setError(failure);
+        else
+          setNotice(
+            action.mode === "review"
+              ? "Agent review started. The card follows the pull request as the review progresses."
+              : "Work started in the linked thread.",
+          );
+      }
+    } else if (action.type === "park" || (action.type === "plan" && action.archiveThread)) {
+      if (thread) {
+        const archived = await archiveThread({
+          environmentId: project.environmentId,
+          input: { threadId: thread.id },
+        });
+        if (archived._tag === "Failure") setError(commandError(archived));
+        else if (action.type === "plan")
+          await save(moveRoadmapCard(board.cards, id, action.lane, beforeId));
+      }
+    } else if (action.type === "plan") {
+      await save(
+        moveRoadmapCard(
+          board.cards.map((row) => (row.id === id ? { ...row, completed: false } : row)),
+          id,
+          action.lane,
+          beforeId,
+        ),
+      );
+    } else if (action.type === "complete") {
+      await save(board.cards.map((row) => (row.id === id ? { ...row, completed: true } : row)));
+    }
+    transitioning.current = false;
+    void reload(target);
   }
 
   if (!board)
@@ -170,7 +218,88 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
       card.archived === showArchived &&
       `${card.title} ${card.summary}`.toLowerCase().includes(query.toLowerCase()),
   );
-  const patch = (card: RoadmapCard) => save(board.cards.map((c) => (c.id === card.id ? card : c)));
+  const disabled = busy || !canSave || showArchived;
+  const patch = (card: RoadmapCard) =>
+    save(board.cards.map((row) => (row.id === card.id ? card : row)));
+
+  function renderCards(column: RoadmapColumn, rows: ReadonlyArray<RoadmapCard>) {
+    return rows.map((card, index) => (
+      <RoadmapDragCard
+        key={card.id}
+        card={card}
+        column={column}
+        disabled={disabled}
+        onOpen={() => {
+          setError(null);
+          setEditing({ card, board: board! });
+        }}
+      >
+        <button
+          className="w-full text-left text-sm font-medium leading-snug hover:underline"
+          onClick={() => {
+            setError(null);
+            setEditing({ card, board: board! });
+          }}
+        >
+          {card.title}
+        </button>
+        {card.summary ? (
+          <p className="line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+            {card.summary}
+          </p>
+        ) : null}
+        {card.acceptanceCriteria?.length ? (
+          <p className="text-xs text-muted-foreground">
+            {card.acceptanceCriteria.filter((row) => row.checked).length}/
+            {card.acceptanceCriteria.length} criteria complete
+          </p>
+        ) : null}
+        <CardThread card={card} thread={threadFor(card)} project={project} />
+        <div className="flex flex-wrap items-center gap-1">
+          {(column === "backlog" || column === "upNext") && !showArchived ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={disabled}
+                onClick={() => void drop(card.id, column === "backlog" ? "upNext" : "backlog")}
+              >
+                {column === "backlog" ? "Prioritize" : "Backlog"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Move ${card.title} up`}
+                disabled={disabled || index === 0}
+                onClick={() => void drop(card.id, column, rows[index - 1]?.id)}
+              >
+                <ArrowUpIcon className="size-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Move ${card.title} down`}
+                disabled={disabled || index === rows.length - 1}
+                onClick={() =>
+                  void save(moveRoadmapCard(board!.cards, card.id, card.lane, rows[index + 2]?.id))
+                }
+              >
+                <ArrowDownIcon className="size-3" />
+              </Button>
+            </>
+          ) : null}
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy || !canSave}
+            onClick={() => void patch({ ...card, archived: !card.archived })}
+          >
+            {card.archived ? "Restore" : "Archive"}
+          </Button>
+        </div>
+      </RoadmapDragCard>
+    ));
+  }
 
   return (
     <>
@@ -181,7 +310,7 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
             aria-label="Search roadmap"
             placeholder="Search cards…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(event) => setQuery(event.target.value)}
           />
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
@@ -206,7 +335,8 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
           <Button
             size="sm"
             disabled={busy || !canSave}
-            onClick={() =>
+            onClick={() => {
+              setError(null);
               setEditing({
                 board,
                 card: {
@@ -220,8 +350,8 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
                   completed: false,
                   archived: false,
                 },
-              })
-            }
+              });
+            }}
           >
             <PlusIcon className="size-4" />
             Add idea
@@ -233,144 +363,97 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
           Read only. Roadmap edits require permission to operate this environment.
         </p>
       ) : null}
-      {error ? (
+      {error && !editing ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
-      <div
-        className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-3"
-        aria-label={showArchived ? "Archived roadmap" : "Project roadmap"}
-        aria-busy={busy}
-      >
-        {ROADMAP_COLUMNS.map(([column, title, subtitle]) => {
-          const inColumn = cards.filter((card) => roadmapColumn(card, threadFor(card)) === column);
-          const planning = column === "backlog" || column === "upNext";
-          return (
-            <section
-              key={column}
-              aria-label={title}
-              className="flex w-72 shrink-0 flex-col rounded-xl border border-border/60 bg-muted/25"
-              onDragOver={(event) => {
-                if (planning && !showArchived && canSave) event.preventDefault();
-              }}
-              onDrop={(event) => {
-                if (!planning || showArchived) return;
-                event.preventDefault();
-                move(event.dataTransfer.getData("text/t3-roadmap-card"), column);
-              }}
-            >
-              <div className="border-b border-border/50 p-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">{title}</h3>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {inColumn.length}
-                  </span>
+      {notice ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {notice}
+        </p>
+      ) : null}
+      <RoadmapDrag cards={cards} onMove={(id, column, before) => void drop(id, column, before)}>
+        <div
+          className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-3"
+          aria-label={showArchived ? "Archived roadmap" : "Project roadmap"}
+          aria-busy={busy}
+        >
+          {ROADMAP_COLUMNS.map(([column, title, subtitle]) => {
+            const rows = cards.filter((card) => {
+              const state = roadmapColumn(card, threadFor(card));
+              return column === "inReview"
+                ? state === "ready" || state === "reviewing"
+                : state === column;
+            });
+            return (
+              <RoadmapDropZone
+                key={column}
+                id={`lane:${column}`}
+                column={column === "inReview" ? "reviewing" : column}
+                label={title}
+                disabled={disabled}
+              >
+                <div className="border-b border-border/50 p-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">{title}</h3>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {rows.length}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-              </div>
-              <div className="flex-1 space-y-2 overflow-y-auto p-2">
-                {inColumn.length === 0 ? (
-                  <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-                    {planning ? "Space for your next idea" : "Linked work appears here"}
-                  </p>
-                ) : null}
-                {inColumn.map((card, index) => (
-                  <article
-                    key={card.id}
-                    className="space-y-3 rounded-lg border border-border bg-background p-3 shadow-sm"
-                    draggable={planning && !showArchived && canSave && !busy}
-                    onDragStart={(event) =>
-                      event.dataTransfer.setData("text/t3-roadmap-card", card.id)
-                    }
-                    onDragOver={(event) => {
-                      if (planning && !showArchived && canSave) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                      }
-                    }}
-                    onDrop={(event) => {
-                      if (planning && !showArchived) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        move(event.dataTransfer.getData("text/t3-roadmap-card"), column, card.id);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center justify-between text-2xs text-muted-foreground">
-                      <span className="uppercase tracking-wide">{card.type}</span>
-                      <span>{card.effort}</span>
-                    </div>
-                    <button
-                      className="w-full text-left text-sm font-medium leading-snug hover:underline"
-                      onClick={() => setEditing({ card, board })}
-                    >
-                      {card.title}
-                    </button>
-                    {card.summary ? (
-                      <p className="line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                        {card.summary}
-                      </p>
-                    ) : null}
-                    <CardThread card={card} thread={threadFor(card)} project={project} />
-                    <div className="flex flex-wrap items-center gap-1">
-                      {planning && !showArchived ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={busy || !canSave}
-                            onClick={() =>
-                              move(card.id, column === "backlog" ? "upNext" : "backlog")
-                            }
+                <div className="min-h-32 flex-1 space-y-3 overflow-y-auto p-2">
+                  {rows.length === 0 ? (
+                    <p className="px-2 py-6 text-center text-xs text-muted-foreground">
+                      {column === "building"
+                        ? "Drop a card to start building"
+                        : column === "inReview"
+                          ? "Drop built work to start an agent review"
+                          : "Drop a card here"}
+                    </p>
+                  ) : null}
+                  {column === "inReview"
+                    ? (["ready", "reviewing"] as const).map((state) => {
+                        const group = rows.filter(
+                          (card) => roadmapColumn(card, threadFor(card)) === state,
+                        );
+                        if (!group.length) return null;
+                        const label = state === "ready" ? "Your review" : "Agent review";
+                        return (
+                          <RoadmapDropZone
+                            key={state}
+                            id={`group:${state}`}
+                            column={state}
+                            label={label}
+                            disabled={disabled}
+                            group
                           >
-                            {column === "backlog" ? "Prioritize" : "Backlog"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Move ${card.title} up`}
-                            disabled={busy || !canSave || index === 0}
-                            onClick={() => move(card.id, column, inColumn[index - 1]?.id)}
-                          >
-                            <ArrowUpIcon className="size-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Move ${card.title} down`}
-                            disabled={busy || !canSave || index === inColumn.length - 1}
-                            onClick={() => {
-                              const after = inColumn[index + 2];
-                              move(card.id, column, after?.id);
-                            }}
-                          >
-                            <ArrowDownIcon className="size-3" />
-                          </Button>
-                        </>
-                      ) : null}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={busy || !canSave}
-                        onClick={() => void patch({ ...card, archived: !card.archived })}
-                      >
-                        {card.archived ? "Restore" : "Archive"}
-                      </Button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+                            <h4 className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              {label} · {group.length}
+                            </h4>
+                            {renderCards(state, group)}
+                          </RoadmapDropZone>
+                        );
+                      })
+                    : renderCards(column, rows)}
+                </div>
+              </RoadmapDropZone>
+            );
+          })}
+        </div>
+      </RoadmapDrag>
       {editing ? (
-        <CardEditor
+        <CardDrawer
           key={editing.card.id}
+          project={project}
           card={editing.card}
-          latest={editing.board.cards.find((c) => c.id === editing.card.id)}
+          latest={editing.board.cards.find((row) => row.id === editing.card.id)}
           error={error}
+          threads={[...threadsById.values()]}
+          disabled={busy || !canSave}
+          busy={busy}
+          onClose={() => setEditing(null)}
           onReload={async () => {
             const read = await reload(target);
             if (read._tag === "Success") {
@@ -379,28 +462,51 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
               setError(null);
             }
           }}
-          threads={[...threadsById.values()]}
-          disabled={busy || !canSave}
-          busy={busy}
-          onClose={() => setEditing(null)}
-          onSave={async (card) => {
-            const exists = editing.board.cards.some((c) => c.id === card.id);
-            if (
-              await save(
-                exists
-                  ? editing.board.cards.map((c) =>
-                      c.id === card.id ? mergeRoadmapEdit(editing.card, card, c) : c,
-                    )
-                  : [...editing.board.cards, card],
-                editing.board.revision,
-              )
-            )
-              setEditing(null);
+          onSave={async (draft, mode) => {
+            if (mode) {
+              const action = roadmapDropAction(
+                draft,
+                mode === "build" ? "building" : "reviewing",
+                threadFor(draft),
+              );
+              if (action.type === "blocked") {
+                setError(action.message);
+                return;
+              }
+            }
+            const update = mode ? { ...draft, completed: false } : draft;
+            const exists = editing.board.cards.some((row) => row.id === draft.id);
+            const next = await save(
+              exists
+                ? editing.board.cards.map((row) =>
+                    row.id === draft.id ? mergeRoadmapEdit(editing.card, update, row) : row,
+                  )
+                : [...editing.board.cards, update],
+              editing.board.revision,
+            );
+            if (!next) return;
+            if (mode) {
+              const card = next.cards.find((row) => row.id === draft.id)!;
+              const failure = await work.run(card, next, mode, threadFor(card));
+              if (failure) {
+                setError(failure);
+                setEditing({ card, board: next });
+                return;
+              }
+            }
+            setEditing(null);
           }}
         />
       ) : null}
     </>
   );
+}
+
+function commandError(result: Parameters<typeof squashAtomCommandFailure>[0]) {
+  const cause = squashAtomCommandFailure(result);
+  return cause instanceof Error
+    ? cause.message
+    : "The roadmap action failed. Reload and try again.";
 }
 
 function CardThread({
@@ -444,194 +550,5 @@ function CardThread({
     >
       Plan in thread
     </Button>
-  );
-}
-
-function CardEditor({
-  card,
-  latest,
-  error,
-  onReload,
-  threads,
-  disabled,
-  busy,
-  onClose,
-  onSave,
-}: {
-  card: RoadmapCard;
-  latest: RoadmapCard | undefined;
-  error: string | null;
-  onReload: () => Promise<void>;
-  threads: ReadonlyArray<RoadmapLinkedThread>;
-  disabled: boolean;
-  busy: boolean;
-  onClose: () => void;
-  onSave: (card: RoadmapCard) => Promise<void>;
-}) {
-  const [draft, setDraft] = useState(card);
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !busy) onClose();
-      }}
-    >
-      <DialogPopup>
-        <DialogHeader>
-          <DialogTitle>{card.title || "Capture an idea"}</DialogTitle>
-          <DialogDescription>Link a thread to follow its work and pull requests.</DialogDescription>
-        </DialogHeader>
-        <DialogPanel>
-          {error ? (
-            <div className="space-y-2">
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={disabled}
-                onClick={() => void onReload()}
-              >
-                Reload board and keep my draft
-              </Button>
-            </div>
-          ) : null}
-          {latest && latest !== card ? (
-            <details className="text-sm text-muted-foreground">
-              <summary>Latest saved card (review before replacing it)</summary>
-              <p className="mt-2 font-medium">{latest.title}</p>
-              <p className="whitespace-pre-wrap">{latest.summary}</p>
-              <p>
-                {latest.type} · {latest.effort} · {latest.lane === "upNext" ? "Up Next" : "Backlog"}
-              </p>
-              <p>
-                {latest.completed ? "Completed" : "Incomplete"} ·{" "}
-                {latest.archived ? "Archived" : "On board"}
-              </p>
-              <p>
-                Thread:{" "}
-                {threads.find((thread) => thread.id === latest.threadId)?.title ??
-                  "No available linked thread"}
-              </p>
-            </details>
-          ) : null}
-          <form
-            id="roadmap-card-editor"
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void onSave({ ...draft, title: draft.title.trim() });
-            }}
-          >
-            <label className="block space-y-1 text-sm">
-              <span>Title</span>
-              <Input
-                autoFocus
-                required
-                maxLength={200}
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span>Summary / brief</span>
-              <Textarea
-                maxLength={20_000}
-                value={draft.summary}
-                onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
-              />
-            </label>
-            <div className="flex flex-wrap gap-3">
-              <label className="flex flex-col gap-1 text-sm">
-                Type
-                <select
-                  className={SELECT}
-                  value={draft.type}
-                  onChange={(e) =>
-                    setDraft({ ...draft, type: e.target.value as RoadmapCard["type"] })
-                  }
-                >
-                  {["feature", "bug", "chore", "spike"].map((type) => (
-                    <option key={type}>{type}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Effort
-                <select
-                  className={SELECT}
-                  value={draft.effort}
-                  onChange={(e) =>
-                    setDraft({ ...draft, effort: e.target.value as RoadmapCard["effort"] })
-                  }
-                >
-                  {["XS", "S", "M", "L", "XL"].map((effort) => (
-                    <option key={effort}>{effort}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Planning lane
-                <select
-                  className={SELECT}
-                  value={draft.lane}
-                  onChange={(e) =>
-                    setDraft({ ...draft, lane: e.target.value as RoadmapCard["lane"] })
-                  }
-                >
-                  <option value="backlog">Backlog</option>
-                  <option value="upNext">Up Next</option>
-                </select>
-              </label>
-            </div>
-            <label className="flex flex-col gap-1 text-sm">
-              Linked thread
-              <select
-                className={SELECT}
-                value={draft.threadId ?? ""}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    threadId: e.target.value ? ThreadId.make(e.target.value) : null,
-                  })
-                }
-              >
-                <option value="">No thread linked</option>
-                {draft.threadId && !threads.some((t) => t.id === draft.threadId) ? (
-                  <option value={draft.threadId}>Thread unavailable</option>
-                ) : null}
-                {threads.map((t) => (
-                  <option value={t.id} key={t.id}>
-                    {t.title}
-                    {t.archivedAt ? " (archived)" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={draft.completed}
-                onChange={(e) => setDraft({ ...draft, completed: e.target.checked })}
-              />
-              Mark complete manually
-            </label>
-          </form>
-        </DialogPanel>
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="roadmap-card-editor"
-            disabled={disabled || !draft.title.trim()}
-          >
-            Save card
-          </Button>
-        </DialogFooter>
-      </DialogPopup>
-    </Dialog>
   );
 }

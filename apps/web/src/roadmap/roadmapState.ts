@@ -2,7 +2,7 @@ import {
   createEnvironmentRpcCommand,
   createEnvironmentRpcQueryAtomFamily,
 } from "@t3tools/client-runtime/state/runtime";
-import { WS_METHODS } from "@t3tools/contracts";
+import { WS_METHODS, ORCHESTRATION_V2_WS_METHODS } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import { connectionAtomRuntime } from "../connection/runtime";
 
@@ -11,6 +11,11 @@ export const roadmapRead = createEnvironmentRpcQueryAtomFamily(connectionAtomRun
   tag: WS_METHODS.roadmapRead,
   staleTimeMs: 0,
   refreshIntervalMs: 5_000,
+});
+
+export const roadmapLaunch = createEnvironmentRpcCommand(connectionAtomRuntime, {
+  label: "Start roadmap work",
+  tag: ORCHESTRATION_V2_WS_METHODS.launchThread,
 });
 
 export const roadmapSave = createEnvironmentRpcCommand(connectionAtomRuntime, {

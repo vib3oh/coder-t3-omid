@@ -130,15 +130,34 @@ describe("RoadmapService", () => {
       const service = yield* RoadmapService.RoadmapService;
       const projectId = ProjectId.make("one");
       expect(yield* service.read({ projectId })).toEqual({ version: 1, revision: 0, cards: [] });
-      const saved = yield* service.save({ projectId, expectedRevision: 0, cards: [card] });
+      yield* service.save({ projectId, expectedRevision: 0, cards: [card] });
+      const detailed = yield* service.save({
+        projectId,
+        expectedRevision: 1,
+        cards: [
+          {
+            ...card,
+            specPath: "docs/roadmap/board.md",
+            acceptanceCriteria: [
+              { id: "criterion", text: "The board survives a restart", checked: true },
+            ],
+          },
+        ],
+      });
+      expect(detailed.cards[0]).toMatchObject({
+        specPath: "docs/roadmap/board.md",
+        acceptanceCriteria: [
+          { id: "criterion", text: "The board survives a restart", checked: true },
+        ],
+      });
       const fresh = yield* RoadmapService.RoadmapService.pipe(
         Effect.provide(Layer.fresh(RoadmapService.layer)),
       );
-      expect(yield* fresh.read({ projectId })).toEqual(saved);
+      expect(yield* fresh.read({ projectId })).toEqual(detailed);
       expect((yield* service.read({ projectId: ProjectId.make("two") })).cards).toEqual([]);
       const revised = yield* service.save({
         projectId,
-        expectedRevision: 1,
+        expectedRevision: 2,
         cards: [{ ...card, archived: true }],
       });
       expect(revised.cards[0]?.archived).toBe(true);
@@ -176,6 +195,16 @@ describe("RoadmapService", () => {
       expect(
         yield* service
           .save({ projectId, expectedRevision: 0, cards: [card, card] })
+          .pipe(Effect.flip),
+      ).toMatchObject({ reason: "invalid" });
+      const criterion = { id: "criterion", text: "Works", checked: false };
+      expect(
+        yield* service
+          .save({
+            projectId,
+            expectedRevision: 0,
+            cards: [{ ...card, acceptanceCriteria: [criterion, criterion] }],
+          })
           .pipe(Effect.flip),
       ).toMatchObject({ reason: "invalid" });
       yield* service.save({ projectId, expectedRevision: 0, cards: [card] });

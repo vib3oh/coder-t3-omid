@@ -25,11 +25,15 @@
         "apps/web/src/components/sidebar/SidebarChrome.tsx",
         "apps/web/src/components/sidebar/mainAppLocation.ts",
         "apps/web/src/routeTree.gen.ts",
-        "apps/server/src/observability/RpcInstrumentation.ts"
+        "apps/server/src/observability/RpcInstrumentation.ts",
+        "packages/client-runtime/src/operations/commands.ts"
       ],
       "verificationPaths": [
         "packages/client-runtime/src/state/commandPermissions.test.ts",
-        "apps/server/src/ws.test.ts"
+        "packages/client-runtime/src/operations/commands.test.ts",
+        "apps/server/src/ws.test.ts",
+        "apps/web/test/browserSetup.ts",
+        "apps/web/vite.config.ts"
       ]
     }
   }

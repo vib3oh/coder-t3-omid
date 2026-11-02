@@ -3,8 +3,8 @@
 Verified on 2026-11-02 against the initial upstream commit in `fork.json`.
 
 `vp run check:changed` passed formatting, lint, both unused-code checks, GraphQL
-generation validation, typechecking of the 39 affected packages, 72 tests in
-eight files, and React Compiler coverage for six changed client modules. The
+generation validation, typechecking of the 39 affected packages, 95 tests in
+ten files, and React Compiler coverage for ten changed client modules. The
 complete upstream test and release suites were not run.
 
 The roadmap tests exercise persisted boards across fresh service instances,
@@ -16,10 +16,19 @@ foreign-project and unlinked threads are excluded.
 Chromium component tests exercise a card draft during a competing edit and a
 background refresh, conflict feedback, reloading without losing the draft,
 preserving concurrent metadata when saving the rebased draft, and closing a
-read-only editor. Lifecycle tests cover draft/ready/merged PRs, archived work,
+read-only drawer. They also verify review-section visibility, checklist/spec
+edits, real pointer drags that route to thread launch or review, reserved-thread
+launch retry, worktree defaults, and archived-thread resume. Transport calls are
+mocked in these Chromium tests; no paid provider is launched. Screenshots and a
+short drag recording are attached to the PR rather than committed.
+
+Lifecycle tests cover draft/ready/merged PRs, archived work,
 dismissed stack links, mixed open and merged PRs, and card ranking. The existing
 permission test table now exercises the roadmap mutation’s target-environment
-grant at availability and execution.
+grant at availability and execution, including the existing launch-thread RPC.
+Persistence tests include optional spec/checklist fields on legacy boards and
+duplicate criterion-id rejection; merge tests cover independent checkbox/text
+edits and concurrent criterion additions.
 
 The production web build (`vp build` from `apps/web`) passed. It emitted the
 upstream large-chunk warning. An isolated dev server also started successfully

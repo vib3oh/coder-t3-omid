@@ -70,7 +70,13 @@ const make = Effect.gen(function* () {
         const current = yield* read(input);
         if (current.revision !== input.expectedRevision)
           return yield* new RoadmapError({ reason: "conflict" });
-        if (new Set(input.cards.map((card) => card.id)).size !== input.cards.length) {
+        if (
+          new Set(input.cards.map((card) => card.id)).size !== input.cards.length ||
+          input.cards.some((card) => {
+            const criteria = card.acceptanceCriteria ?? [];
+            return new Set(criteria.map((row) => row.id)).size !== criteria.length;
+          })
+        ) {
           return yield* new RoadmapError({ reason: "invalid" });
         }
         const next = yield* decodeBoard({
@@ -113,6 +119,9 @@ const make = Effect.gen(function* () {
         [...snapshot.threads, ...snapshot.archivedThreads].map((thread) => ({
           id: thread.id,
           title: thread.title,
+          modelSelection: thread.modelSelection,
+          runtimeMode: thread.runtimeMode,
+          interactionMode: thread.interactionMode,
           archivedAt: thread.archivedAt ? DateTime.formatIso(thread.archivedAt) : null,
           pullRequests: thread.pullRequests ?? [],
         })),
