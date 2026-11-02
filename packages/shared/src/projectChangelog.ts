@@ -1,4 +1,7 @@
 import type { ChangelogEntry, ChangelogType } from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
+
+const localTimeZone = DateTime.zoneMakeLocal();
 
 export const CHANGELOG_TYPES = ["feature", "bug", "chore", "spike", "untyped"] as const;
 export const CHANGELOG_LABELS = {
@@ -11,14 +14,16 @@ export const CHANGELOG_LABELS = {
 export type ChangelogRange = "today" | "7d" | "30d";
 
 export function changelogDay(at: string | number) {
-  const day = new Date(at);
-  day.setHours(0, 0, 0, 0);
-  return day.getTime();
+  return DateTime.toEpochMillis(
+    DateTime.startOf(DateTime.makeZonedUnsafe(at, { timeZone: localTimeZone }), "day"),
+  );
 }
 export function changelogDayOffset(now: number, offset: number) {
-  const day = new Date(changelogDay(now));
-  day.setDate(day.getDate() - offset);
-  return day.getTime();
+  return DateTime.toEpochMillis(
+    DateTime.subtract(DateTime.makeZonedUnsafe(changelogDay(now), { timeZone: localTimeZone }), {
+      days: offset,
+    }),
+  );
 }
 export function changelogSince(range: ChangelogRange, now: number) {
   return changelogDayOffset(now, range === "today" ? 0 : range === "7d" ? 6 : 29);
@@ -65,7 +70,7 @@ export function changelogMarkdown(entries: readonly ChangelogEntry[], title: str
     `# ${title.replace(/[\r\n]/g, " ")}: Changelog`,
     ...groupChangelog(entries).flatMap(({ day, entries }) => [
       "",
-      `## ${new Date(day).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}`,
+      `## ${new Intl.DateTimeFormat(undefined, { year: "numeric", month: "long", day: "numeric" }).format(day)}`,
       "",
       ...entries.map(
         (entry) =>
@@ -85,7 +90,7 @@ export function changelogHtml(entries: readonly ChangelogEntry[], title: string,
   for (const entry of [...entries].sort(
     (a, b) => Date.parse(b.at) - Date.parse(a.at) || a.id.localeCompare(b.id),
   )) {
-    const day = dayFormat.format(new Date(entry.at));
+    const day = dayFormat.format(Date.parse(entry.at));
     const group = days.get(day) ?? [];
     group.push(entry);
     days.set(day, group);
@@ -100,7 +105,7 @@ export function changelogHtml(entries: readonly ChangelogEntry[], title: string,
   ]
     .map(
       (entries) =>
-        `<section><h2>${escape(new Date(entries[0]!.at).toLocaleDateString(undefined, { timeZone, year: "numeric", month: "long", day: "numeric" }))}</h2>${entries.map((entry) => `<article><small>${CHANGELOG_LABELS[entry.type]}</small><div>${escape(entry.title)} <a href="${/^https?:\/\//i.test(entry.url) ? escape(entry.url) : "#"}" rel="noreferrer">#${entry.pullNumber}</a></div>${entry.summary ? `<p>${escape(entry.summary)}</p>` : ""}</article>`).join("")}</section>`,
+        `<section><h2>${escape(new Intl.DateTimeFormat(undefined, { timeZone, year: "numeric", month: "long", day: "numeric" }).format(Date.parse(entries[0]!.at)))}</h2>${entries.map((entry) => `<article><small>${CHANGELOG_LABELS[entry.type]}</small><div>${escape(entry.title)} <a href="${/^https?:\/\//i.test(entry.url) ? escape(entry.url) : "#"}" rel="noreferrer">#${entry.pullNumber}</a></div>${entry.summary ? `<p>${escape(entry.summary)}</p>` : ""}</article>`).join("")}</section>`,
     )
     .join("")}</html>`;
 }
