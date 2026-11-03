@@ -68,6 +68,9 @@ function layerPool(labelRef: Ref.Ref<string>): Layer.Layer<DesktopBackendPool.De
         ElectronDialog.layer,
         ElectronApp.layer,
         Layer.succeed(DesktopWindow.DesktopWindow, {
+          openChangelog: () => Effect.die("unexpected openChangelog"),
+          pinChangelog: () => Effect.die("unexpected pinChangelog"),
+          returnChangelog: () => Effect.die("unexpected returnChangelog"),
           createMain: Effect.die("unexpected window create"),
           ensureMain: Effect.die("unexpected window ensure"),
           revealOrCreateMain: Effect.die("unexpected window reveal"),

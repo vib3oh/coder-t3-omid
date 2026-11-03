@@ -14,6 +14,7 @@ import { Check, Copy } from "lucide";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { APP_DISPLAY_NAME, APP_VERSION } from "../branding";
+import { ChangelogWindowCoordinator, ChangelogWindowLayout } from "../roadmap/ChangelogWindow";
 import { AppSidebarLayout } from "../components/AppSidebarLayout";
 import { CommandPalette } from "../components/CommandPalette";
 import { CustomSnoozeDialogHost } from "../components/CustomSnoozeDialog";
@@ -142,6 +143,9 @@ function RootRouteView() {
 
 function RootRouteBranch() {
   const pathname = useLocation({ select: (location) => location.pathname });
+  const detachedChangelog = useLocation({
+    select: (location) => location.pathname === "/changelog" && location.search.detached === true,
+  });
   const { authGateState } = Route.useRouteContext();
   const primaryEnvironmentAuthenticated = authGateState.status === "authenticated";
   // A sync IPC read; the setting only changes across a relaunch.
@@ -182,8 +186,13 @@ function RootRouteBranch() {
     return <Outlet />;
   }
 
-  const appShell = (
+  const appShell = detachedChangelog ? (
+    <ChangelogWindowLayout>
+      <Outlet />
+    </ChangelogWindowLayout>
+  ) : (
     <CommandPalette>
+      <ChangelogWindowCoordinator />
       <AppSidebarLayout>
         <Outlet />
       </AppSidebarLayout>
@@ -197,8 +206,10 @@ function RootRouteBranch() {
         enabled={primaryEnvironmentAuthenticated}
         hostedStatic={authGateState.status === "hosted-static"}
       >
-        {primaryEnvironmentAuthenticated ? <DesktopAppActivationCoordinator /> : null}
-        {primaryEnvironmentAuthenticated || localEnvironmentDisabled ? (
+        {primaryEnvironmentAuthenticated && !detachedChangelog ? (
+          <DesktopAppActivationCoordinator />
+        ) : null}
+        {!detachedChangelog && (primaryEnvironmentAuthenticated || localEnvironmentDisabled) ? (
           <DesktopWebLinkCoordinator />
         ) : null}
         {isElectron ? <RunningThreadKeepAlive /> : null}
@@ -214,7 +225,7 @@ function RootRouteBranch() {
         <AddProjectToMachineDialogHost />
         {import.meta.env.DEV && primaryEnvironmentAuthenticated ? <DevReplayHost /> : null}
         {primaryEnvironmentAuthenticated ? (
-          <EventRouter skipInitialBootstrapNavigation={returningFromWelcome} />
+          <EventRouter skipInitialBootstrapNavigation={returningFromWelcome || detachedChangelog} />
         ) : null}
         {appShell}
         {/* Keep the theme editor above the router so drafts survive navigation. */}

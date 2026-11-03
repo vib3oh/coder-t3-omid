@@ -25,6 +25,8 @@ import { Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import * as Option from "effect/Option";
 import {
+  ArrowLeftToLineIcon,
+  PinIcon,
   CopyIcon,
   ListChecksIcon,
   RefreshCwIcon,
@@ -73,29 +75,123 @@ const SELECT =
 
 export function ChangelogPage() {
   const projects = useProjects();
-  const { project: selected } = useSearch({ from: "/_chat/changelog" });
+  const { project: selected, detached = false } = useSearch({ from: "/_chat/changelog" });
   const navigate = useNavigate();
-  const setSelected = (project: string) => void navigate({ to: "/changelog", search: { project } });
+  const [pinned, setPinned] = useState(false);
+  const [windowError, setWindowError] = useState<string | null>(null);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Restore the native window's always-on-top state after a renderer reload.
+  useEffect(() => {
+    if (!detached) return;
+    let active = true;
+    void window.desktopBridge
+      ?.getChangelogWindowPinned?.()
+      .then((value) => {
+        if (active) setPinned(value);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [detached]);
+  const setSelected = (project: string) =>
+    void navigate({
+      to: "/changelog",
+      search: { project, ...(detached ? { detached: true } : {}) },
+    });
   const keyFor = (project: EnvironmentProject) =>
     scopedProjectKey({ environmentId: project.environmentId, projectId: project.id });
   const project = projects.find((p) => keyFor(p) === selected) ?? projects[0];
+  const selectedKey = project ? keyFor(project) : undefined;
+  const openWindow = async () => {
+    setWindowError(null);
+    try {
+      if (window.desktopBridge?.openChangelogWindow) {
+        if (!(await window.desktopBridge.openChangelogWindow(selectedKey))) {
+          setWindowError("Couldn't open the changelog window. Try again.");
+        }
+        return;
+      }
+      const url = new URL("/changelog", window.location.href);
+      url.searchParams.set("detached", "true");
+      if (selectedKey) url.searchParams.set("project", selectedKey);
+      const popup = window.open(url.href, "t3-changelog", "popup,width=800,height=900");
+      if (popup) popup.focus();
+      else
+        setWindowError(
+          "Couldn't open the changelog window. Check your pop-up permissions and try again.",
+        );
+    } catch {
+      setWindowError(
+        "Couldn't open the changelog window. Check your pop-up permissions and try again.",
+      );
+    }
+  };
+  const returnToApp = async () => {
+    setWindowError(null);
+    try {
+      if (window.desktopBridge?.returnChangelogToApp) {
+        if (!(await window.desktopBridge.returnChangelogToApp(selectedKey))) {
+          setWindowError("Couldn't return to the app. Try again or close this window.");
+        }
+      } else if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(
+          { type: "t3.changelog.return", project: selectedKey },
+          window.location.origin,
+        );
+        window.opener.focus();
+        window.close();
+      } else {
+        void navigate({ to: "/changelog", search: selectedKey ? { project: selectedKey } : {} });
+      }
+    } catch {
+      setWindowError("Couldn't return to the app. Try again or close this window.");
+    }
+  };
+  const togglePinned = async () => {
+    try {
+      setPinned(await window.desktopBridge!.setChangelogWindowPinned!(!pinned));
+      setWindowError(null);
+    } catch {
+      setWindowError("Couldn't change always-on-top. Try again.");
+    }
+  };
   return (
     <SidebarInset role="main" className="h-dvh min-h-0 overflow-hidden">
-      <WorkspacePageHeader electron={isElectron}>
-        <div className="hidden md:flex">
-          <SidebarTrigger />
-        </div>
+      <WorkspacePageHeader electron={isElectron && !detached}>
+        {!detached && (
+          <div className="hidden md:flex">
+            <SidebarTrigger />
+          </div>
+        )}
         <ListChecksIcon className="size-4 text-muted-foreground" />
         <h1 className="text-sm font-medium">Changelog</h1>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Open changelog in a new window"
-          render={<a href={window.location.href} target="_blank" rel="noreferrer" />}
-        >
-          <SquareArrowOutUpRightIcon />
-        </Button>
+        <div className="ml-auto flex items-center gap-1">
+          {detached && window.desktopBridge?.setChangelogWindowPinned && (
+            <Button
+              variant={pinned ? "secondary" : "ghost"}
+              size="icon-sm"
+              aria-label="Always keep changelog on top"
+              aria-pressed={pinned}
+              onClick={() => void togglePinned()}
+            >
+              <PinIcon />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={detached ? "Return changelog to app" : "Pop out changelog"}
+            onClick={() => void (detached ? returnToApp() : openWindow())}
+          >
+            {detached ? <ArrowLeftToLineIcon /> : <SquareArrowOutUpRightIcon />}
+          </Button>
+        </div>
       </WorkspacePageHeader>
+      {windowError && (
+        <p role="alert" className="px-4 py-2 text-sm text-destructive">
+          {windowError}
+        </p>
+      )}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="border-b border-border px-4 py-3 md:px-6">
           <select

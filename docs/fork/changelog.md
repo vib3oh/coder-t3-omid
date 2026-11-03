@@ -21,8 +21,10 @@ republishing rotates the link. Readers need direct HTTP reachability to the serv
 an authenticated relay route alone does not make the page publicly reachable.
 Back up this directory with userdata. One server must own that directory.
 
-The React view serves web, desktop and mobile browsers. Native React Native
-navigation and HyperCoder's native always-on-top window control are not supplied
-by this extension. Open in a new window uses the browser (including from desktop).
-There is no new provider adapter or dedicated MCP/CLI command; Ask an agent uses
+The React view serves web, desktop and mobile browsers. Desktop opens a dedicated
+auxiliary window on the same app origin and Electron session, using the app preload.
+It reuses one window, supports always-on-top, and closes with its owning app window.
+Window controls validate the IPC sender; auxiliary windows cannot create pop-outs
+or control the main window through those methods. Browser clients use a pop-up.
+Native React Native navigation is not supplied. There is no new provider adapter or dedicated MCP/CLI command; Ask an agent uses
 the existing composer with the selected facts.

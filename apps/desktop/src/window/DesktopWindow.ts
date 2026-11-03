@@ -36,6 +36,7 @@ import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as DesktopRendererHistory from "../telemetry/DesktopRendererHistory.ts";
 import { makeQuitShortcutHandler } from "./QuitHold.ts";
+import * as ChangelogWindows from "../roadmap/ChangelogWindows.ts";
 import { copyContextMenuImage } from "./ContextMenuImage.ts";
 
 const TITLEBAR_HEIGHT = 40;
@@ -93,6 +94,9 @@ export type MainWindowContentsCommand = "reload" | "forceReload" | "toggleDevToo
 export class DesktopWindow extends Context.Service<
   DesktopWindow,
   {
+    readonly openChangelog: Effect.Success<typeof ChangelogWindows.make>["open"];
+    readonly pinChangelog: Effect.Success<typeof ChangelogWindows.make>["setPinned"];
+    readonly returnChangelog: Effect.Success<typeof ChangelogWindows.make>["returnToApp"];
     readonly createMain: Effect.Effect<Electron.BrowserWindow, DesktopWindowError>;
     readonly ensureMain: Effect.Effect<Electron.BrowserWindow, DesktopWindowError>;
     readonly revealOrCreateMain: Effect.Effect<Electron.BrowserWindow, DesktopWindowError>;
@@ -306,6 +310,7 @@ export const make = Effect.gen(function* () {
   const clientSettings = yield* DesktopClientSettings.DesktopClientSettings;
   const electronApp = yield* ElectronApp.ElectronApp;
   const rendererHistory = yield* DesktopRendererHistory.DesktopRendererHistory;
+  const changelog = yield* ChangelogWindows.make;
   const backendReadyRef = yield* Ref.make(false);
   let backendHasStarted = false;
   let mainClosedDuringStartup = false;
@@ -988,6 +993,9 @@ export const make = Effect.gen(function* () {
   });
 
   return DesktopWindow.of({
+    openChangelog: changelog.open,
+    pinChangelog: changelog.setPinned,
+    returnChangelog: changelog.returnToApp,
     createMain: createMain.pipe(Effect.flatMap(requireWindow)),
     ensureMain: ensureMain.pipe(Effect.flatMap(requireWindow)),
     revealOrCreateMain,

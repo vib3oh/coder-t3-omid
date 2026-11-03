@@ -6,6 +6,12 @@ The activity chart shows 31 days; select a populated day to jump to its entries.
 Expand an entry to open its thread or pull request. Archived threads can be
 unarchived and opened when your connection permits changing threads.
 
+Use **Pop out changelog** in the header to open a separate window for the selected
+project. Desktop opens a T3 window with an always-on-top pin and **Return changelog
+to app**. Browsers open a pop-up, subject to their pop-up permissions; the return
+control focuses the original app or restores the full view if it was closed.
+Closing the desktop app window also closes its changelog window.
+
 The changelog lists merged pull requests linked to this project's retained
 threads, including archived threads. It does not fetch the repository's entire
 history. PR title prefixes determine type: `feat` is Feature, `fix` is Bug,

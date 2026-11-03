@@ -73,6 +73,19 @@ function unwrapEnsureSshEnvironmentResult(result: unknown) {
 }
 
 contextBridge.exposeInMainWorld("desktopBridge", {
+  openChangelogWindow: (project) =>
+    ipcRenderer.invoke(IpcChannels.OPEN_CHANGELOG_WINDOW_CHANNEL, project),
+  getChangelogWindowPinned: () => ipcRenderer.invoke(IpcChannels.PIN_CHANGELOG_WINDOW_CHANNEL),
+  setChangelogWindowPinned: (pinned) =>
+    ipcRenderer.invoke(IpcChannels.PIN_CHANGELOG_WINDOW_CHANNEL, pinned),
+  returnChangelogToApp: (project) =>
+    ipcRenderer.invoke(IpcChannels.RETURN_CHANGELOG_WINDOW_CHANNEL, project),
+  onChangelogReturned: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, project: unknown) =>
+      listener(typeof project === "string" ? project : undefined);
+    ipcRenderer.on(IpcChannels.CHANGELOG_RETURN_CHANNEL, handler);
+    return () => ipcRenderer.removeListener(IpcChannels.CHANGELOG_RETURN_CHANNEL, handler);
+  },
   getAppBranding: () => {
     const result = ipcRenderer.sendSync(IpcChannels.GET_APP_BRANDING_CHANNEL);
     if (typeof result !== "object" || result === null) {

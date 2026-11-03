@@ -4,7 +4,9 @@
 
 The owner requested a separate changelog view with HyperCoder's changelog functionality, built in a worktree from `main`. Draft [PR #3](https://github.com/vib3oh/coder-t3-omid/pull/3) currently implements a narrower view of merged work retained by T3; this specification records that contract and the remaining parity decisions without treating the narrower scope as owner-approved.
 
-This is a retrospective draft, grounded in product code at `4240713616e5fc12f4d96a1872709aea2d80fc05`. It is a requirements artifact for this PR, not a claim that full HyperCoder parity or independent review has passed. The owner's explicit request to include this artifact in the PR overrides this clone's default `specArtifacts: off` for this file only.
+The initial retrospective draft was grounded in product code at `4240713616e5fc12f4d96a1872709aea2d80fc05`. It is a requirements artifact for this PR, not a claim that full HyperCoder parity or independent review has passed. The owner's explicit request to include this artifact in the PR overrides this clone's default `specArtifacts: off` for this file only.
+
+The owner subsequently requested a genuine separate changelog window. CL-20 through CL-22 cover this authorized follow-up; it does not approve reductions in the other HyperCoder parity requirements.
 
 ## Acceptance criteria
 
@@ -44,16 +46,22 @@ The criteria below define the current draft PR's contract. Unchecked boxes requi
 - [ ] **CL-18:** Preserve the fork integration manifest, upstream history, existing provider support and the relative `CLAUDE.md` symlink. Use typed contracts and service methods; do not add an orchestration-event migration, provider adapter or another execution runtime. Keep implementation in the dedicated roadmap/changelog modules and the declared integration paths.
 - [ ] **CL-19:** Verify source filtering, duplicate/missing-date behavior, calendar boundaries, combined filters, filtered exports, HTML escaping and publish/update/revoke behavior at their owning test layer. Run `vp run check:changed` before pushing. Run an integrated Browser-panel pass against isolated state; capture meaningful desktop and mobile-browser views. Do not write to live T3 data or install over the running app.
 
+### Separate windows
+
+- [ ] **CL-20:** Pop out changelog opens a dedicated Electron window on desktop, preserving the selected environment/project. Repeated requests reuse and focus that window, selecting the requested project. Use the same authenticated app origin/session and preload. Browser clients open a sidebar-free pop-up and show a recoverable error if blocked.
+- [ ] **CL-21:** The desktop pop-out offers an always-on-top toggle whose pressed state reflects the native window, including after renderer reload. Return changelog to app focuses the owning app, selects the pop-out's current project and closes the pop-out. In browsers, return focuses the original app when available, otherwise restores the full view locally.
+- [ ] **CL-22:** Closing either window permits a later pop-out; closing the owning desktop app window also closes its child. Reject window-control IPC from unrelated renderers. Keep external navigation out of the privileged window. Test lifecycle, authentication/session inheritance and sender guards; retain native UI evidence separately from browser evidence.
+
 ### Original HyperCoder parity is not yet complete
 
-| Requested reference behavior                                                   | Current PR behavior                                                          | Remaining decision or gap                                                                                |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| A changelog sourced from Done roadmap cards, dated by merge or a shipped stamp | Retained merged PR snapshots linked to T3 threads                            | Manually shipped cards, durable card completion dates and unlinked completed cards are not represented.  |
-| Card types, summaries and navigation back to the source card/spec              | Type inferred from PR title; summary from thread title; thread/PR navigation | Card metadata, slug/spec search and card/spec navigation need roadmap integration.                       |
-| HyperCoder's shared public project page                                        | Explicit, revocable static snapshot on the connected T3 server               | A live public page, public address/identity controls and any hosted delivery require a product decision. |
-| Detached native changelog window with an always-on-top control                 | Open the current route in a browser window                                   | Native detached-window management, pinning and returning that window to the app are not implemented.     |
+| Requested reference behavior                                                   | Current PR behavior                                                               | Remaining decision or gap                                                                                              |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| A changelog sourced from Done roadmap cards, dated by merge or a shipped stamp | Retained merged PR snapshots linked to T3 threads                                 | Manually shipped cards, durable card completion dates and unlinked completed cards are not represented.                |
+| Card types, summaries and navigation back to the source card/spec              | Type inferred from PR title; summary from thread title; thread/PR navigation      | Card metadata, slug/spec search and card/spec navigation need roadmap integration.                                     |
+| HyperCoder's shared public project page                                        | Explicit, revocable static snapshot on the connected T3 server                    | A live public page, public address/identity controls and any hosted delivery require a product decision.               |
+| Detached native changelog window with an always-on-top control                 | Dedicated Electron window with pinning and return-to-app; browser pop-up fallback | Authorized follow-up implemented under CL-20 through CL-22; native UI verification remains a separate acceptance gate. |
 
-This table records known differences from the supplied reference and prior local inspection. It is not an exhaustive certification of HyperCoder parity, and the original request is not complete merely because CL-01 through CL-19 pass.
+This table records known differences from the supplied reference and prior local inspection. It is not an exhaustive certification of HyperCoder parity, and the original request is not complete merely because CL-01 through CL-22 pass.
 
 ## Terminology
 
@@ -65,14 +73,14 @@ This table records known differences from the supplied reference and prior local
 
 ## Implementation plan
 
-1. Review this retrospective contract against PR #3 and resolve the scope questions below. Do not change product behavior from this spec-only task.
+1. Review this contract against PR #3 and resolve the remaining source/sharing scope questions below. The owner has authorized the separate-window follow-up.
 2. Use `packages/contracts/src/changelog.ts` and `apps/server/src/roadmap/ChangelogService.ts` to assess source identity, date omissions, permissions and share lifecycle. Check `ChangelogHttp.ts` for public responses and `packages/shared/src/projectChangelog.ts` for filtering, calendar arithmetic and exports.
 3. Use `apps/web/src/roadmap/ChangelogPage.tsx`, `changelogState.ts` and the sidebar/command-palette hooks to assess private-view behavior, agent drafts and permission availability. Check explicit unarchive behavior separately from read-only navigation.
-4. Review the focused service/date tests and permission tests, then compare the isolated Browser-panel evidence with CL-01 through CL-19. Resolve known parity gaps through an accepted revised contract before dispatching additional implementation. Any substantial roadmap, hosting or native-window design needs its own technical-plan/review gate within the owning work item, not an invented plan here.
+4. Assess separate-window behavior in `apps/desktop/src/roadmap/ChangelogWindows.ts`, its focused lifecycle tests, the typed preload/IPC integration and `apps/web/src/roadmap/ChangelogWindow.tsx`. Verify CL-20 through CL-22 in an isolated desktop runtime. Review source/date/permission tests and available UI evidence against the other criteria. Remaining roadmap/hosting parity requires an accepted revised contract.
 
 ## Out of scope
 
-- Product implementation, fixes, new scope decisions, an independent review verdict or merge authorization during this artifact-only update.
+- An independent review verdict or merge authorization. Separate-window implementation is authorized; unrelated product scope decisions remain unresolved.
 - Unrelated upstream synchronization, provider changes, CI/runner setup, changes to the live installation or live data, and automatic publication or agent sends.
 - A native React Native changelog screen, dedicated MCP/CLI commands and all-repository Git history are not delivered by PR #3. They must not be advertised as implemented.
 - The parity gaps above are not approved permanent exclusions; they remain unresolved against the owner's original request.
@@ -83,22 +91,22 @@ This table records known differences from the supplied reference and prior local
 - Disclosure: public titles and PR URLs can reveal private work; opting into summaries exposes thread titles as well. Revocation removes server access to the page but cannot retract copies already saved by readers.
 - Reachability: local, remote, relay and tunnel addresses have different audiences. A link opening for its publisher does not prove external reachability; remote/tunnel scenarios are not established by the recorded local test.
 - Availability: a corrupt stored share-state file can fail the project's changelog read. Snapshot storage assumes one server owns its userdata directory; no cross-server locking is provided.
-- Compatibility and performance: server and client must understand the new RPCs. Reading metadata avoids conversation payloads, but there is no measured large-history performance budget, server-side pagination or dedicated native-client implementation in this PR.
-- Rollback: revert this feature's commits and restore its integration hooks. Revoke active public snapshots deliberately before rollback where possible. Preserve extension files for recovery; never delete or migrate live userdata as part of a code rollback. Reverting this spec-only update changes no runtime behavior.
+- Compatibility and performance: server and client must understand the new RPCs. Reading metadata avoids conversation payloads, but there is no measured large-history performance budget, server-side pagination or React Native implementation in this PR.
+- Rollback: revert this feature's commits and restore its integration hooks. Revoke active public snapshots deliberately before rollback where possible. Preserve extension files for recovery; never delete or migrate live userdata as part of a code rollback. Window behavior can be reverted through its declared integration hooks without touching retained history.
 
 ## Open questions
 
 - **Scope approval:** does the owner accept the merged-work contract as a first slice, or must PR #3 reach the original card-based/full-parity goal before review completion? Prior implementation and a draft PR do not answer this.
 - **Public sharing:** should the target remain deliberate snapshots, or include a live hosted public project page and public-address controls comparable to HyperCoder?
-- **Remaining parity:** which roadmap receipt/card navigation and native window behaviors must be included before calling the original task complete?
-- **spec-route: Revise / owner decision pending on PR #3.** Keep the PR draft; do not dispatch a new build, mark ready, apply workflow labels, create a new issue or infer merge approval from this artifact. GitHub-native policy owns any subsequent decision.
+- **Remaining parity:** which roadmap receipts and card navigation must be included before calling the original task complete?
+- **spec-route: Revise / owner decision pending on PR #3.** Keep the PR draft; the separate-window follow-up is authorized, but do not mark ready, apply workflow labels, create a new issue or infer merge approval from this artifact. GitHub-native policy owns any subsequent decision.
 
 ## Product context
 
 - PRD: Not established; this branch has no `docs/product/overview.md` package.
-- Requirements: CL-01 through CL-19 are local to this spec; no `PRD-###` IDs exist for this work.
-- Decisions: None recorded as owner-approved reductions of the original parity request.
-- Product delta: artifact.
+- Requirements: CL-01 through CL-22 are local to this spec; no `PRD-###` IDs exist for this work.
+- Decisions: The owner explicitly requested the separate-window follow-up. No reductions of the original parity request are owner-approved.
+- Product delta: feature (authorized separate-window follow-up).
 - PRD sync: No central product package to reconcile. This file records the current draft behavior and unresolved original intent; it does not approve a new product direction.
 
 ## References
@@ -109,6 +117,7 @@ This table records known differences from the supplied reference and prior local
 - `apps/server/src/roadmap/ChangelogService.ts`; `apps/server/src/roadmap/ChangelogHttp.ts`; `apps/server/src/roadmap/ChangelogService.test.ts`.
 - `packages/shared/src/projectChangelog.ts`; `packages/shared/src/projectChangelog.test.ts`; `packages/client-runtime/src/state/commandPermissions.test.ts`.
 - `apps/web/src/roadmap/ChangelogPage.tsx`; `apps/web/src/roadmap/changelogState.ts`; `apps/web/src/routes/_chat.changelog.tsx`.
+- `apps/desktop/src/roadmap/ChangelogWindows.ts`; `apps/desktop/src/roadmap/ChangelogWindows.test.ts`; `apps/desktop/src/ipc/methods/changelog.ts`; `apps/web/src/roadmap/ChangelogWindow.tsx`.
 - `docs/user/changelog.md`; `docs/fork/changelog.md`; `fork.json`; `AGENTS.md`; `docs/README.md`.
 
 Historical verification on code revision `4240713616e5fc12f4d96a1872709aea2d80fc05`: the prior task recorded a passing `vp run check:changed origin/main --concurrency 2` run with 102 tests and six selected React Compiler checks, plus local Browser-panel checks. Those records are evidence to inspect, not a new spec approval, complete acceptance run, formal Vibe QA-manifest approval or proof of native/mobile/remote/tunnel coverage.
