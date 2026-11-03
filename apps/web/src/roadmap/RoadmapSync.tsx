@@ -340,8 +340,11 @@ function SyncDialog({
                     <>
                       <ul className="space-y-3">
                         {status.rows.slice(0, rowLimit).map((row) => (
-                          <li key={row.cardId} className="space-y-2 border-t border-border pt-3">
-                            <p className="font-medium">
+                          <li
+                            key={row.cardId}
+                            className="min-w-0 space-y-2 border-t border-border pt-3"
+                          >
+                            <p className="break-words font-medium">
                               {row.title}{" "}
                               <span className="font-normal text-muted-foreground">
                                 · {row.status}
@@ -359,13 +362,14 @@ function SyncDialog({
                               variant="outline"
                               size="sm"
                               disabled={busy}
+                              aria-label={`${detailCard === row.cardId ? "Hide" : "Review"} differences for ${row.title}`}
                               onClick={() =>
                                 setDetailCard(detailCard === row.cardId ? null : row.cardId)
                               }
                             >
                               {detailCard === row.cardId
                                 ? "Hide differences"
-                                : `Review differences for ${row.title}`}
+                                : "Review differences"}
                             </Button>
                             {detailCard === row.cardId ? (
                               <SyncDifferences
