@@ -1,4 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
+import { Button } from "../../components/ui/Button";
+import { useThreadShell } from "../../state/entities";
 import {
   deriveWorkflowGroups,
   projectedSubagentsToRuntime,
@@ -55,6 +57,7 @@ export function useThreadTurnSubagents(target: AgentsTarget | null): ThreadTurnS
 export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
   const { layout } = useAdaptiveWorkspaceLayout();
   const target = route.params;
+  const thread = useThreadShell(target);
   const navigation = useNavigation();
   const openInspector = useOpenThreadInspector();
   const insets = useSafeAreaInsets();
@@ -100,6 +103,22 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
       contentContainerClassName="px-5 pb-6"
       contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}
     >
+      {thread ? (
+        <View className="py-3">
+          <Button
+            label="Supervised agent workflows"
+            onPress={() =>
+              navigation.dispatch(
+                StackActions.replace("AgentWorkflows", {
+                  environmentId: target.environmentId,
+                  projectId: thread.projectId,
+                  sourceThreadId: target.threadId,
+                }),
+              )
+            }
+          />
+        </View>
+      ) : null}
       {subagents.length === 0 ? (
         <Text className="pt-6 text-center text-sm text-foreground-muted">
           No agents in this turn.

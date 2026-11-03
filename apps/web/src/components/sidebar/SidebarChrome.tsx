@@ -5,6 +5,7 @@ import {
   ListChecksIcon,
   SettingsIcon,
   KanbanIcon,
+  UsersIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
@@ -304,6 +305,14 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             onClick={() => {
               closeMobileSidebar();
               void navigate({ to: "/roadmap" });
+            }}
+          />
+          <SidebarUtilityItem
+            icon={<UsersIcon />}
+            label="Agent workflows"
+            onClick={() => {
+              closeMobileSidebar();
+              void navigate({ to: "/agent-workflows" });
             }}
           />
         </>

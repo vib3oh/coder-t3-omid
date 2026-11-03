@@ -47,6 +47,7 @@ import { buildCodexAdditionalContext } from "../../apps/server/src/provider/Code
 import { makeSideChatContext } from "../../apps/server/src/orchestration-v2/ContextHandoffService.ts";
 import { withInlineContext } from "../../apps/server/src/orchestration-v2/ContextHandoffDelivery.ts";
 import { AttachmentToolkit } from "../../apps/server/src/mcp/toolkits/attachment/tools.ts";
+import { AgentWorkflowToolkit } from "../../apps/server/src/mcp/toolkits/agentWorkflows/tools.ts";
 import { DeviceToolkit } from "../../apps/server/src/mcp/toolkits/device/tools.ts";
 import { EnvironmentToolkit } from "../../apps/server/src/mcp/toolkits/environment/tools.ts";
 import { HtmlToolkit } from "../../apps/server/src/mcp/toolkits/html/tools.ts";
@@ -67,6 +68,7 @@ import {
 import { proxyConfig } from "../shared/proxy.ts";
 import { changeRequestsCreatedBy } from "../../apps/server/src/orchestration-v2/PullRequestSyncReactor.ts";
 import { DeviceExpect, gradeDevice } from "./device-grading.ts";
+import { agentWorkflowFixture } from "./agent-workflow-fixture.ts";
 import {
   AGENT_DEVICE_SHELL,
   deviceFailure,
@@ -250,6 +252,7 @@ export const McpToolUseCase = Schema.Struct({
     /** delegate_task `role` for a delegated child. T3 builds the child's first message from it. */
     delegateRole: Schema.optional(OrchestratorMcpTaskRole),
     context: Schema.optional(Schema.String),
+    workflowRole: Schema.optional(Schema.Literals(["manager", "builder", "reviewer"])),
     priorTurns: Schema.optional(
       Schema.Array(
         Schema.Struct({
@@ -380,6 +383,7 @@ export const normalizeToolInput = (name: string, input: unknown) => {
 // McpHttpServer advertises each tool's JSON schema, and Claude Code passes the MCP name,
 // description, and schema through unchanged.
 const t3SourceTools: ReadonlyArray<Tool.Any> = [
+  AgentWorkflowToolkit,
   OrchestratorToolkit,
   ThreadToolkit,
   AttachmentToolkit,
@@ -885,6 +889,9 @@ export const buildMessages = (sample: Sample) => {
       ? "You are a subagent started by the parent agent's Agent tool. Your final message goes to the parent agent, not to the user."
       : undefined,
     context,
+    testCase.setup.workflowRole
+      ? agentWorkflowFixture(testCase.setup.workflowRole).instructions
+      : undefined,
   ];
   const reminders = base.reminders.toSpliced(base.gitStatusAt, 0, reminder(gitStatus(testCase)));
   push("user", ...reminders, ...notes.flatMap((note) => (note ? [reminder(note)] : [])));
@@ -1028,6 +1035,17 @@ export const t3Default = (
     };
   };
   switch (name) {
+    case "omid_team_read":
+      return sample.testCase.setup.workflowRole
+        ? agentWorkflowFixture(sample.testCase.setup.workflowRole).view
+        : {};
+    case "omid_assignment_start":
+      return {
+        assignmentId: input.assignmentId,
+        taskId: "acme-native-task",
+        childThreadId: uuid(20),
+        next: "The native assignment is running. End your turn; completion wakes you.",
+      };
     case "t3_thread_launch":
       return newThread(input, input.message);
     case "create_threads":

@@ -5,6 +5,11 @@ import {
   type ServerProviderSlashCommand,
   type ServerProviderResetCredits,
 } from "@t3tools/contracts";
+import {
+  claudeBuiltinSkillPlugin,
+  optionalServerBuiltinSkillPackage,
+  type BuiltinSkillPackage,
+} from "../fork/skills/BuiltinSkillService.ts";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -201,9 +206,11 @@ export function buildClaudeCapabilitiesProbeQueryOptions(input: {
   readonly environment: NodeJS.ProcessEnv;
   readonly cwd: string | undefined;
   readonly managedMcpConfig: boolean;
+  readonly plugins?: ClaudeQueryOptions["plugins"];
 }): ClaudeQueryOptions {
   return {
     persistSession: false,
+    ...(input.plugins === undefined ? {} : { plugins: input.plugins }),
     pathToClaudeCodeExecutable: input.executablePath,
     abortController: input.abortController,
     settingSources: [...CLAUDE_CAPABILITIES_PROBE_SETTING_SOURCES],
@@ -233,6 +240,7 @@ function nonEmptyProbeString(value: string): string | undefined {
 }
 
 export type ClaudeCapabilitiesProbe = {
+  readonly builtinSkillsSupported?: boolean;
   readonly email: string | undefined;
   readonly workspaceId?: string | undefined;
   readonly subscriptionType: string | undefined;
@@ -319,11 +327,12 @@ function waitForAbortSignal(signal: AbortSignal): Promise<void> {
 }
 
 /** A never-yielding prompt allows local initialization IPC without sending an Anthropic request. */
-const probeClaudeCapabilities = (
+const probeClaudeCapabilitiesOnce = (
   claudeSettings: ClaudeSettings,
   environment?: NodeJS.ProcessEnv,
   cwd?: string,
   includeUsage = true,
+  builtinSkills?: BuiltinSkillPackage,
 ) => {
   const abort = new AbortController();
   return Effect.gen(function* () {
@@ -345,6 +354,7 @@ const probeClaudeCapabilities = (
           environment: claudeEnvironment,
           cwd,
           managedMcpConfig,
+          ...(builtinSkills ? { plugins: [claudeBuiltinSkillPlugin(builtinSkills)] } : {}),
         }),
       });
       const init = await q.initializationResult();
@@ -380,6 +390,11 @@ const probeClaudeCapabilities = (
             }
           | undefined;
         return {
+          builtinSkillsSupported:
+            builtinSkills !== undefined &&
+            builtinSkills.entries.every((entry) =>
+              init.commands?.some((command) => command.name === entry.claude.name),
+            ),
           email: account?.email,
           subscriptionType: account?.subscriptionType,
           tokenSource: account?.tokenSource,
@@ -400,6 +415,26 @@ const probeClaudeCapabilities = (
     ),
   );
 };
+
+const probeClaudeCapabilities = Effect.fn("probeClaudeCapabilities")(function* (
+  claudeSettings: ClaudeSettings,
+  environment?: NodeJS.ProcessEnv,
+  cwd?: string,
+  includeUsage = true,
+) {
+  const builtinSkills = yield* optionalServerBuiltinSkillPackage();
+  if (!builtinSkills)
+    return yield* probeClaudeCapabilitiesOnce(claudeSettings, environment, cwd, includeUsage);
+  return yield* probeClaudeCapabilitiesOnce(
+    claudeSettings,
+    environment,
+    cwd,
+    includeUsage,
+    builtinSkills,
+  ).pipe(
+    Effect.catch(() => probeClaudeCapabilitiesOnce(claudeSettings, environment, cwd, includeUsage)),
+  );
+});
 
 type ClaudeCapabilitiesProbeError = Effect.Error<ReturnType<typeof probeClaudeCapabilities>>;
 
@@ -426,9 +461,11 @@ export const probeClaudeWorkspaceSnapshot = Effect.fn("probeClaudeWorkspaceSnaps
   machineSnapshot: ServerProvider,
   cwd: string,
   environment?: NodeJS.ProcessEnv,
+  onBuiltinSkillsSupport?: (supported: boolean) => Effect.Effect<void>,
 ): Effect.fn.Return<ProviderWorkspaceSnapshot, never, FileSystem.FileSystem | Path.Path> {
   if (!claudeSettings.enabled) return machineSnapshot;
-  const skills = yield* discoverClaudeSkills(claudeSettings, cwd, environment);
+  const builtinSkills = yield* optionalServerBuiltinSkillPackage();
+  const path = yield* Path.Path;
   const fileSystem = yield* FileSystem.FileSystem;
   // A deleted worktree can never answer the probe. Pending would make clients rescan it forever.
   const cwdExists = yield* fileSystem.exists(cwd).pipe(Effect.orElseSucceed(() => true));
@@ -437,6 +474,22 @@ export const probeClaudeWorkspaceSnapshot = Effect.fn("probeClaudeWorkspaceSnaps
     : undefined;
   const capabilities =
     probeResult && Result.isSuccess(probeResult) ? probeResult.success : undefined;
+  const supported = capabilities?.builtinSkillsSupported === true;
+  if (onBuiltinSkillsSupport) yield* onBuiltinSkillsSupport(supported);
+  const skills = yield* discoverClaudeSkills(
+    claudeSettings,
+    cwd,
+    environment,
+    builtinSkills && supported
+      ? [
+          {
+            directory: path.join(builtinSkills.claudePluginRoot, "skills"),
+            scope: "system",
+            prefix: "t3-vibe",
+          },
+        ]
+      : [],
+  );
   return {
     ...machineSnapshot,
     skills,
@@ -572,7 +625,22 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
     probeResult && Result.isSuccess(probeResult) ? probeResult.success : undefined;
   const probeFailure =
     probeResult && Result.isFailure(probeResult) ? probeResult.failure : undefined;
-  const skills = yield* discoverClaudeSkills(claudeSettings, cwd, resolvedEnvironment);
+  const builtinSkills = yield* optionalServerBuiltinSkillPackage();
+  const path = yield* Path.Path;
+  const skills = yield* discoverClaudeSkills(
+    claudeSettings,
+    cwd,
+    resolvedEnvironment,
+    builtinSkills && capabilities?.builtinSkillsSupported === true
+      ? [
+          {
+            directory: path.join(builtinSkills.claudePluginRoot, "skills"),
+            scope: "system",
+            prefix: "t3-vibe",
+          },
+        ]
+      : [],
+  );
   const slashCommands = [COMPACT_SLASH_COMMAND, ...(capabilities?.slashCommands ?? [])];
   const dedupedSlashCommands = dedupeSlashCommands(slashCommands);
 

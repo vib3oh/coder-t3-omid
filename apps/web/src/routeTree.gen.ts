@@ -23,6 +23,7 @@ import { Route as ChatRoadmapRouteImport } from './routes/_chat.roadmap'
 import { Route as ChatPullRequestsRouteImport } from './routes/_chat.pull-requests'
 import { Route as ChatNewRouteImport } from './routes/_chat.new'
 import { Route as ChatChangelogRouteImport } from './routes/_chat.changelog'
+import { Route as ChatAgentWorkflowsRouteImport } from './routes/_chat.agent-workflows'
 import { Route as ChatSettingsWorktreesRouteImport } from './routes/_chat.settings.worktrees'
 import { Route as ChatSettingsThreadsRouteImport } from './routes/_chat.settings.threads'
 import { Route as ChatSettingsStorageRouteImport } from './routes/_chat.settings.storage'
@@ -119,6 +120,11 @@ const ChatNewRoute = ChatNewRouteImport.update({
 const ChatChangelogRoute = ChatChangelogRouteImport.update({
   id: '/changelog',
   path: '/changelog',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatAgentWorkflowsRoute = ChatAgentWorkflowsRouteImport.update({
+  id: '/agent-workflows',
+  path: '/agent-workflows',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatSettingsWorktreesRoute = ChatSettingsWorktreesRouteImport.update({
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/guest': typeof GuestRoute
   '/pair': typeof PairRoute
   '/welcome': typeof WelcomeRoute
+  '/agent-workflows': typeof ChatAgentWorkflowsRoute
   '/changelog': typeof ChatChangelogRoute
   '/new': typeof ChatNewRoute
   '/pull-requests': typeof ChatPullRequestsRoute
@@ -316,6 +323,7 @@ export interface FileRoutesByTo {
   '/guest': typeof GuestRoute
   '/pair': typeof PairRoute
   '/welcome': typeof WelcomeRoute
+  '/agent-workflows': typeof ChatAgentWorkflowsRoute
   '/changelog': typeof ChatChangelogRoute
   '/new': typeof ChatNewRoute
   '/pull-requests': typeof ChatPullRequestsRoute
@@ -361,6 +369,7 @@ export interface FileRoutesById {
   '/guest': typeof GuestRoute
   '/pair': typeof PairRoute
   '/welcome': typeof WelcomeRoute
+  '/_chat/agent-workflows': typeof ChatAgentWorkflowsRoute
   '/_chat/changelog': typeof ChatChangelogRoute
   '/_chat/new': typeof ChatNewRoute
   '/_chat/pull-requests': typeof ChatPullRequestsRoute
@@ -407,6 +416,7 @@ export interface FileRouteTypes {
     | '/guest'
     | '/pair'
     | '/welcome'
+    | '/agent-workflows'
     | '/changelog'
     | '/new'
     | '/pull-requests'
@@ -449,6 +459,7 @@ export interface FileRouteTypes {
     | '/guest'
     | '/pair'
     | '/welcome'
+    | '/agent-workflows'
     | '/changelog'
     | '/new'
     | '/pull-requests'
@@ -493,6 +504,7 @@ export interface FileRouteTypes {
     | '/guest'
     | '/pair'
     | '/welcome'
+    | '/_chat/agent-workflows'
     | '/_chat/changelog'
     | '/_chat/new'
     | '/_chat/pull-requests'
@@ -639,6 +651,13 @@ declare module '@tanstack/react-router' {
       path: '/changelog'
       fullPath: '/changelog'
       preLoaderRoute: typeof ChatChangelogRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/_chat/agent-workflows': {
+      id: '/_chat/agent-workflows'
+      path: '/agent-workflows'
+      fullPath: '/agent-workflows'
+      preLoaderRoute: typeof ChatAgentWorkflowsRouteImport
       parentRoute: typeof ChatRoute
     }
     '/_chat/settings/worktrees': {
@@ -903,6 +922,7 @@ const ChatSettingsRouteWithChildren = ChatSettingsRoute._addFileChildren(
 )
 
 interface ChatRouteChildren {
+  ChatAgentWorkflowsRoute: typeof ChatAgentWorkflowsRoute
   ChatChangelogRoute: typeof ChatChangelogRoute
   ChatNewRoute: typeof ChatNewRoute
   ChatPullRequestsRoute: typeof ChatPullRequestsRoute
@@ -915,6 +935,7 @@ interface ChatRouteChildren {
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
+  ChatAgentWorkflowsRoute: ChatAgentWorkflowsRoute,
   ChatChangelogRoute: ChatChangelogRoute,
   ChatNewRoute: ChatNewRoute,
   ChatPullRequestsRoute: ChatPullRequestsRoute,

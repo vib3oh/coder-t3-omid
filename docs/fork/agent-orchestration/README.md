@@ -1,9 +1,11 @@
 # Agent orchestration for the T3 fork
 
-Design proposal based on static inspection of Hypercoder and T3, requested by the
-fork owner. The confirmed direction is a supervised planner → builder → reviewer
+Implementation candidate based on the fork owner’s accepted design and static
+inspection of Hypercoder and T3. The confirmed direction is a supervised planner → builder → reviewer
 workflow with targeted peer messages and readable, expandable communication.
-Detailed defaults, storage choices and visual treatments remain drafts.
+The runtime now adds supervised assignments, bundled procedures and readable
+communications over native T3 services. Release verification is recorded on the
+[owning PR](https://github.com/vib3oh/coder-t3-omid/pull/2); unverified gates remain explicit.
 
 Start with the [UX](ux.md) for how a person launches and follows work, then the
 [spec](spec.md) for acceptance criteria and scope. The
@@ -19,8 +21,9 @@ role gets a small, versioned bundle; games remain outside scope.
 
 The [upstream compatibility contract](upstream-compatibility.md) identifies T3's
 existing skill discovery, invocation and composer paths. It constrains the fork
-to reuse them and keep integration hooks small. These integrations are proposed;
-this PR does not install a working skill library or demonstrate runtime parity.
+to reuse them and keep integration hooks small. The implementation uses native Codex extra skill roots and Claude local plugins,
+with unsupported packaging reported as unavailable. This does not establish
+HyperCoder feature parity. See the [user guide](../../user/agent-workflows.md).
 
 Two self-contained HTML concepts illustrate the proposal:
 
@@ -39,7 +42,7 @@ including its roadmap extension. This design is now rebased onto `origin/main`
 [`08f7150f56`](https://github.com/vib3oh/coder-t3-omid/commit/08f7150f560df3f43ad0745c8f2e88f932a8424d),
 which includes the merged roadmap feature. The [base-change audit](upstream-compatibility.md#current-fork-base-and-rebase-audit)
 records the resulting launch, review, persistence and permission constraints.
-The supervised workflow remains proposed; the existing roadmap is retained.
+The existing roadmap actions and lane derivation are retained.
 
 HyperCoder `0.2.0-nightly.20261102.290.1` was inspected using REA `6.8.0` and direct
 static reading of packaged JavaScript. The focused REA pass parsed two CLI/control
@@ -52,6 +55,15 @@ normalize local paths and retain a hash of their original source file. Extracted
 application code, full evidence bundles and the supplied personal screenshot are
 not included.
 
-This package records a proposed capability contract and its research basis, plus
-contributor AI guidance. It does not change runtime prompts, tools, provider
-behavior or the shipped UI.
+These documents retain the original research and capability contract. The
+standalone concepts remain directional references; the application implementation
+is the source of truth for supported behavior. Kits and games are excluded from
+the initial runtime, and operational procedures retain explicit prerequisites.
+
+Workflow attempt and concurrency limits govern tracked T3 assignments and message
+continuations. Active participants must use the workflow services for app-owned
+MCP delegation, thread creation and thread sends; those direct native MCP calls
+are refused. Provider-native
+subagents and direct shell invocations remain controlled by the provider. The
+fork does not impose workflow quotas or a filesystem sandbox on those paths;
+role instructions alone cannot enforce either restriction.

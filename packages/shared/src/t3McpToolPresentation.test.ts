@@ -69,5 +69,9 @@ describe("resolveT3McpSummaryAction", () => {
       "schedule-update",
     );
     expect(resolveT3McpSummaryAction("delegate_task", { task: "x" })).toBe("delegate");
+    expect(
+      resolveT3McpSummaryAction("mcp__t3_code__omid_team_message", { summary: "Checks passed" }),
+    ).toBe("team-message");
+    expect(resolveT3McpToolDefinition("omid_assignment_result")?.labels[2]).toBe("Submitted");
   });
 });

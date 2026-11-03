@@ -145,6 +145,12 @@ describe("command permissions", () => {
 
   it.effect.each([
     WS_METHODS.roadmapSave,
+    WS_METHODS.agentRoleSave,
+    WS_METHODS.agentWorkflowSettings,
+    WS_METHODS.agentWorkflowStart,
+    WS_METHODS.agentWorkflowControl,
+    WS_METHODS.agentAssignmentControl,
+    WS_METHODS.agentTeamMessage,
     ORCHESTRATION_V2_WS_METHODS.launchThread,
     WS_METHODS.scheduledTasksDelete,
     ORCHESTRATION_V2_WS_METHODS.stopWorkflow,

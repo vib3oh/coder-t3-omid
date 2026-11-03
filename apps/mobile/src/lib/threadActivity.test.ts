@@ -369,6 +369,75 @@ function assistantMessage(updatedAt = "2026-06-20T00:00:03.000Z") {
 }
 
 describe("buildThreadFeed", () => {
+  it("rebuilds a cached outgoing receipt when its authenticated peer message arrives", () => {
+    const communication = {
+      id: "exchange",
+      nativeMessageId: "native-message",
+      senderName: "Builder",
+      recipientName: "Planner",
+      summary: "Which check should run?",
+      kind: "question",
+      delivery: "submitted",
+    };
+    const tool = projected(
+      {
+        ...base("send", "2026-06-20T00:00:01.000Z", 0),
+        type: "dynamic_tool",
+        toolName: "t3-code.omid_team_message",
+        input: {},
+        output: { communication },
+      },
+      0,
+    );
+    const peer = projected(
+      {
+        ...userMessage("2026-06-20T00:00:02.000Z"),
+        id: TurnItemId.make("peer"),
+        messageId: MessageId.make("native-message"),
+        createdBy: "agent",
+        creationSource: "mcp",
+        senderThreadId: sourceThreadId,
+        text: "Builder → Planner: Which check should run?\n\nQuestion body",
+      },
+      1,
+    );
+    const cache = createThreadFeedCache();
+    const activityIds = (feed: ThreadFeedEntry[]) =>
+      feed.flatMap((entry) =>
+        entry.type === "activity-group"
+          ? entry.activities.map((activity) => activity.projectedItem.item.id)
+          : [],
+      );
+    expect(activityIds(buildThreadFeed([tool], { cache }))).toContain("send");
+    const delivered = buildThreadFeed([tool, peer], { cache });
+    expect(activityIds(delivered)).not.toContain("send");
+    expect(delivered).toMatchObject([
+      {
+        type: "message",
+        message: {
+          id: "native-message",
+          text: peer.item.type === "user_message" ? peer.item.text : "",
+        },
+      },
+    ]);
+    expect(
+      activityIds(
+        buildThreadFeed(
+          [
+            tool,
+            { ...peer, item: { ...userMessage(), messageId: MessageId.make("native-message") } },
+          ],
+          { cache },
+        ),
+      ),
+    ).toContain("send");
+    expect(
+      activityIds(
+        buildThreadFeed([{ ...tool, item: { ...tool.item, status: "failed" } }, peer], { cache }),
+      ),
+    ).toContain("send");
+  });
+
   it("keeps async answers in question history instead of user bubbles", () => {
     const requestId = RuntimeRequestId.make("question");
     const question: OrchestrationV2TurnItem = {

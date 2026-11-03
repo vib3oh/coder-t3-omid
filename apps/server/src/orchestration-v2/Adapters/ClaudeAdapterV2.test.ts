@@ -1293,9 +1293,11 @@ describe("ClaudeAdapterV2 MCP elicitation acceptance", () => {
 const captureSdkExecutablePaths = Effect.fn("captureSdkExecutablePaths")(function* (
   binaryPath: string,
   environment: ResolvedProviderInstanceEnvironment = [],
+  builtinSkillsReady?: boolean,
 ) {
   const executablePaths: Array<string | undefined> = [];
   const taskToolEnvironment: Array<string | undefined> = [];
+  const appPluginCounts: number[] = [];
   const adapter = yield* ClaudeAdapterV2.createClaudeAdapterV2(
     {
       instanceId: ClaudeAdapterV2.CLAUDE_DEFAULT_INSTANCE_ID,
@@ -1304,7 +1306,9 @@ const captureSdkExecutablePaths = Effect.fn("captureSdkExecutablePaths")(functio
       enabled: true,
       config: { ...DEFAULT_CLAUDE_SETTINGS, binaryPath },
     },
-    {},
+    builtinSkillsReady === undefined
+      ? {}
+      : { builtinSkillsReady: Effect.succeed(builtinSkillsReady) },
   ).pipe(
     Effect.provide(
       ServerConfig.layerTest(process.cwd(), {
@@ -1317,6 +1321,7 @@ const captureSdkExecutablePaths = Effect.fn("captureSdkExecutablePaths")(functio
         Effect.sync(() => {
           executablePaths.push(input.options.pathToClaudeCodeExecutable);
           taskToolEnvironment.push(input.options.env?.CLAUDE_CODE_ENABLE_TODO_TOOLS);
+          appPluginCounts.push(input.options.plugins?.length ?? 0);
           return {
             messages: Stream.never,
             offer: () => Effect.void,
@@ -1356,10 +1361,28 @@ const captureSdkExecutablePaths = Effect.fn("captureSdkExecutablePaths")(functio
       attachments: [],
     }),
   );
-  return { executablePaths, taskToolEnvironment };
+  return { executablePaths, taskToolEnvironment, appPluginCounts };
 });
 
 describe("ClaudeAdapterV2 executable path", () => {
+  it.effect.each([true, false])(
+    "injects app plugins only after native capability acceptance (%s)",
+    (ready) =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const { appPluginCounts } = yield* captureSdkExecutablePaths(
+            "/usr/bin/claude",
+            [],
+            ready,
+          );
+          assert.deepEqual(appPluginCounts, [ready ? 1 : 0]);
+        }),
+      ).pipe(
+        Effect.provide(
+          Layer.mergeAll(IdAllocator.layer, McpProviderSessions.layer, NodeServices.layer),
+        ),
+      ),
+  );
   it.effect("follows a bare claude on Windows to the npm package executable", () =>
     Effect.scoped(
       Effect.gen(function* () {

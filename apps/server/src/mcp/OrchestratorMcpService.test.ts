@@ -23,6 +23,7 @@ import {
   type OrchestrationV2StoredEvent,
   type OrchestrationV2ThreadProjection,
   type ServerProvider,
+  type AgentWorkflowProject,
 } from "@t3tools/contracts";
 import { checkpointWorkspace } from "@t3tools/provider-testing/replayWorkspace";
 import * as DateTime from "effect/DateTime";
@@ -66,6 +67,7 @@ import { idleThreadProjection, liveThreadShell } from "./McpToolAccess.testkit.t
 import * as OrchestratorMcpService from "./OrchestratorMcpService.ts";
 import { resolveRuntimeMode } from "./delegatedTaskModes.ts";
 import type * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
+import * as AgentWorkflowStore from "../fork/agents/AgentWorkflowStore.ts";
 
 const decodeTarget = Schema.decodeUnknownEffect(OrchestratorMcpTarget);
 
@@ -1130,6 +1132,66 @@ describe("OrchestratorMcpService provider resolution", () => {
     runtimeRequests: [],
     turnItems: [],
   } as unknown as OrchestrationV2ThreadProjection;
+
+  it.effect("blocks untracked workflow dispatch after native service dependency capture", () =>
+    Effect.gen(function* () {
+      const dependencies = Layer.mergeAll(
+        NodeServices.layer,
+        ServerSettings.layerTest(),
+        providerRegistryLayer([]),
+        adapterRegistryLayer([]),
+        Layer.mock(ThreadManagementService.ThreadManagementService)({
+          getThreadShell: () => Effect.succeed({ ...liveThreadShell(parentThreadId), projectId }),
+          getThreadRecords: () => Effect.succeed(parentProjection([])),
+        }),
+        Layer.mock(ProjectService.ProjectService)({}),
+        Layer.mock(SecretRequests.SecretRequests)({}),
+        Layer.mock(RemoteDelegation.RemoteDelegation)({}),
+        Layer.mock(ScheduledTaskService.ScheduledTaskService)({}),
+        Layer.mock(AgentWorkflowStore.AgentWorkflowStore)({
+          read: () =>
+            Effect.succeed({
+              workflows: [
+                {
+                  id: "workflow",
+                  status: "running",
+                  managerThreadId: parentThreadId,
+                  participants: [],
+                },
+              ],
+            } as unknown as AgentWorkflowProject),
+        }),
+      );
+      const service = yield* OrchestratorMcpService.OrchestratorMcpService.pipe(
+        Effect.provide(layerOrchestratorService.pipe(Layer.provide(dependencies))),
+      );
+      for (const operation of [
+        service
+          .delegateTask(scope, { task: "Start untracked work", mode: "async" })
+          .pipe(Effect.asVoid),
+        service
+          .createThreads(scope, { threads: [{ prompt: "Start untracked work" }] })
+          .pipe(Effect.asVoid),
+        service
+          .sendToThread(scope, { threadId: childThreadId, message: "Start untracked work" })
+          .pipe(Effect.asVoid),
+        service
+          .scheduleTask(scope, {
+            prompt: "Start untracked work",
+            schedule: { type: "interval", everyMs: 3_600_000 },
+          })
+          .pipe(Effect.asVoid),
+        service
+          .updateScheduledTask(scope, {
+            scheduledTaskId: ScheduledTaskId.make("workflow-bypass"),
+            enabled: true,
+          })
+          .pipe(Effect.asVoid),
+      ]) {
+        assert.equal((yield* operation.pipe(Effect.flip)).code, "capability_denied");
+      }
+    }),
+  );
 
   it.effect.each([
     "parent completion",

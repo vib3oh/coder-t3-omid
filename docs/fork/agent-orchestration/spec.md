@@ -1,6 +1,6 @@
 # T3 role-based agent workflows
 
-Status: discussion draft, 2026-11-02. The user confirmed supervised workflows first, with targeted peer communication. Detailed defaults and the technical design remain proposals; no implementation, issue creation or build routing is implied. Feature specification requested by the fork owner. Recommended route: **Review remaining decisions**, then engineering planning. Read [findings](understanding.md), [UX](ux.md) and [technical design](technical-design.md).
+Status: implementation candidate, 2026-11-02. The fork owner authorized implementation and attended delivery in PR #2 after choosing supervised workflows first. The criteria below remain the acceptance contract, not a claim that every release gate has passed. The PR records focused checks, real-model evals and client evidence separately. Read [findings](understanding.md), [UX](ux.md), [technical design](technical-design.md) and the [user guide](../../user/agent-workflows.md).
 
 ## Problem
 
@@ -47,7 +47,7 @@ Baseline: `origin/main` at [`08f7150f56`](https://github.com/vib3oh/coder-t3-omi
 - [ ] Preserve user-invocation and side-effect authorization across provider formats. A loaded skill cannot authorize commit, publish, merge, install, device operation or outgoing communication by itself.
 - [ ] Defer missing kits/pane-template capabilities explicitly; support an optional workflow only when its real prerequisites are satisfied. Games are out of scope. Do not execute Hypercoder-specific commands as a fallback.
 - [ ] Use audited Vibe procedures and independently authored Hypercoder adaptations with recorded provenance. User-attached third-party skills require compatibility and provenance checks; automatic global-skill copying, personal correspondence profiles and arbitrary plugin installation remain outside scope.
-- [ ] Before shipping executable skill definitions, run focused service tests and model-facing evals against their actual source for the providers claimed as supported. The current design-only package does not install or execute those definitions.
+- [ ] Before shipping executable skill definitions, run focused service tests and model-facing evals against their actual source for the providers claimed as supported. A dry-run or compiler test alone does not establish real-model behavior.
 
 ### Workflow and evidence
 
@@ -91,7 +91,7 @@ User requirement: agent communication must be understandable from a concise, exp
 - [ ] The first release is scoped to one project/environment. It preserves existing ordinary delegation to linked environments without promising new cross-environment workflow state or artifact transfer.
 - [ ] Users can inspect, pause/resume, cancel and retry a workflow or assignment. Pause stops new dispatches; running work is shown and can be interrupted/cancelled separately. Cancel disposes pending wakes and prevents stale completions from advancing stages.
 - [ ] Survive server restart with durable assignments, unresolved questions, ownership and dispatch intents. Recovery reconciles existing T3 receipts/tasks rather than blindly launching replacements.
-- [ ] Default proposed limits: 3 concurrent agent turns per workflow, 2 implementation/review correction rounds, 12 assignment attempts, no automatic nested managers. Users may explicitly change limits within existing policy.
+- [ ] Default proposed limits: 3 concurrent child assignments per workflow (manager coordination is separate), 2 implementation/review correction rounds, 12 assignment attempts, no automatic nested managers. Users may explicitly change limits within existing policy.
 - [ ] If token/cost data is incomplete, display unknown/estimated coverage. Enforce known concurrency/attempt limits regardless. Never promise an exact dollar ceiling across opaque subscription CLIs.
 
 ### Surfaces and validation
@@ -104,7 +104,7 @@ User requirement: agent communication must be understandable from a concise, exp
 
 ## Terminology
 
-Provisional terms for this draft; reconcile against T3's glossary before implementation.
+Feature terms supplementing T3’s glossary.
 
 - **Role preset:** versioned instructions and defaults; separate from the existing `delegate_task.role` hint and from a permission profile.
 - **Assignment:** one bounded responsibility with acceptance criteria. It may span multiple T3 task attempts/turns.
@@ -115,7 +115,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 
 ## Implementation plan
 
-1. Confirm scope and storage decisions in this draft. Review the [technical design](technical-design.md) against the fork contract. No product-wide PRD is needed to explain the idea; reconcile one if the repository later establishes it.
+1. Preserve the accepted supervised scope and storage decision. Review the [technical design](technical-design.md) against the fork contract. No product-wide PRD is needed to explain the idea; reconcile one if the repository later establishes it.
 2. Add namespaced role/assignment contracts and services under the roadmap extension. First ship role snapshots over existing delegation, with explicit skill resolution and instruction composition.
 3. Add correlated team messages and handoff artifacts over T3's message/task services; implement durable pending intents and restart reconciliation. Preserve the distinction between assignment and task completion.
 4. Add the supervised template and server-side transition checks, bounded attempts, writer ownership and revision-bound review.

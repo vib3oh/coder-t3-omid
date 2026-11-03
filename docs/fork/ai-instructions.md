@@ -70,5 +70,5 @@ working integration evidence. A design proposal does not authorize product
 implementation. Keep active work in its existing issue/PR and temporary research
 outside Git; commit durable design material only when requested. The
 [orchestration compatibility contract](agent-orchestration/upstream-compatibility.md)
-is the feature-specific application of these rules, not proof that its proposed
-runtime is implemented.
+is the feature-specific application of these rules. Check the owning PR’s
+current validation before claiming runtime or provider compatibility.

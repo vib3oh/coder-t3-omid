@@ -1820,6 +1820,8 @@ it.layer(Layer.merge(layerTest, ProviderContinuationRequests.layer))(
       "restarted",
       "stopped",
       "overlapping",
+      "sibling",
+      "unrelated",
     ] as const;
     it.effect.each(outcomes)(
       "delivers a %s follow-up independently of the original task",
@@ -1853,6 +1855,36 @@ it.layer(Layer.merge(layerTest, ProviderContinuationRequests.layer))(
             runStatus: "completed",
             now,
           });
+          let senderThreadId = parentThreadId;
+          if (outcome === "sibling") {
+            senderThreadId = (yield* seedRestartCancelledChild({
+              parentThreadId,
+              projectId,
+              parentRunId,
+              rootNodeId,
+              name: "followup-sibling-sender",
+              completionWake: "always",
+              continuationPending: false,
+              runStatus: "completed",
+              now,
+            })).childThreadId;
+          } else if (outcome === "unrelated") {
+            senderThreadId = ThreadId.make("thread:unrelated-followup-sender");
+            yield* orchestrator.dispatch({
+              type: "thread.create",
+              createdBy: "user",
+              creationSource: "web",
+              commandId: CommandId.make("command:unrelated-followup-sender"),
+              threadId: senderThreadId,
+              projectId,
+              title: "Unrelated thread",
+              modelSelection,
+              runtimeMode: "full-access",
+              interactionMode: "default",
+              branch: null,
+              worktreePath: null,
+            });
+          }
           yield* orchestrator.recoverDelegatedTasks;
           let firstWake = yield* requests.take;
           while (firstWake.threadId !== parentThreadId) firstWake = yield* requests.take;
@@ -1864,6 +1896,15 @@ it.layer(Layer.merge(layerTest, ProviderContinuationRequests.layer))(
             taskId: child.taskId,
             observedByRunId: parentRunId,
           });
+          if (outcome === "sibling") {
+            yield* orchestrator.dispatch({
+              type: "delegated_task.completion-delivery.acknowledge",
+              commandId: CommandId.make("command:followup-sibling-ack"),
+              parentThreadId,
+              taskId: NodeId.make("node:followup-sibling-sender"),
+              observedByRunId: parentRunId,
+            });
+          }
           const original = (yield* orchestrator.getThreadProjection(parentThreadId)).subagents.find(
             (task) => task.id === child.taskId,
           )!;
@@ -1890,7 +1931,7 @@ it.layer(Layer.merge(layerTest, ProviderContinuationRequests.layer))(
             creationSource: outcome === "failed" ? "web" : "mcp",
             commandId: CommandId.make(`command:followup-send-${outcome}`),
             threadId: child.childThreadId,
-            senderThreadId: parentThreadId,
+            senderThreadId,
             messageId,
             text: "Check the same work again.",
             attachments: [],
@@ -1898,6 +1939,19 @@ it.layer(Layer.merge(layerTest, ProviderContinuationRequests.layer))(
           });
           const childProjection = yield* orchestrator.getThreadProjection(child.childThreadId);
           let run = childProjection.runs.find((row) => row.userMessageId === messageId)!;
+          const received = childProjection.messages.find((row) => row.id === messageId)!;
+          assert.equal(received.senderThreadId, senderThreadId);
+          assert.equal(received.createdBy, outcome === "failed" ? "user" : "agent");
+          if (outcome === "unrelated") {
+            assert.isUndefined(run.delegatedTaskId);
+            assert.deepEqual(
+              (yield* orchestrator.getThreadProjection(parentThreadId)).subagents.find(
+                (task) => task.id === child.taskId,
+              ),
+              original,
+            );
+            return;
+          }
           assert.isDefined(run.delegatedTaskId);
           const workingParent = yield* orchestrator.getShellSnapshot();
           const backgroundTask = workingParent.threads
@@ -1987,7 +2041,9 @@ it.layer(Layer.merge(layerTest, ProviderContinuationRequests.layer))(
                   status:
                     outcome === "stopped"
                       ? "interrupted"
-                      : outcome === "restarted" || outcome === "overlapping"
+                      : outcome === "restarted" ||
+                          outcome === "overlapping" ||
+                          outcome === "sibling"
                         ? "completed"
                         : outcome,
                   startedAt: now,
@@ -2017,7 +2073,7 @@ it.layer(Layer.merge(layerTest, ProviderContinuationRequests.layer))(
             followup.status,
             outcome === "stopped"
               ? "interrupted"
-              : outcome === "restarted" || outcome === "overlapping"
+              : outcome === "restarted" || outcome === "overlapping" || outcome === "sibling"
                 ? "completed"
                 : outcome,
           );

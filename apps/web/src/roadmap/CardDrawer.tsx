@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { ThreadId, type RoadmapCard, type RoadmapLinkedThread } from "@t3tools/contracts";
 import { FileTextIcon, ExternalLinkIcon, PlusIcon, XIcon } from "lucide-react";
@@ -51,6 +52,7 @@ export function CardDrawer({
   onSave: (card: RoadmapCard, mode?: "build" | "review") => Promise<void>;
 }) {
   const [draft, setDraft] = useState(card);
+  const navigate = useNavigate();
   const [specOpen, setSpecOpen] = useState(false);
   const criteria = draft.acceptanceCriteria ?? [];
   const spec = roadmapSpecTarget(draft.specPath ?? "");
@@ -362,6 +364,50 @@ export function CardDrawer({
           )}
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t px-6 py-4">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled || busy || draft !== card || Boolean(card.threadId)}
+            onClick={() =>
+              void navigate({
+                to: "/agent-workflows",
+                search: {
+                  environmentId: project.environmentId,
+                  projectId: project.id,
+                  cardId: card.id,
+                  ...(card.threadId ? { sourceThreadId: card.threadId } : {}),
+                },
+              })
+            }
+          >
+            Start workflow
+          </Button>
+          {card.threadId ? (
+            <div className="w-full space-y-2 text-xs text-muted-foreground">
+              <p>
+                Open the stopped linked thread to start a workflow. The card keeps its existing
+                owner.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  void navigate({
+                    to: "/$environmentId/$threadId",
+                    params: { environmentId: project.environmentId, threadId: card.threadId! },
+                  })
+                }
+              >
+                Open linked thread
+              </Button>
+            </div>
+          ) : null}
+          {draft !== card ? (
+            <p className="w-full text-xs text-muted-foreground">
+              Save card edits before starting a workflow.
+            </p>
+          ) : null}
           <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
             Cancel
           </Button>

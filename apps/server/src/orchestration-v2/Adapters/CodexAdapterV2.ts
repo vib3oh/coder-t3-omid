@@ -1,4 +1,9 @@
 import { pipe } from "effect/Function";
+import {
+  optionalServerBuiltinSkillPackage,
+  registerCodexBuiltinSkillRoots,
+  type BuiltinSkillPackage,
+} from "../../fork/skills/BuiltinSkillService.ts";
 import * as DocumentText from "../../provider/DocumentText.ts";
 import { revertCodexThread } from "../../provider/CodexThreadRevert.ts";
 import { historyResponseItems } from "@t3tools/provider-core/server/handoffBudget";
@@ -1623,11 +1628,13 @@ export const createCodexAdapterV2 = Effect.fn("CodexAdapterV2.createCodexAdapter
     idAllocator,
     serverConfig,
     continuationRequests,
+    builtinSkillPackage: yield* optionalServerBuiltinSkillPackage(),
     ...hooks,
   });
 });
 
 export interface CodexAdapterV2Options {
+  readonly builtinSkillPackage?: BuiltinSkillPackage | undefined;
   readonly instanceId: ProviderInstanceId;
   readonly settings: CodexSettings;
   readonly environment: NodeJS.ProcessEnv;
@@ -1773,6 +1780,12 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               });
             }
             yield* client.notify("initialized", undefined);
+            if (adapterOptions.builtinSkillPackage) {
+              yield* registerCodexBuiltinSkillRoots(
+                (params) => client.request("skills/extraRoots/set", params),
+                adapterOptions.builtinSkillPackage,
+              );
+            }
             yield* Ref.set(initialized, true);
           }),
         );

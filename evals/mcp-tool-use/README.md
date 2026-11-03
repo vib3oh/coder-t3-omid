@@ -108,6 +108,12 @@ Commands built at run time, external script files and full shell/interpreter sem
 
 This API replay measures routing and recovery decisions. Screenshots return product text and metadata without rendered image blocks, and Codex code cells have no `image` helper, so a cell that calls it fails with `image is not defined`. The shell remains simulated, children are not executed, and `priorTurns` is synthetic context rather than native resume or compaction. It does not test launcher execution, binding, pruning, actual device state, transport failures or resource cleanup, and it models agent-device's session check rather than running it. DEL-02 checks managed recording start/stop and the final filename; it does not inspect video bytes, required flow, transforms, codec or size. Screenshots and final text do not establish delivered artifacts or honesty. Keep local real-harness results separate; their scores and costs are not API-replay results. Offline validation costs $0. Record fresh per-model baseline and candidate costs before using device-case scores as release evidence.
 
+## Supervised workflow cases
+
+`cases/agent-workflows.ndjson` covers supervised manager assignment and yielding, an independent Reviewer refusing peer-requested repairs, exact answer correlation across concurrent questions, blocking-question yielding, and ordinary single-agent work. Its authored Acme state loads the current role compiler and `managerInstructions`/`assignmentInstructions` from source; the tool schemas come from `AgentWorkflowToolkit`. `setup.workflowRole` selects that fixture without copying model-facing instructions into case data.
+
+Run these cases with `pnpm mcp-tool-use --cases mcp-tool-use/cases/agent-workflows.ndjson --samples 1 --out runs/agent-workflows`. Results measure model routing against simulated tools, not native task execution, filesystem restrictions, checkpoint verification or delivered work. The Reviewer guard checks explicit edit tools and bounded shell patterns; it is not a shell sandbox.
+
 ## Threads vs tasks cases
 
 `cases/threads-vs-tasks.ndjson` covers explicit thread requests, delegated and background work, lifecycle operations, child permissions, and ordinary code requests using words like "thread" and "task". The native-subagent case is Claude-only. All scenarios use authored Acme data.

@@ -518,6 +518,18 @@
     "./provider-clients": {
       "types": "./src/providerClients.ts",
       "default": "./src/providerClients.ts"
+    },
+    "./fork/agents/state": {
+      "types": "./src/fork/agents/state.ts",
+      "default": "./src/fork/agents/state.ts"
+    },
+    "./fork/agents/communication": {
+      "types": "./src/fork/agents/communication.ts",
+      "default": "./src/fork/agents/communication.ts"
+    },
+    "./fork/agents/limits": {
+      "types": "./src/fork/agents/limits.ts",
+      "default": "./src/fork/agents/limits.ts"
     }
   },
   "scripts": {

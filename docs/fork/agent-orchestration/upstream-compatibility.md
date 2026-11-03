@@ -1,10 +1,10 @@
 # Building on upstream T3
 
 Design constraint added after the skill audit: keep pulling community T3 updates
-and build on its existing capabilities. This package contains research and design
-only. No combined skills, role compiler or workflow controller have been installed
-or tested in a running T3 client. Seamless integration is an acceptance goal,
-not a result this PR demonstrates.
+and build on its existing capabilities. The implementation keeps workflow metadata and authored skills in fork-owned
+modules, with native execution and provider discovery retained. Compatibility
+claims require the checks recorded on the owning PR; source inspection alone
+does not establish seamless integration.
 
 ## Current fork base and rebase audit
 
@@ -36,7 +36,7 @@ edits, review-lane behavior and destination grants; implementation should extend
 those cases for workflow interactions. Their prior passing receipt belongs to
 the roadmap PR, not to this design audit.
 
-The [spec](spec.md#existing-roadmap-compatibility), [technical design](technical-design.md#roadmap-integration-on-the-refreshed-base)
+The [spec](spec.md#existing-roadmap-compatibility), [technical design](technical-design.md#workspace-and-evidence)
 and [UX](ux.md) now incorporate these constraints. The original Hypercoder/skill
 receipts remain unchanged. This is a fork-base rebase, not integration of the
 separately inspected newer community `upstream/main` ref below.

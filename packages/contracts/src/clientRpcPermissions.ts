@@ -18,6 +18,12 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.changelogShare]: AuthAccessWriteScope,
   [ORCHESTRATION_V2_WS_METHODS.launchThread]: AuthOrchestrationOperateScope,
   [WS_METHODS.roadmapSave]: AuthOrchestrationOperateScope,
+  [WS_METHODS.agentRoleSave]: AuthOrchestrationOperateScope,
+  [WS_METHODS.agentWorkflowSettings]: AuthOrchestrationOperateScope,
+  [WS_METHODS.agentWorkflowStart]: AuthOrchestrationOperateScope,
+  [WS_METHODS.agentWorkflowControl]: AuthOrchestrationOperateScope,
+  [WS_METHODS.agentAssignmentControl]: AuthOrchestrationOperateScope,
+  [WS_METHODS.agentTeamMessage]: AuthOrchestrationOperateScope,
   [WS_METHODS.previewClose]: AuthPreviewOperateScope,
   // Stopping a server signals its processes, as closing a terminal does.
   [WS_METHODS.previewStopLocalServer]: AuthTerminalOperateScope,

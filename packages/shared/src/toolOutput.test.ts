@@ -9,7 +9,19 @@ import {
 
 describe("compactDynamicToolOutput", () => {
   it("extracts IDs through the MCP result envelopes used by T3 summaries", () => {
-    const metadata = { threadId: "thread-1", messageId: "message-1" };
+    const metadata = {
+      threadId: "thread-1",
+      messageId: "message-1",
+      communication: {
+        id: "team-message-1",
+        nativeMessageId: "native-message-1",
+        senderName: "Builder",
+        recipientName: "Planner",
+        summary: "Checks passed; review is pending",
+        kind: "update",
+        delivery: "queued",
+      },
+    };
     const json = JSON.stringify({ ...metadata, response: "Private response body" });
     for (const value of [
       { ...metadata, response: "Private response body" },
@@ -20,6 +32,16 @@ describe("compactDynamicToolOutput", () => {
     ]) {
       expect(compactDynamicToolOutput(value)).toEqual(metadata);
     }
+    expect(
+      compactDynamicToolOutput({
+        communication: { ...metadata.communication, nativeMessageId: "x".repeat(257) },
+      }),
+    ).toBeUndefined();
+    expect(
+      compactDynamicToolOutput({
+        communication: { ...metadata.communication, text: "Private full body" },
+      }),
+    ).toEqual({ communication: metadata.communication });
   });
 
   it("keeps nested thread identity and scalar task IDs without result bodies", () => {

@@ -6,6 +6,7 @@ import * as Path from "effect/Path";
 
 import { discoverClaudeSkills } from "./ClaudeSkills.ts";
 import { planClaudeSkillDispatch } from "./ClaudeSkillDispatch.ts";
+import { prepareBuiltinSkillPackage } from "../../fork/skills/BuiltinSkillService.ts";
 
 const writeSkill = Effect.fn(function* (
   skillsDir: string,
@@ -73,6 +74,32 @@ it.layer(NodeServices.layer)("discoverClaudeSkills", (it) => {
           userInvocable: false,
         },
       ]);
+      const builtin = yield* prepareBuiltinSkillPackage(path.join(tempDir, "server-state"));
+      const withBuiltin = yield* discoverClaudeSkills(
+        { homePath: configDir },
+        undefined,
+        undefined,
+        [
+          {
+            directory: path.join(builtin.claudePluginRoot, "skills"),
+            prefix: "t3-vibe",
+            scope: "system",
+          },
+        ],
+      );
+      assert.deepEqual(
+        withBuiltin.filter((skill) => skill.name.startsWith("manifest-plugin:")),
+        skills,
+      );
+      const shippedSpec = builtin.entries.find((entry) => entry.id === "vibe-spec")!;
+      assert.equal(
+        withBuiltin.find((skill) => skill.name === "t3-vibe:vibe-spec")?.path,
+        shippedSpec.claude.path,
+      );
+      assert.equal(
+        withBuiltin.find((skill) => skill.name === "t3-vibe:vibe-ship")?.userInvocationOnly,
+        true,
+      );
     }),
   );
 
@@ -80,7 +107,9 @@ it.layer(NodeServices.layer)("discoverClaudeSkills", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-claude-skills-" });
+      const tempDir = yield* fs
+        .makeTempDirectoryScoped({ prefix: "t3-claude-skills-" })
+        .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
       const configDir = path.join(tempDir, "claude-home");
       const workspace = path.join(tempDir, "workspace");
       const nestedWorkspace = path.join(workspace, "packages", "app");
