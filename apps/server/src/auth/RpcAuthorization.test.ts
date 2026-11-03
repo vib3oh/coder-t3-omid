@@ -1,5 +1,6 @@
 import {
   AuthEnvironmentMaintainScope,
+  AuthAccessWriteScope,
   AuthDiagnosticsReadScope,
   AuthFilesystemReadScope,
   AuthProvidersManageScope,
@@ -65,6 +66,18 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.previewStopLocalServer,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthTerminalOperateScope);
+    }
+  });
+
+  it("separates Hypercoder observation, synchronization and credential-context selection", () => {
+    for (const method of [WS_METHODS.roadmapSyncRead, WS_METHODS.roadmapSyncDetail]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
+    }
+    for (const method of [WS_METHODS.roadmapSyncRun, WS_METHODS.roadmapSyncResolve]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
+    }
+    for (const method of [WS_METHODS.roadmapSyncConnect, WS_METHODS.roadmapSyncDisconnect]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthAccessWriteScope);
     }
   });
 

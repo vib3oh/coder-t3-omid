@@ -5,10 +5,13 @@ import {
   EnvironmentId,
   ProjectId,
   RoadmapError,
+  RoadmapSyncError,
   type RoadmapBoard,
   type RoadmapCard,
   type RoadmapSaveInput,
   type RoadmapLinkedThread,
+  type RoadmapSyncStatus,
+  type RoadmapSyncDetail,
   ProviderInstanceId,
   ThreadId,
   DEFAULT_SERVER_SETTINGS,
@@ -29,6 +32,14 @@ const state = vi.hoisted(() => ({
   unarchive: vi.fn(),
   save: vi.fn(),
   reload: vi.fn(),
+  sync: null as RoadmapSyncStatus | null,
+  syncDetail: null as RoadmapSyncDetail | null,
+  syncRead: vi.fn(),
+  syncDetails: vi.fn(),
+  syncConnect: vi.fn(),
+  syncRun: vi.fn(),
+  syncResolve: vi.fn(),
+  syncDisconnect: vi.fn(),
 }));
 
 vi.mock(import("@effect/atom-react"), async (original) => ({
@@ -36,9 +47,13 @@ vi.mock(import("@effect/atom-react"), async (original) => ({
   useAtomValue: ((atom: string) =>
     atom === "board"
       ? AsyncResult.success({ board: state.board!, linkedThreads: state.linkedThreads })
-      : atom === "config"
-        ? state.config
-        : state.canSave) as never,
+      : atom === "sync"
+        ? AsyncResult.success(state.sync!)
+        : atom === "syncDetail"
+          ? AsyncResult.success(state.syncDetail!)
+          : atom === "config"
+            ? state.config
+            : state.canSave) as never,
 }));
 vi.mock(import("../state/entities"), () => ({
   useProjects: () =>
@@ -58,6 +73,14 @@ vi.mock(import("./roadmapState"), () => ({
   roadmapSave: { kind: "save", permissionAtom: () => "permission" } as never,
   roadmapLaunch: { kind: "launch", permissionAtom: () => "permission" } as never,
 }));
+vi.mock(import("./roadmapSyncState"), () => ({
+  roadmapSyncRead: Object.assign(() => "sync", { kind: "sync" }) as never,
+  roadmapSyncDetail: Object.assign(() => "syncDetail", { kind: "syncDetail" }) as never,
+  roadmapSyncConnect: { kind: "syncConnect", permissionAtom: () => "permission" } as never,
+  roadmapSyncRun: { kind: "syncRun", permissionAtom: () => "permission" } as never,
+  roadmapSyncResolve: { kind: "syncResolve", permissionAtom: () => "permission" } as never,
+  roadmapSyncDisconnect: { kind: "syncDisconnect", permissionAtom: () => "permission" } as never,
+}));
 vi.mock(import("../state/use-atom-command"), () => ({
   useAtomCommand: ((command: { kind: string }) =>
     command.kind === "launch"
@@ -68,10 +91,23 @@ vi.mock(import("../state/use-atom-command"), () => ({
           ? state.archive
           : command.kind === "unarchive"
             ? state.unarchive
-            : state.save) as never,
+            : command.kind === "syncConnect"
+              ? state.syncConnect
+              : command.kind === "syncRun"
+                ? state.syncRun
+                : command.kind === "syncResolve"
+                  ? state.syncResolve
+                  : command.kind === "syncDisconnect"
+                    ? state.syncDisconnect
+                    : state.save) as never,
 }));
 vi.mock(import("../state/use-atom-query-runner"), () => ({
-  useAtomQueryRunner: (() => state.reload) as never,
+  useAtomQueryRunner: ((family: { kind?: string }) =>
+    family.kind === "sync"
+      ? state.syncRead
+      : family.kind === "syncDetail"
+        ? state.syncDetails
+        : state.reload) as never,
 }));
 vi.mock(import("../hooks/useHandleNewThread"), () => ({ useNewThreadHandler: () => vi.fn() }));
 vi.mock(import("../components/ui/sidebar"), () => ({
@@ -95,6 +131,30 @@ function setup() {
   state.canSave = true;
   state.linkedThreads = [];
   state.config = null;
+  state.sync = {
+    revision: 0,
+    binding: null,
+    connection: "disconnected",
+    lastSyncedAt: null,
+    lastRunId: null,
+    message: null,
+    capabilities: {
+      conditionalWrites: false,
+      create: false,
+      update: false,
+      archive: false,
+      rank: false,
+    },
+    rows: [],
+    counts: { pulled: 0, pushed: 0, unchanged: 0, conflicts: 0, unsupported: 0, failed: 0 },
+  };
+  state.syncDetail = null;
+  state.syncRead.mockReset().mockImplementation(async () => AsyncResult.success(state.sync!));
+  state.syncDetails
+    .mockReset()
+    .mockImplementation(async () => AsyncResult.success(state.syncDetail!));
+  for (const command of [state.syncConnect, state.syncRun, state.syncResolve, state.syncDisconnect])
+    command.mockReset().mockImplementation(async () => AsyncResult.success(state.sync!));
   for (const command of [state.launch, state.startTurn, state.archive, state.unarchive])
     command.mockReset().mockResolvedValue(AsyncResult.success({}));
   state.save.mockReset().mockImplementation(async ({ input }: { input: RoadmapSaveInput }) => {
@@ -225,6 +285,211 @@ function idea(id: string, title = id): RoadmapCard {
     archived: false,
   };
 }
+
+it("preserves an open draft while sync locks its card and keeps the spec readable", async () => {
+  setup();
+  state.board = {
+    version: 1,
+    revision: 0,
+    cards: [
+      {
+        ...idea("locked"),
+        specPath: "https://example.com/spec",
+        acceptanceCriteria: [{ id: "criterion", text: "Criterion", checked: false }],
+      },
+    ],
+  };
+  await using screen = await render(<RoadmapPage />, { router: "/roadmap" });
+  await userEvent.click(screen.getByRole("button", { name: "locked", exact: true }));
+  await userEvent.fill(page.getByRole("textbox", { name: "Title", exact: true }), "Unsaved draft");
+  state.board = {
+    ...state.board,
+    revision: 1,
+    cards: [
+      {
+        ...state.board.cards[0]!,
+        sync: {
+          source: "hypercoder",
+          externalId: "remote",
+          status: "conflict",
+          readOnly: true,
+          reason: "Both titles changed",
+          remoteColumn: "building",
+        },
+      },
+    ],
+  };
+  await screen.rerender(<RoadmapPage />);
+  await expect
+    .element(page.getByRole("textbox", { name: "Title", exact: true }))
+    .toHaveValue("Unsaved draft");
+  await expect.element(page.getByRole("textbox", { name: "Title", exact: true })).toBeDisabled();
+  await expect
+    .element(page.getByRole("checkbox", { name: "Complete criterion 1", exact: true }))
+    .toBeDisabled();
+  await expect.element(page.getByRole("button", { name: "Save card", exact: true })).toBeDisabled();
+  await expect
+    .element(page.getByRole("button", { name: "Start building", exact: true }))
+    .toBeDisabled();
+  await expect
+    .element(page.getByRole("link", { name: "Open full spec" }))
+    .toHaveAttribute("href", "https://example.com/spec");
+  await userEvent.click(page.getByRole("button", { name: "Cancel", exact: true }));
+  await expect
+    .element(screen.getByRole("button", { name: "Drag locked", exact: true }))
+    .toBeDisabled();
+  await expect.element(screen.getByRole("button", { name: "Archive", exact: true })).toBeDisabled();
+  await expect
+    .element(screen.getByRole("button", { name: "Plan in thread", exact: true }))
+    .toBeDisabled();
+  expect(state.save).not.toHaveBeenCalled();
+});
+
+it("refreshes stale sync setup deliberately without losing connection inputs", async () => {
+  setup();
+  state.board = { version: 1, revision: 0, cards: [] };
+  state.syncConnect.mockImplementation(
+    async ({
+      input,
+    }: {
+      input: { expectedRevision: number; binding: NonNullable<RoadmapSyncStatus["binding"]> };
+    }) => {
+      if (input.expectedRevision !== state.sync!.revision)
+        return AsyncResult.failure(Cause.fail(new RoadmapSyncError({ reason: "conflict" })));
+      state.sync = {
+        ...state.sync!,
+        revision: state.sync!.revision + 1,
+        binding: input.binding,
+        connection: "ready",
+      };
+      return AsyncResult.success(state.sync);
+    },
+  );
+  await using screen = await render(<RoadmapPage />, { router: "/roadmap" });
+  await userEvent.click(screen.getByRole("button", { name: "Sync with Hypercoder", exact: true }));
+  await userEvent.fill(
+    page.getByRole("textbox", { name: "Context diagnostics JSON" }),
+    JSON.stringify({
+      source: "/project/context.json",
+      backend: "http",
+      projectId: "hc-project",
+      instanceId: "hc-instance",
+      extra: "not forwarded",
+    }),
+  );
+  await userEvent.click(page.getByRole("button", { name: "Use diagnostics", exact: true }));
+  state.sync = { ...state.sync!, revision: 3 };
+  await screen.rerender(<RoadmapPage />);
+  await userEvent.click(page.getByRole("button", { name: "Connect roadmap", exact: true }));
+  await expect.element(page.getByRole("dialog").getByRole("alert")).toBeVisible();
+  await expect
+    .element(page.getByRole("button", { name: "Connect roadmap", exact: true }))
+    .toBeDisabled();
+  await userEvent.click(page.getByText("Review or enter connection fields", { exact: true }));
+  await expect
+    .element(page.getByRole("textbox", { name: "Context path", exact: true }))
+    .toHaveValue("/project/context.json");
+  expect(state.syncConnect.mock.calls[0]![0].input.expectedRevision).toBe(0);
+  await userEvent.click(page.getByRole("button", { name: "Refresh sync status and keep inputs" }));
+  await userEvent.click(page.getByRole("button", { name: "Connect roadmap", exact: true }));
+  await expect.element(page.getByRole("button", { name: "Sync now", exact: true })).toBeVisible();
+  expect(state.syncConnect.mock.calls[1]![0].input).toEqual({
+    projectId: "project",
+    expectedRevision: 3,
+    binding: {
+      contextPath: "/project/context.json",
+      backend: "http",
+      projectId: "hc-project",
+      instanceId: "hc-instance",
+    },
+  });
+});
+
+it("loads comparisons on request and requires refreshed review before retrying a stale resolution", async () => {
+  setup();
+  state.board = { version: 1, revision: 0, cards: [idea("card")] };
+  state.sync = {
+    ...state.sync!,
+    binding: {
+      contextPath: "/project/context.json",
+      backend: "http",
+      projectId: "hc",
+      instanceId: "instance",
+    },
+    connection: "ready",
+    capabilities: {
+      conditionalWrites: true,
+      create: true,
+      update: true,
+      archive: true,
+      rank: true,
+    },
+    counts: { ...state.sync!.counts, conflicts: 1 },
+    rows: [
+      {
+        cardId: "card",
+        externalId: "remote",
+        title: "card",
+        status: "conflict",
+        reason: "Both titles changed",
+        conflictingFields: ["title"],
+      },
+    ],
+  };
+  const fields = {
+    title: "T3 title",
+    summary: "",
+    type: "feature" as const,
+    effort: "M" as const,
+    lane: "backlog" as const,
+    archived: false,
+    completed: false,
+    specPath: null,
+    acceptanceCriteria: [],
+  };
+  state.syncDetail = {
+    cardId: "card",
+    local: fields,
+    baseline: { ...fields, title: "Original title" },
+    remote: { ...fields, title: "Hypercoder title" },
+    conflictingFields: ["title"],
+  };
+  state.syncResolve.mockImplementation(
+    async ({ input }: { input: { expectedRevision: number } }) =>
+      input.expectedRevision !== state.sync!.revision
+        ? AsyncResult.failure(Cause.fail(new RoadmapSyncError({ reason: "conflict" })))
+        : AsyncResult.success({
+            ...state.sync!,
+            rows: [],
+            counts: { ...state.sync!.counts, conflicts: 0 },
+          }),
+  );
+  await using screen = await render(<RoadmapPage />, { router: "/roadmap" });
+  await userEvent.click(screen.getByRole("button", { name: "Sync with Hypercoder", exact: true }));
+  await expect.element(page.getByText("T3 title", { exact: true })).not.toBeInTheDocument();
+  await userEvent.click(page.getByText("Card results (1)", { exact: true }));
+  await userEvent.click(
+    page.getByRole("button", { name: "Review differences for card", exact: true }),
+  );
+  await expect.element(page.getByText("T3 title", { exact: true })).toBeVisible();
+  await expect.element(page.getByText("Hypercoder title", { exact: true })).toBeVisible();
+  state.sync = { ...state.sync!, revision: 2 };
+  await screen.rerender(<RoadmapPage />);
+  await userEvent.click(page.getByRole("button", { name: "Use Hypercoder changes", exact: true }));
+  await expect.element(page.getByRole("dialog").getByRole("alert")).toBeVisible();
+  await expect
+    .element(page.getByRole("button", { name: "Use Hypercoder changes", exact: true }))
+    .toBeDisabled();
+  expect(state.syncResolve).toHaveBeenCalledTimes(1);
+  await userEvent.click(page.getByRole("button", { name: "Refresh sync status and keep inputs" }));
+  await expect.element(page.getByText("T3 title", { exact: true })).not.toBeInTheDocument();
+  await userEvent.click(
+    page.getByRole("button", { name: "Review differences for card", exact: true }),
+  );
+  await userEvent.click(page.getByRole("button", { name: "Use Hypercoder changes", exact: true }));
+  await expect.element(page.getByText("Card results (1)", { exact: true })).not.toBeInTheDocument();
+  expect(state.syncResolve.mock.calls[1]![0].input.expectedRevision).toBe(2);
+});
 
 function linkedThread(id: string, draft: boolean | null): RoadmapLinkedThread {
   const at = "2026-11-02T12:00:00.000Z";

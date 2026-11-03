@@ -33,6 +33,8 @@ export function CardDrawer({
   project,
   latest,
   error,
+  readOnlyReason,
+  syncMetadata,
   onReload,
   threads,
   disabled,
@@ -44,6 +46,8 @@ export function CardDrawer({
   project: EnvironmentProject;
   latest: RoadmapCard | undefined;
   error: string | null;
+  readOnlyReason: string | null;
+  syncMetadata: RoadmapCard["sync"];
   onReload: () => Promise<void>;
   threads: ReadonlyArray<RoadmapLinkedThread>;
   disabled: boolean;
@@ -54,6 +58,7 @@ export function CardDrawer({
   const [draft, setDraft] = useState(card);
   const navigate = useNavigate();
   const [specOpen, setSpecOpen] = useState(false);
+  const locked = disabled || Boolean(readOnlyReason);
   const criteria = draft.acceptanceCriteria ?? [];
   const spec = roadmapSpecTarget(draft.specPath ?? "");
   const stage = roadmapColumn(
@@ -76,6 +81,17 @@ export function CardDrawer({
           <SheetDescription>Acceptance criteria, full spec, and work details.</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+          {syncMetadata ? (
+            <p className="text-sm text-muted-foreground">
+              Hypercoder · {syncMetadata.status}
+              {syncMetadata.remoteColumn ? ` · source: ${syncMetadata.remoteColumn}` : ""}
+            </p>
+          ) : null}
+          {readOnlyReason ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              Read only: {readOnlyReason} Your unsaved draft is kept.
+            </p>
+          ) : null}
           {error ? (
             <div className="space-y-2">
               <p role="alert" className="text-sm text-destructive">
@@ -155,6 +171,7 @@ export function CardDrawer({
                 className="space-y-4"
                 onSubmit={(event) => {
                   event.preventDefault();
+                  if (locked) return;
                   const mode = (event.nativeEvent as SubmitEvent).submitter?.getAttribute(
                     "data-work",
                   );
@@ -172,7 +189,7 @@ export function CardDrawer({
                   );
                 }}
               >
-                <fieldset disabled={disabled} className="space-y-4">
+                <fieldset disabled={locked} className="space-y-4">
                   <label className="block space-y-1 text-sm">
                     <span>Title</span>
                     <Input
@@ -220,6 +237,7 @@ export function CardDrawer({
                         <div className="pt-2">
                           <Checkbox
                             aria-label={`Complete criterion ${index + 1}`}
+                            disabled={locked}
                             checked={row.checked}
                             onCheckedChange={(checked) =>
                               setDraft({
@@ -367,7 +385,7 @@ export function CardDrawer({
           <Button
             type="button"
             variant="outline"
-            disabled={disabled || busy || draft !== card || Boolean(card.threadId)}
+            disabled={locked || busy || draft !== card || Boolean(card.threadId)}
             onClick={() =>
               void navigate({
                 to: "/agent-workflows",
@@ -415,7 +433,7 @@ export function CardDrawer({
             type="submit"
             form="roadmap-card-editor"
             disabled={
-              disabled ||
+              locked ||
               !draft.title.trim() ||
               specOpen ||
               (Boolean(draft.specPath) && spec.kind === "invalid")
@@ -428,7 +446,7 @@ export function CardDrawer({
             form="roadmap-card-editor"
             data-work="build"
             disabled={
-              disabled ||
+              locked ||
               !draft.title.trim() ||
               specOpen ||
               (Boolean(draft.specPath) && spec.kind === "invalid")
@@ -443,7 +461,7 @@ export function CardDrawer({
               data-work="review"
               variant="outline"
               disabled={
-                disabled ||
+                locked ||
                 !draft.title.trim() ||
                 specOpen ||
                 (Boolean(draft.specPath) && spec.kind === "invalid")

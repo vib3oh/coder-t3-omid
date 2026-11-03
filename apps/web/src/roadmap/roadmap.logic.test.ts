@@ -5,6 +5,9 @@ import {
   mergeRoadmapEdit,
   roadmapDropAction,
   roadmapSpecTarget,
+  roadmapReadOnlyReason,
+  roadmapSyncDiagnostics,
+  roadmapOrderGuard,
 } from "./roadmap.logic";
 import type { RoadmapCard } from "@t3tools/contracts";
 
@@ -21,6 +24,30 @@ const card: RoadmapCard = {
 };
 
 describe("roadmap lifecycle", () => {
+  it("uses only context diagnostics fields and rejects credential-bearing input", () => {
+    const context = {
+      source: "/project/context.json",
+      backend: "http://127.0.0.1:3470",
+      projectId: "remote",
+      instanceId: "instance",
+    };
+    expect(roadmapSyncDiagnostics(JSON.stringify({ ...context, extra: "not forwarded" }))).toEqual({
+      type: "valid",
+      binding: {
+        contextPath: context.source,
+        backend: context.backend,
+        projectId: context.projectId,
+        instanceId: context.instanceId,
+      },
+    });
+    expect(
+      roadmapSyncDiagnostics(JSON.stringify({ ...context, nested: { authToken: "test-value" } })),
+    ).toEqual({ type: "credentials" });
+    expect(roadmapSyncDiagnostics(JSON.stringify({ ...context, source: "" }))).toEqual({
+      type: "invalid",
+    });
+    expect(roadmapSyncDiagnostics("invalid")).toEqual({ type: "invalid" });
+  });
   it("turns execution-lane drops into real work and keeps open PR work out of planning", () => {
     expect(roadmapDropAction(card, "building", null)).toEqual({ type: "work", mode: "build" });
     expect(roadmapDropAction(card, "reviewing", null).type).toBe("blocked");
@@ -112,6 +139,14 @@ describe("roadmap lifecycle", () => {
       effort: "XL" as const,
       type: "bug" as const,
       lane: "backlog" as const,
+      sync: {
+        source: "hypercoder" as const,
+        externalId: "remote-card",
+        status: "pending" as const,
+        readOnly: false,
+        reason: null,
+        remoteColumn: null,
+      },
     };
     expect(mergeRoadmapEdit(card, { ...card, title: "My edited title" }, latest)).toEqual({
       ...latest,
@@ -186,5 +221,38 @@ describe("roadmap lifecycle", () => {
       ["archived", "upNext"],
     ]);
     expect(moveRoadmapCard(cards, "missing", "backlog")).toEqual(cards);
+  });
+
+  it("blocks sync-owned work and rank changes without treating remote execution as native work", () => {
+    const locked: RoadmapCard = {
+      ...card,
+      sync: {
+        source: "hypercoder",
+        externalId: "external",
+        status: "conflict",
+        readOnly: false,
+        reason: "Both titles changed",
+        remoteColumn: "building",
+      },
+    };
+    expect(roadmapReadOnlyReason(locked)).toBe("Both titles changed");
+    expect(roadmapDropAction(locked, "building")).toEqual({
+      type: "blocked",
+      message: "Both titles changed",
+    });
+    expect(roadmapColumn(locked)).toBe("upNext");
+    const cards = [{ ...card, id: "before" }, locked, { ...card, id: "after" }];
+    expect(moveRoadmapCard(cards, "one", "backlog")).toBe(cards);
+    expect(moveRoadmapCard(cards, "after", "backlog", "before")).toBe(cards);
+    expect(moveRoadmapCard(cards, "before", "backlog")).toBe(cards);
+    const unlocked = [...cards, { ...card, id: "last" }];
+    expect(roadmapOrderGuard(unlocked)("last", "after")).toBe(true);
+    expect(moveRoadmapCard(unlocked, "last", "backlog", "after").map((row) => row.id)).toEqual([
+      "before",
+      "one",
+      "last",
+      "after",
+    ]);
+    expect(roadmapReadOnlyReason({ ...locked, sync: undefined })).toBeNull();
   });
 });

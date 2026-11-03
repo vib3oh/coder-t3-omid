@@ -14,6 +14,10 @@ import {
   AuthPreviewOperateScope,
   AuthSettingsWriteScope,
   AuthSourceControlWriteScope,
+  CommandId,
+  MessageId,
+  ProjectId,
+  ProviderInstanceId,
   ThreadId,
   EnvironmentId,
   ORCHESTRATION_V2_WS_METHODS,
@@ -30,7 +34,7 @@ import * as Layer from "effect/Layer";
 import { Atom, AtomRegistry, AsyncResult } from "effect/reactivity";
 import { EnvironmentRegistry } from "../connection/registry.ts";
 import { createCommandPermissions } from "./commandPermissions.ts";
-import { createEnvironmentRpcCommand } from "./runtime.ts";
+import { createEnvironmentCommand, createEnvironmentRpcCommand } from "./runtime.ts";
 import { AVAILABLE_CONNECTION_STATE } from "../connection/model.ts";
 import { createPeerLinkEnvironmentAtoms } from "./peerLinks.ts";
 
@@ -145,6 +149,8 @@ describe("command permissions", () => {
 
   it.effect.each([
     WS_METHODS.roadmapSave,
+    WS_METHODS.roadmapSyncRun,
+    WS_METHODS.roadmapSyncResolve,
     WS_METHODS.agentRoleSave,
     WS_METHODS.agentWorkflowSettings,
     WS_METHODS.agentWorkflowStart,
@@ -483,6 +489,32 @@ it.effect.each([WS_METHODS.peerLinksAnswerRequest, WS_METHODS.changelogShare])(
     ),
 );
 
+it.effect.each([WS_METHODS.roadmapSyncConnect, WS_METHODS.roadmapSyncDisconnect])(
+  "requires access management to change the Hypercoder connection through %s",
+  (method) =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const registry = yield* setup;
+        const permissions = createCommandPermissions(runtime, method);
+        registry.set(sessions(env), AsyncResult.success(grant(true)));
+        expect(registry.get(permissions.permissionAtom(env))).toBe(false);
+        expect((yield* permissions.authorize(registry, env).pipe(Effect.flip)).requiredScope).toBe(
+          AuthAccessWriteScope,
+        );
+        registry.set(
+          sessions(env),
+          AsyncResult.success({
+            ...grant(true),
+            scopes: [AuthAccessWriteScope],
+            permissions: [AuthAccessWriteScope],
+          }),
+        );
+        expect(registry.get(permissions.permissionAtom(env))).toBe(true);
+        yield* permissions.authorize(registry, env);
+      }),
+    ),
+);
+
 it.effect("honors exact empty permissions and preserves legacy parent grants", () =>
   Effect.scoped(
     Effect.gen(function* () {
@@ -537,4 +569,59 @@ it.effect("rejects protected unary and streamed RPCs outside a guarded command",
     expect(streamed._tag).toBe("EnvironmentAuthorizationError");
     expect(writes).toBe(0);
   }),
+);
+
+it.effect("authorizes a composed first-message launch and rejects a revoked grant", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const registry = yield* setup;
+      registry.set(sessions(env), AsyncResult.success(grant(true)));
+      let launches = 0;
+      const supervisor = {
+        target: { environmentId: env, label: "target" },
+        session: yield* SubscriptionRef.make(
+          Option.some({
+            client: {
+              [ORCHESTRATION_V2_WS_METHODS.launchThread]: () =>
+                Effect.sync(() => {
+                  launches++;
+                  return { threadId: ThreadId.make("new-thread") };
+                }),
+            },
+          } as unknown as RpcSession),
+        ),
+      } as unknown as EnvironmentSupervisor["Service"];
+      const commandRuntime = Atom.runtime(
+        Layer.succeed(EnvironmentRegistry, {
+          run: (_id: EnvironmentId, effect: Effect.Effect<unknown>) =>
+            effect.pipe(Effect.provideService(EnvironmentSupervisor, supervisor)),
+        } as unknown as EnvironmentRegistry["Service"]),
+      );
+      const command = createEnvironmentCommand(commandRuntime, {
+        label: "test.first-message",
+        execute: () =>
+          requestGuarded(ORCHESTRATION_V2_WS_METHODS.launchThread, {
+            commandId: CommandId.make("launch-new-thread"),
+            threadId: ThreadId.make("new-thread"),
+            projectId: ProjectId.make("project"),
+            title: "New thread",
+            modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "test" },
+            runtimeMode: "full-access",
+            interactionMode: "default",
+            workspaceStrategy: { type: "root" },
+            initialMessage: {
+              messageId: MessageId.make("first-message"),
+              text: "Hello",
+              attachments: [],
+            },
+          }),
+      });
+      const target = { environmentId: env, input: undefined };
+      expect((yield* Effect.promise(() => command.run(registry, target)))._tag).toBe("Success");
+      expect(launches).toBe(1);
+      registry.set(sessions(env), AsyncResult.success(grant(false)));
+      expect((yield* Effect.promise(() => command.run(registry, target)))._tag).toBe("Failure");
+      expect(launches).toBe(1);
+    }),
+  ),
 );

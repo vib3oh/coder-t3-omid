@@ -3,6 +3,7 @@ import { NonNegativeInt, ProjectId, ThreadId, TrimmedNonEmptyString } from "./ba
 import { ThreadPullRequestLink } from "./threadPullRequest.ts";
 import { ModelSelection } from "./modelSelection.ts";
 import { ProviderInteractionMode, RuntimeMode } from "./providerPolicy.ts";
+import { RoadmapCardSync } from "./roadmapSync.ts";
 
 export const RoadmapCard = Schema.Struct({
   id: TrimmedNonEmptyString.check(Schema.isMaxLength(128)),
@@ -24,6 +25,7 @@ export const RoadmapCard = Schema.Struct({
   threadId: Schema.NullOr(ThreadId),
   completed: Schema.Boolean,
   archived: Schema.Boolean,
+  sync: Schema.optional(RoadmapCardSync),
 });
 export type RoadmapCard = typeof RoadmapCard.Type;
 

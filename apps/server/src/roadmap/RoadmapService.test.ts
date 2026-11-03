@@ -37,6 +37,70 @@ const layer = RoadmapService.layer.pipe(
 );
 
 describe("RoadmapService", () => {
+  it.effect(
+    "owns sync metadata and blocks edits or moves of locked cards while allowing unrelated insertions",
+    () =>
+      Effect.gen(function* () {
+        const service = yield* RoadmapService.RoadmapService;
+        const projectId = ProjectId.make("sync-ownership");
+        const sync = {
+          source: "hypercoder" as const,
+          externalId: "remote",
+          status: "conflict" as const,
+          readOnly: true,
+          reason: "Choose a version",
+          remoteColumn: null,
+        };
+        expect(
+          yield* service
+            .save({ projectId, expectedRevision: 0, cards: [{ ...card, sync }] })
+            .pipe(Effect.flip),
+        ).toMatchObject({ reason: "invalid" });
+        const locked = { ...card, sync };
+        yield* service.applySync({
+          projectId,
+          expectedRevision: 0,
+          cards: [locked, { ...card, id: "other" }],
+        });
+        for (const cards of [
+          [
+            { ...locked, title: "Changed" },
+            { ...card, id: "other" },
+          ],
+          [
+            { ...locked, sync: { ...sync, readOnly: false } },
+            { ...card, id: "other" },
+          ],
+          [{ ...card, id: "other" }, locked],
+          [{ ...card, id: "other" }],
+        ]) {
+          expect(
+            yield* service.save({ projectId, expectedRevision: 1, cards }).pipe(Effect.flip),
+          ).toMatchObject({ reason: "invalid" });
+        }
+        const inserted = yield* service.save({
+          projectId,
+          expectedRevision: 1,
+          cards: [{ ...card, id: "new" }, locked, { ...card, id: "other", title: "Writable" }],
+        });
+        expect(inserted.cards[1]?.sync).toEqual(sync);
+        expect(
+          yield* service.applySync({ projectId, expectedRevision: 1, cards: [] }).pipe(Effect.flip),
+        ).toMatchObject({ reason: "conflict" });
+        yield* service.applySync({
+          projectId,
+          expectedRevision: 2,
+          cards: [{ ...card, title: "Unlocked" }],
+        });
+        expect(
+          (yield* service.save({
+            projectId,
+            expectedRevision: 3,
+            cards: [{ ...card, title: "Editable" }],
+          })).cards[0]?.title,
+        ).toBe("Editable");
+      }).pipe(Effect.provide(layer)),
+  );
   it.effect("preserves the board after a failed replacement and releases the save lock", () =>
     Effect.gen(function* () {
       const service = yield* RoadmapService.RoadmapService;

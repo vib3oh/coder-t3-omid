@@ -219,6 +219,7 @@ import * as ProjectEnrichmentService from "./project/ProjectEnrichmentService.ts
 import * as ProjectService from "./project/ProjectService.ts";
 import * as RoadmapService from "./roadmap/RoadmapService.ts";
 import * as ProjectNavigationService from "./fork/navigation/ProjectNavigationService.ts";
+import * as RoadmapSyncService from "./roadmap/sync/RoadmapSyncService.ts";
 import * as AgentWorkflows from "./fork/agents/AgentWorkflowRuntimeService.ts";
 import { threadWorkspaceRoot } from "./project/threadWorkspaceRoot.ts";
 import * as ManagedProjectFolders from "./project/ManagedProjectFolders.ts";
@@ -1292,6 +1293,7 @@ export const layerWsRpc = (
       const currentSessionId = currentSession.sessionId;
       const roadmap = yield* RoadmapService.RoadmapService;
       const projectNavigation = yield* ProjectNavigationService.ProjectNavigationService;
+      const roadmapSync = yield* RoadmapSyncService.RoadmapSyncService;
       const agentWorkflows = yield* AgentWorkflows.AgentWorkflowRuntimeService;
       const sql = yield* SqlClient.SqlClient;
       const threadManagement = yield* ThreadManagementService.ThreadManagementService;
@@ -2879,6 +2881,12 @@ export const layerWsRpc = (
         [WS_METHODS.projectNavigationRead]: (input) => projectNavigation.read(input),
         [WS_METHODS.roadmapRead]: (input) => roadmap.readView(input),
         [WS_METHODS.roadmapSave]: (input) => roadmap.save(input),
+        [WS_METHODS.roadmapSyncRead]: (input) => roadmapSync.read(input),
+        [WS_METHODS.roadmapSyncConnect]: (input) => roadmapSync.connect(input),
+        [WS_METHODS.roadmapSyncRun]: (input) => roadmapSync.run(input),
+        [WS_METHODS.roadmapSyncDetail]: (input) => roadmapSync.detail(input),
+        [WS_METHODS.roadmapSyncResolve]: (input) => roadmapSync.resolve(input),
+        [WS_METHODS.roadmapSyncDisconnect]: (input) => roadmapSync.disconnect(input),
         [WS_METHODS.agentRolesRead]: (input) => agentWorkflows.roles(input),
         [WS_METHODS.agentRoleSave]: (input) => agentWorkflows.saveRole(input),
         [WS_METHODS.agentSkillsRead]: () => agentWorkflows.skills(),

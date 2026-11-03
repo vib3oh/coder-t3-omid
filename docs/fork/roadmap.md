@@ -96,3 +96,18 @@ merge completion follows the retained T3 PR snapshot; mark complete explicitly
 if completion must survive unlinking or deletion of that thread. Native mobile,
 automatic draft-to-card linking, durable merge receipts and an agent API should
 extend these contracts rather than copy T3’s execution machinery.
+
+## External synchronization boundary
+
+The optional Hypercoder adapter runs on the destination T3 environment, where the
+owner explicitly selects the source context. Sync metadata retains source IDs,
+confirmed baselines and operation receipts; credential bytes remain in
+Hypercoder's context file. Board data and T3 execution links have separate owners.
+An external status must not claim that T3 observed a native thread or PR.
+
+Conditional writes are a source capability, not a hash computed by T3 before an
+unconditional update. If that capability is unverified, outbound changes remain
+read-only. Confirmed per-card receipts survive local commit conflicts and process
+interruption; an uncertain create must not be blindly replayed. Ordinary roadmap
+saves cannot forge source ownership or edit a locked card. Disconnect is an
+explicit ownership change that preserves retained data.
