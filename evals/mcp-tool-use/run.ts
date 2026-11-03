@@ -69,6 +69,7 @@ import { proxyConfig } from "../shared/proxy.ts";
 import { changeRequestsCreatedBy } from "../../apps/server/src/orchestration-v2/PullRequestSyncReactor.ts";
 import { DeviceExpect, gradeDevice } from "./device-grading.ts";
 import { agentWorkflowFixture } from "./agent-workflow-fixture.ts";
+import { fixtureShellOutput } from "./native-fixtures.ts";
 import {
   AGENT_DEVICE_SHELL,
   deviceFailure,
@@ -1406,11 +1407,34 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
   call: Omit<ShellEntry, "output">,
 ) {
   const command = call.tool === "Bash" && isRecord(call.input) ? call.input.command : undefined;
+  if (
+    config.fixtureOnly &&
+    typeof command === "string" &&
+    command.split(/\s*&&\s*/).some((part) => /[;&|`$<>\n]/.test(part))
+  )
+    throw new Error("Unsupported native fixture shell operator");
   let output = typeof command === "string" ? cannedOutput(sample, command) : undefined;
   if (output === undefined && config.fixtureOnly && typeof command === "string") {
     const parts = command.split(/\s*&&\s*/).map((part) => part.trim());
-    const outputs = parts.map((part) => mockOutput(sample, part));
-    if (outputs.every((part) => part !== undefined)) output = outputs.filter(Boolean).join("\n");
+    const outputs: Array<string | undefined> = [];
+    for (const part of parts) {
+      const result =
+        mockOutput(sample, part) ??
+        fixtureShellOutput(
+          part,
+          sample.base.environment.cwd,
+          sample.testCase.setup.world?.files,
+          sample.testCase.setup.world?.commits?.map(({ sha }) => sha),
+          sample.testCase.setup.world?.gitRefs,
+        );
+      outputs.push(result);
+      if (result === undefined || /^(Exit code [1-9]|<tool_use_error>)/.test(result)) break;
+    }
+    if (outputs.every((part) => part !== undefined)) {
+      output = outputs.filter(Boolean).join("\n");
+      const failed = outputs.at(-1)?.match(/^(Exit code [1-9]\d*|<tool_use_error>)/)?.[1];
+      if (failed && !output.startsWith(failed)) output = `${failed}\n${output}`;
+    }
   }
   if (output === undefined && config.fixtureOnly) {
     if (call.tool === "Read" && isRecord(call.input)) {
@@ -1421,6 +1445,16 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
       const files = sample.testCase.setup.world?.files;
       const content = isRecord(files) ? (files[file] ?? files[relative]) : undefined;
       output = typeof content === "string" ? content : undefined;
+      if (
+        output === undefined &&
+        isRecord(files) &&
+        relative &&
+        !relative.startsWith("/") &&
+        !relative.split("/").includes("..")
+      ) {
+        output =
+          "<tool_use_error>ENOENT: no such file in the authored fixture workspace</tool_use_error>";
+      }
     }
     if (output === undefined) throw new Error(`Missing native eval fixture: ${callText(call)}`);
   }
@@ -1467,7 +1501,7 @@ export const nativeFixture = (testCase: McpToolUseCase, model: Model, effort = "
     },
     {
       name: "Bash",
-      description: "Run a fixture-backed shell command. No host commands execute.",
+      description: `Run fixture-backed shell commands; no host commands execute. Supported reads: cat files, rg --files [--hidden] [-g glob ...], git show <authored SHA>:<file>, git rev-parse <authored refs>. Command mock patterns: ${testCase.setup.shellMocks?.map(({ match }) => match).join("; ") || "none"}. Supported commands may be chained with &&; unknown commands fail. Prefer Read for file contents.`,
       input_schema: {
         type: "object",
         properties: { command: { type: "string" } },

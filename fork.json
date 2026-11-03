@@ -99,6 +99,7 @@
         "evals/mcp-tool-use/agent-workflow-fixture.ts",
         "evals/mcp-tool-use/native.ts",
         "evals/mcp-tool-use/native-cli.ts",
+        "evals/mcp-tool-use/native-fixtures.ts",
         "evals/mcp-tool-use/cases/agent-workflows.ndjson"
       ],
       "integrationPaths": [

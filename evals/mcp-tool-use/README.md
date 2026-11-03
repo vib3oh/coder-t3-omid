@@ -39,7 +39,11 @@ This backend uses the current T3 instructions, tool schemas, case data and
 `gradeSample`. Each sample has an empty temporary working directory and a
 loopback MCP server exposing authored fixtures. Built-in execution tools,
 personal MCP servers, hooks, skills and plugins are disabled for the run. Shell
-calls require an explicit case mock; Read returns only files in the case world.
+calls use explicit case mocks or read-only listing/reads of the case world's files;
+Read returns only files in that world.
+The file map is complete: absent files inside the virtual workspace return an
+ENOENT error; outside paths are never read. `git show` reads only explicitly
+authored revisions. Chained commands stop after a fixture error.
 Missing fixtures, invalid tool inputs, provider errors and unexpected native
 tools fail the sample. Nothing in a model-authored shell command executes on
 the host. Claude's `--bare` mode is deliberately unused because it disables

@@ -14,6 +14,7 @@ import {
 } from "./native-cli.ts";
 import { gradeSample, McpToolUseCase, nativeFixture } from "./run.ts";
 import { agentWorkflowFixture } from "./agent-workflow-fixture.ts";
+import { fixtureShellOutput } from "./native-fixtures.ts";
 
 const decodeCase = Schema.decodeSync(Schema.fromJsonString(McpToolUseCase));
 const cases = () =>
@@ -21,6 +22,58 @@ const cases = () =>
     .trim()
     .split("\n")
     .map((line) => decodeCase(line));
+
+it("lists and reads only authored files with read-only shell variants", () => {
+  const files = {
+    "src/name.ts": "source",
+    "src/name.test.ts": "test",
+    ".vibe/config.json": "fixture",
+  };
+  assert.equal(
+    fixtureShellOutput("git rev-parse HEAD refs/fixture", "/fixture", files, [], {
+      HEAD: "b".repeat(40),
+      "refs/fixture": "b".repeat(40),
+    }),
+    `${"b".repeat(40)}\n${"b".repeat(40)}`,
+  );
+  assert.equal(
+    fixtureShellOutput(`git show ${"b".repeat(40)}:src/name.ts`, "/fixture", files, [
+      "b".repeat(40),
+    ]),
+    "source",
+  );
+  assert.isUndefined(
+    fixtureShellOutput(`git show ${"c".repeat(40)}:src/name.ts`, "/fixture", files, [
+      "b".repeat(40),
+    ]),
+  );
+  assert.equal(
+    fixtureShellOutput(
+      "rg --files --hidden -g AGENTS.md -g '.vibe/config.json' -g 'package.json' -g 'src/name*'",
+      "/fixture",
+      files,
+    ),
+    ".vibe/config.json\nsrc/name.test.ts\nsrc/name.ts",
+  );
+  assert.equal(
+    fixtureShellOutput("rg --files -g '*name*' -g '!*.test.ts'", "/fixture", files),
+    "src/name.ts",
+  );
+  assert.equal(
+    fixtureShellOutput("cat /fixture/src/name.ts src/name.test.ts", "/fixture", files),
+    "source\ntest",
+  );
+  for (const command of [
+    "cat /etc/passwd",
+    "cat src/name.ts > /tmp/file",
+    "rg --files; git push",
+    "cat $(env)",
+    "git push",
+    "cat 'src/name.ts",
+  ]) {
+    assert.isUndefined(fixtureShellOutput(command, "/fixture", files));
+  }
+});
 
 it("keeps saved CLI auth while removing inherited API billing and endpoint overrides", () => {
   assert.deepEqual(
@@ -217,8 +270,22 @@ it("uses source workflow context and fixture data, and fails closed on unmodelle
   await expect(fixture.call("Read", { file_path: "/etc/passwd" })).rejects.toThrow(
     /Missing native eval fixture/,
   );
+  assert.isTrue(
+    (await fixture.call("Read", { file_path: "/home/user/acme/app/AGENTS.md" })).isError,
+  );
+  const stopped = await fixture.call("Bash", { command: "pwd && cat AGENTS.md && git diff a b" });
+  assert.isTrue(stopped.isError);
+  assert.notInclude(stopped.content[0]!.text, "name != null");
+  const unmatched = await fixture.call("Bash", {
+    command: "rg --files -g no-such-* && git diff a b",
+  });
+  assert.isTrue(unmatched.isError);
+  assert.notInclude(unmatched.content[0]!.text, "name != null");
   await expect(fixture.call("Bash", { command: "git push" })).rejects.toThrow(
     /Missing native eval fixture/,
+  );
+  await expect(fixture.call("Bash", { command: "git diff > /tmp/output" })).rejects.toThrow(
+    /Unsupported native fixture shell operator/,
   );
   await expect(fixture.call("Bash", { command: "git diff && git push" })).rejects.toThrow(
     /Missing native eval fixture/,
