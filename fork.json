@@ -178,6 +178,61 @@
         "Native sibling follow-up tracking preserves authenticated sender lineage. Workflow participants use supervised service entry points for app-owned delegation and messaging.",
         "Web and desktop share the route and role editor; mobile supports monitoring and lifecycle operations. Ordinary roadmap and changelog actions retain their semantics."
       ]
+    },
+    "projectNavigation": {
+      "schemaVersion": 1,
+      "ownedPaths": [
+        "packages/contracts/src/forkProjectNavigation.ts",
+        "packages/shared/src/roadmapLifecycle.ts",
+        "packages/client-runtime/src/fork/navigation/",
+        "apps/server/src/fork/navigation/",
+        "apps/web/src/fork/navigation/",
+        "apps/mobile/src/features/project-navigation/"
+      ],
+      "integrationPaths": [
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/rpc.ts",
+        "packages/shared/package.json",
+        "packages/client-runtime/package.json",
+        "apps/server/src/auth/RpcAuthorization.ts",
+        "apps/server/src/observability/RpcInstrumentation.ts",
+        "apps/server/src/server.ts",
+        "apps/server/src/ws.ts",
+        "apps/web/src/components/AppSidebarLayout.tsx",
+        "apps/web/src/components/CommandPalette.tsx",
+        "apps/web/src/components/settings/LabsSettingsPanel.tsx",
+        "apps/web/src/components/settings/settingsSearch.ts",
+        "apps/web/src/roadmap/roadmap.logic.ts",
+        "apps/web/src/roadmap/RoadmapPage.tsx",
+        "apps/web/src/roadmap/ChangelogPage.tsx",
+        "apps/web/src/routes/_chat.roadmap.tsx",
+        "apps/mobile/src/Stack.tsx",
+        "apps/mobile/src/features/home/HomeRouteScreen.tsx",
+        "apps/mobile/src/features/settings/SettingsRouteScreen.tsx",
+        "apps/mobile/src/features/settings/ThreadSettingsSections.tsx",
+        "apps/mobile/src/persistence/mobile-preferences.ts",
+        "apps/server/src/fork/agents/WorkflowRules.ts",
+        "apps/server/src/fork/agents/AgentWorkflowRuntimeService.ts",
+        "apps/mobile/src/features/threads/threadListV2.ts",
+        "apps/web/src/components/Sidebar.tsx",
+        "apps/web/src/components/Sidebar.logic.ts",
+        "apps/web/src/components/sidebar/SidebarChrome.tsx",
+        "apps/web/src/fork/agents/AgentWorkflowsPage.tsx"
+      ],
+      "verificationPaths": [
+        "apps/server/src/ws.test.ts",
+        "packages/client-runtime/src/state/commandPermissions.test.ts",
+        "apps/server/src/fork/navigation/ProjectNavigationService.test.ts",
+        "apps/server/src/fork/navigation/navigationView.test.ts",
+        "apps/web/src/fork/navigation/navigation.logic.test.ts",
+        "apps/web/src/roadmap/RoadmapPage.browser.test.tsx",
+        "apps/mobile/src/features/project-navigation/projectNavigationSelection.test.ts"
+      ],
+      "constraints": [
+        "Native T3 owns execution, worktree preparation, permissions and thread actions; navigation only projects metadata.",
+        "Roadmap card stages share the existing pure lifecycle; provider activity and human attention remain separate.",
+        "The opt-in layout preserves existing navigation settings and environment-scoped project identity."
+      ]
     }
   }
 }

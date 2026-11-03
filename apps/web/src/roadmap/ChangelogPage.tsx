@@ -1,3 +1,4 @@
+import { resolveExplicitProject } from "../fork/navigation/navigation.logic";
 import { useAtomValue } from "@effect/atom-react";
 import {
   scopedProjectKey,
@@ -100,7 +101,7 @@ export function ChangelogPage() {
     });
   const keyFor = (project: EnvironmentProject) =>
     scopedProjectKey({ environmentId: project.environmentId, projectId: project.id });
-  const project = projects.find((p) => keyFor(p) === selected) ?? projects[0];
+  const project = resolveExplicitProject(projects, selected);
   const selectedKey = project ? keyFor(project) : undefined;
   const openWindow = async () => {
     setWindowError(null);
@@ -180,6 +181,7 @@ export function ChangelogPage() {
           <Button
             variant="ghost"
             size="icon-sm"
+            disabled={!project && !detached}
             aria-label={detached ? "Return changelog to app" : "Pop out changelog"}
             onClick={() => void (detached ? returnToApp() : openWindow())}
           >
@@ -200,6 +202,11 @@ export function ChangelogPage() {
             value={project ? keyFor(project) : ""}
             onChange={(event) => setSelected(event.target.value)}
           >
+            {!project ? (
+              <option value="" disabled>
+                Choose a project
+              </option>
+            ) : null}
             {projects.map((p) => (
               <option key={keyFor(p)} value={keyFor(p)}>
                 {p.title} · {p.workspaceRoot}
@@ -210,7 +217,11 @@ export function ChangelogPage() {
         {project ? (
           <ProjectChangelog key={keyFor(project)} project={project} />
         ) : (
-          <p className="p-6 text-muted-foreground">Open a project to see what shipped.</p>
+          <p className="p-6 text-muted-foreground">
+            {selected
+              ? "This project is unavailable. Choose a project to see what shipped."
+              : "Open a project to see what shipped."}
+          </p>
         )}
       </div>
     </SidebarInset>

@@ -116,6 +116,7 @@ import * as KnownWorkspaces from "./workspace/KnownWorkspaces.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as RoadmapService from "./roadmap/RoadmapService.ts";
+import * as ProjectNavigationService from "./fork/navigation/ProjectNavigationService.ts";
 import * as AgentWorkflowRuntimeService from "./fork/agents/AgentWorkflowRuntimeService.ts";
 import * as AgentWorkflowService from "./fork/agents/AgentWorkflowService.ts";
 import * as AgentWorkflowStore from "./fork/agents/AgentWorkflowStore.ts";
@@ -750,7 +751,9 @@ const layerRuntimeCoreDependencies = layerAgentWorkflows.pipe(
   ),
 );
 
-const layerRuntimeDependencies = layerRuntimeCoreDependencies.pipe(
+const layerRuntimeDependencies = ProjectNavigationService.layer.pipe(
+  Layer.provide(ProjectionStoreV2.layer),
+  Layer.provideMerge(layerRuntimeCoreDependencies),
   Layer.provideMerge(ChangelogService.layer),
   Layer.provideMerge(layerUsage),
   Layer.provideMerge(layerBackground),

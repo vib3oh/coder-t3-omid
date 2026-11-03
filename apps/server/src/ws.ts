@@ -218,6 +218,7 @@ import * as ReviewService from "./review/ReviewService.ts";
 import * as ProjectEnrichmentService from "./project/ProjectEnrichmentService.ts";
 import * as ProjectService from "./project/ProjectService.ts";
 import * as RoadmapService from "./roadmap/RoadmapService.ts";
+import * as ProjectNavigationService from "./fork/navigation/ProjectNavigationService.ts";
 import * as AgentWorkflows from "./fork/agents/AgentWorkflowRuntimeService.ts";
 import { threadWorkspaceRoot } from "./project/threadWorkspaceRoot.ts";
 import * as ManagedProjectFolders from "./project/ManagedProjectFolders.ts";
@@ -1290,6 +1291,7 @@ export const layerWsRpc = (
     Effect.gen(function* () {
       const currentSessionId = currentSession.sessionId;
       const roadmap = yield* RoadmapService.RoadmapService;
+      const projectNavigation = yield* ProjectNavigationService.ProjectNavigationService;
       const agentWorkflows = yield* AgentWorkflows.AgentWorkflowRuntimeService;
       const sql = yield* SqlClient.SqlClient;
       const threadManagement = yield* ThreadManagementService.ThreadManagementService;
@@ -2874,6 +2876,7 @@ export const layerWsRpc = (
                 }),
             ),
           ),
+        [WS_METHODS.projectNavigationRead]: (input) => projectNavigation.read(input),
         [WS_METHODS.roadmapRead]: (input) => roadmap.readView(input),
         [WS_METHODS.roadmapSave]: (input) => roadmap.save(input),
         [WS_METHODS.agentRolesRead]: (input) => agentWorkflows.roles(input),

@@ -819,6 +819,10 @@ function isOptimisticDropReleased(input: {
 }
 
 // Build maps in a hook so the compiler can prove they are frozen and cache them.
+export function useSidebarProviderEntries() {
+  return useAtomValue(sidebarProviderEntriesAtom);
+}
+
 function useSidebarLookups() {
   const projects = useProjects();
   const environments = useEnvironmentIdentities();
@@ -911,7 +915,13 @@ function readRouteThreadKey(router: AnyRouter): string | null {
   return ref === null ? null : scopedThreadKey(ref);
 }
 
-export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReveal }) {
+export default function Sidebar({
+  routeReveal,
+  hideChrome = false,
+}: {
+  routeReveal: SidebarRouteReveal;
+  hideChrome?: boolean;
+}) {
   const {
     projects,
     serverConfigs,
@@ -2982,7 +2992,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   return (
     <>
       <ThreadContextDragGhost />
-      <SidebarChromeHeader isElectron={isElectron} />
+      {hideChrome ? null : <SidebarChromeHeader isElectron={isElectron} />}
       <SidebarContent
         ref={sidebarContentRef}
         className="min-h-full"
@@ -3640,7 +3650,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           ) : null}
         </SidebarGroup>
       </SidebarContent>
-      <SidebarChromeFooter />
+      {hideChrome ? null : <SidebarChromeFooter />}
     </>
   );
 }

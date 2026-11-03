@@ -4,8 +4,36 @@ import type {
   AgentTeamMessage,
   AgentWorkflow,
   AgentWorkflowSummary,
+  OrchestrationV2ThreadShell,
   ThreadId,
 } from "@t3tools/contracts";
+
+export function workflowCurrentThreadIds(workflow: AgentWorkflow) {
+  return [
+    ...new Set([
+      workflow.managerThreadId,
+      ...workflow.assignments
+        .filter((assignment) => assignment.generation === workflow.generation)
+        .flatMap((assignment) => assignment.attempts.at(-1)?.childThreadId ?? []),
+    ]),
+  ];
+}
+
+export function workflowHumanInputThreadIds(
+  workflow: AgentWorkflow,
+  shells: ReadonlyArray<Pick<OrchestrationV2ThreadShell, "id" | "pendingRuntimeRequest">>,
+) {
+  if (workflow.status === "completed" || workflow.status === "cancelled") return [];
+  const current = new Set(workflowCurrentThreadIds(workflow));
+  return shells
+    .filter(
+      (shell) =>
+        current.has(shell.id) &&
+        shell.pendingRuntimeRequest &&
+        shell.pendingRuntimeRequest.kind !== "dynamic_tool_call",
+    )
+    .map((shell) => shell.id);
+}
 
 export const expectedRoleOutputKind = {
   planner: "spec",

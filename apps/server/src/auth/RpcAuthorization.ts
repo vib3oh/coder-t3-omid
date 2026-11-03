@@ -39,6 +39,7 @@ import type * as RpcGroup from "effect/rpc/RpcGroup";
 type WsRpcMethod = RpcGroup.Rpcs<typeof WsRpcGroup>["_tag"];
 
 export const RPC_REQUIRED_SCOPES = {
+  [WS_METHODS.projectNavigationRead]: AuthOrchestrationReadScope,
   [WS_METHODS.roadmapRead]: AuthOrchestrationReadScope,
   [WS_METHODS.agentRolesRead]: AuthOrchestrationReadScope,
   [WS_METHODS.agentSkillsRead]: AuthOrchestrationReadScope,

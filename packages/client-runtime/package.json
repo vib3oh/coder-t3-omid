@@ -530,6 +530,10 @@
     "./fork/agents/limits": {
       "types": "./src/fork/agents/limits.ts",
       "default": "./src/fork/agents/limits.ts"
+    },
+    "./fork/navigation/state": {
+      "types": "./src/fork/navigation/state.ts",
+      "default": "./src/fork/navigation/state.ts"
     }
   },
   "scripts": {

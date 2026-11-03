@@ -54,6 +54,7 @@ import * as WorkflowEvidence from "./WorkflowEvidence.ts";
 import { workflowSummary } from "./WorkflowRules.ts";
 import { assignmentInstructions, managerInstructions } from "./runtimeInstructions.ts";
 import { workflowView } from "./workflowView.ts";
+import { workflowCurrentThreadIds, workflowHumanInputThreadIds } from "./WorkflowRules.ts";
 import { withWorkflowDispatchPermit } from "./AgentWorkflowDispatchGuard.ts";
 import { workflowCheckInstructions } from "./checkCommands.ts";
 
@@ -258,19 +259,13 @@ const make = Effect.gen(function* () {
     workflow: AgentWorkflow,
   ) {
     if (workflow.status === "completed" || workflow.status === "cancelled") return [];
-    const pending: ThreadId[] = [];
-    const currentThreads = workflow.assignments
-      .filter((assignment) => assignment.generation === workflow.generation)
-      .flatMap((assignment) => {
-        const threadId = assignment.attempts.at(-1)?.childThreadId;
-        return threadId ? [threadId] : [];
-      });
-    for (const threadId of new Set([workflow.managerThreadId, ...currentThreads])) {
-      const shell = yield* threads.getThreadShell(threadId).pipe(mapFailure);
-      if (shell?.pendingRuntimeRequest && shell.pendingRuntimeRequest.kind !== "dynamic_tool_call")
-        pending.push(threadId);
-    }
-    return pending;
+    const shells = yield* Effect.forEach(workflowCurrentThreadIds(workflow), (threadId) =>
+      threads.getThreadShell(threadId).pipe(mapFailure),
+    );
+    return workflowHumanInputThreadIds(
+      workflow,
+      shells.filter((shell) => shell !== null),
+    );
   });
   const list: Core["list"] = Effect.fn("AgentWorkflowRuntime.list")(function* (input) {
     const state = yield* store.read(input.projectId);

@@ -526,6 +526,10 @@
     "./projectChangelog": {
       "types": "./src/projectChangelog.ts",
       "import": "./src/projectChangelog.ts"
+    },
+    "./roadmapLifecycle": {
+      "types": "./src/roadmapLifecycle.ts",
+      "import": "./src/roadmapLifecycle.ts"
     }
   },
   "scripts": {

@@ -20,7 +20,7 @@ import {
   type RoadmapView,
   AgentRolePreviewResult,
 } from "@t3tools/contracts";
-import { Link, useSearch } from "@tanstack/react-router";
+import { Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
 import { AsyncResult, Atom } from "effect/reactivity";
 import * as Option from "effect/Option";
@@ -66,22 +66,13 @@ export function AgentWorkflowsPage() {
   const { environments } = useEnvironments();
   const search = useSearch({ from: "/_chat/agent-workflows" });
   const projects = useProjects().filter((project) => !project.archivedAt);
-  const [chosenProject, setChosenProject] = useState<string | null>(null);
+  const navigate = useNavigate();
   const initial = projects.find(
     (project) =>
       (!search.environmentId || project.environmentId === search.environmentId) &&
       (!search.projectId || project.id === search.projectId),
   );
-  const project =
-    chosenProject !== null
-      ? projects.find(
-          (entry) =>
-            scopedProjectKey({ environmentId: entry.environmentId, projectId: entry.id }) ===
-            chosenProject,
-        )
-      : search.environmentId || search.projectId
-        ? initial
-        : projects[0];
+  const project = search.environmentId || search.projectId ? initial : projects[0];
   return (
     <SidebarInset role="main" className="h-dvh min-h-0 overflow-hidden">
       <WorkspacePageHeader electron={isElectron}>
@@ -109,8 +100,26 @@ export function AgentWorkflowsPage() {
                     })
                   : ""
               }
-              onChange={(event) => setChosenProject(event.target.value)}
+              onChange={(event) => {
+                const target = projects.find(
+                  (entry) =>
+                    scopedProjectKey({
+                      environmentId: entry.environmentId,
+                      projectId: entry.id,
+                    }) === event.target.value,
+                );
+                if (target)
+                  void navigate({
+                    to: "/agent-workflows",
+                    search: { environmentId: target.environmentId, projectId: target.id },
+                  });
+              }}
             >
+              {!project ? (
+                <option value="" disabled>
+                  Choose a project
+                </option>
+              ) : null}
               {projects.map((entry) => (
                 <option
                   key={`${entry.environmentId}:${entry.id}`}
@@ -130,7 +139,7 @@ export function AgentWorkflowsPage() {
           </div>
           {project ? (
             <ProjectWorkflows
-              key={`${project.environmentId}:${project.id}`}
+              key={`${project.environmentId}:${project.id}:${search.workflowId ?? ""}:${search.cardId ?? ""}:${search.sourceThreadId ?? ""}:${search.roles ?? false}`}
               project={project}
               initialWorkflow={initial === project ? search.workflowId : undefined}
               sourceThreadId={initial === project ? search.sourceThreadId : undefined}

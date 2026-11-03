@@ -288,6 +288,21 @@ function useSettingsIndexSections(): SettingsListSection[] {
         ),
         serverPage("SettingsEnvironmentSourceControl", "arrow.triangle.branch", "Source control"),
         serverPage("SettingsWorktrees", "square.on.square", "Worktrees"),
+        {
+          id: "project-navigation",
+          icon: "square.on.square",
+          label: "Project worktrees",
+          onPress: () =>
+            navigation.navigate(
+              "ProjectNavigation",
+              scopedProjectMembers[0]
+                ? {
+                    environmentId: scopedProjectMembers[0].environmentId,
+                    projectId: scopedProjectMembers[0].id,
+                  }
+                : {},
+            ),
+        },
       ],
     },
     {

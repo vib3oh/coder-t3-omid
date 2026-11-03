@@ -1,3 +1,5 @@
+import { roadmapColumn } from "@t3tools/shared/roadmapLifecycle";
+export { roadmapColumn } from "@t3tools/shared/roadmapLifecycle";
 import type { RoadmapCard } from "@t3tools/contracts";
 
 export const ROADMAP_COLUMNS = [
@@ -25,17 +27,6 @@ function pullRequests(thread: RoadmapThread | null | undefined) {
       .filter((pr) => pr.source !== "stack-dismissed")
       .flatMap((pr) => (pr.snapshot ? [pr.snapshot] : [])) ?? []
   );
-}
-
-export function roadmapColumn(card: RoadmapCard, thread?: RoadmapThread | null) {
-  if (card.completed) return "done";
-  if (!thread) return card.lane;
-  const snapshots = pullRequests(thread);
-  const open = snapshots.filter((pr) => pr.state === "open");
-  if (open.some((pr) => !pr.isDraft)) return "ready";
-  if (open.length > 0) return thread.archivedAt ? "parked" : "reviewing";
-  if (snapshots.some((pr) => pr.state === "merged")) return "done";
-  return thread.archivedAt ? card.lane : "building";
 }
 
 export function roadmapDropAction(

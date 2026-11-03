@@ -1,3 +1,5 @@
+import { ProjectNavigationSidebar } from "../fork/navigation/ProjectNavigationSidebar";
+import { useProjectNavigationEnabled } from "../fork/navigation/navigationState";
 import { useAtomValue } from "@effect/atom-react";
 import * as Schema from "effect/Schema";
 import {
@@ -402,7 +404,31 @@ function SidebarControl() {
 }
 
 export function AppSidebarLayout({ children }: { children: ReactNode }) {
-  const sidebarArea = workspaceAreaProps("sidebar", 0, "Threads");
+  const [projectNavigationEnabled, setProjectNavigationEnabled] = useProjectNavigationEnabled();
+  const sidebarArea = workspaceAreaProps(
+    "sidebar",
+    0,
+    projectNavigationEnabled ? "Project worktrees" : "Threads",
+  );
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Register the device-local navigation shortcut with the browser keyboard event source.
+  useEffect(() => {
+    const toggle = (event: KeyboardEvent) => {
+      if (
+        event.repeat ||
+        event.isComposing ||
+        !event.altKey ||
+        !event.shiftKey ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.code !== "KeyP" ||
+        isEditableFocused(event.target)
+      )
+        return;
+      event.preventDefault();
+      setProjectNavigationEnabled(!projectNavigationEnabled);
+    };
+    window.addEventListener("keydown", toggle);
+    return () => window.removeEventListener("keydown", toggle);
+  }, [projectNavigationEnabled, setProjectNavigationEnabled]);
   const [sidebarRouteReveal] = useState<SidebarRouteReveal>(() => ({
     observedKey: null,
     pendingKey: null,
@@ -469,7 +495,11 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
           }}
           style={windowControlsInsetStyle}
         >
-          <ThreadSidebar routeReveal={sidebarRouteReveal} />
+          {projectNavigationEnabled ? (
+            <ProjectNavigationSidebar routeReveal={sidebarRouteReveal} />
+          ) : (
+            <ThreadSidebar routeReveal={sidebarRouteReveal} />
+          )}
           <SidebarRail onDoubleClick={resetSidebarWidth} />
         </Sidebar>
         {children}

@@ -222,6 +222,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.subscribeServerConfig]: "server",
   [WS_METHODS.subscribeServerLifecycle]: "server",
   [WS_METHODS.subscribeAuthAccess]: "auth",
+  [WS_METHODS.projectNavigationRead]: "project-navigation",
   [WS_METHODS.roadmapRead]: "roadmap",
   [WS_METHODS.roadmapSave]: "roadmap",
   [WS_METHODS.agentRolesRead]: "agent-workflows",
