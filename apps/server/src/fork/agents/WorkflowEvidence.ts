@@ -75,8 +75,41 @@ const commandInput = Schema.decodeUnknownOption(
   ),
 );
 
+// Codex records a quoted shell invocation rather than the original script argument.
+function shellScript(input: string): string | undefined {
+  const prefix = /^(?:\/(?:[^/\s]+\/)*)?(?:bash|zsh|sh) -(?:lc|c) /u.exec(input);
+  if (!prefix) return undefined;
+  const argument = input.slice(prefix[0].length).trim();
+  let quote: "'" | '"' | undefined;
+  let script = "";
+  for (let index = 0; index < argument.length; index++) {
+    const char = argument[index]!;
+    if (quote === "'") {
+      if (char === "'") quote = undefined;
+      else script += char;
+    } else if (char === "\\") {
+      const next = argument[++index];
+      if (next === undefined) return undefined;
+      if (next === "\n") continue;
+      script += quote === '"' && !/[\\$`"\n]/u.test(next) ? `\\${next}` : next;
+    } else if (char === quote) {
+      quote = undefined;
+    } else if (quote === '"') {
+      if (char === "$" || char === "`") return undefined;
+      script += char;
+    } else if (char === "'" || char === '"') {
+      quote = char;
+    } else {
+      if (/[\s$`;&|()<>{}*?~#]/u.test(char)) return undefined;
+      script += char;
+    }
+  }
+  return quote === undefined ? script : undefined;
+}
+
 function matchesCommand(input: string, expected: string): boolean {
   if (input.trim() === expected) return true;
+  if (shellScript(input.trim()) === expected) return true;
   const parsed = commandInput(input);
   return (
     Option.isSome(parsed) && (parsed.value.command === expected || parsed.value.cmd === expected)
@@ -184,8 +217,9 @@ export const verifyWorkflowEvidence = Effect.fn("WorkflowEvidence.verify")(funct
     if (check.revision !== pinned || !check.command.trim()) {
       return yield* failure("A check is not bound to the captured revision.");
     }
-    const id = check.evidence.replace(/^turn-item:/, "");
-    const item = thread.commands.find((row) => row.id === id);
+    const item =
+      thread.commands.find((row) => row.id === check.evidence) ??
+      thread.commands.find((row) => row.id === check.evidence.replace(/^turn-item:/, ""));
     if (
       !item ||
       item.threadId !== actorThreadId ||

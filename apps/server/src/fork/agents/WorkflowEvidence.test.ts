@@ -157,6 +157,39 @@ it.effect(
       const f = fixture();
       const result = yield* verifyWorkflowEvidence(f.ports, f.input);
       assert.equal(result.verified, true);
+      const canonicalId = TurnItemId.make("turn-item:provider:codex:native-item:check");
+      f.commands[0]!.id = canonicalId;
+      const canonicalInput = {
+        ...f.input,
+        artifact: {
+          ...f.artifact,
+          checks: [{ ...f.artifact.checks[0]!, evidence: canonicalId }],
+        },
+      };
+      const wrapped = workflowCheckCommand(snapshotRef, f.artifact.checks[0]!.command);
+      for (const input of [
+        wrapped,
+        JSON.stringify({ command: wrapped }),
+        `/bin/zsh -lc '${wrapped.replaceAll("'", "'\\''")}'`,
+        `/bin/bash -c "${wrapped.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`,
+      ]) {
+        f.commands[0]!.input = input;
+        assert.equal((yield* verifyWorkflowEvidence(f.ports, canonicalInput)).verified, true);
+      }
+      const validInput = f.commands[0]!.input;
+      for (const input of [
+        `${validInput} && echo forged`,
+        `/bin/zsh -lc "$(printf forged)"`,
+        `/bin/zsh -lc '${wrapped.replaceAll("'", "'\\''")}' extra`,
+      ]) {
+        f.commands[0]!.input = input;
+        assert.equal(
+          (yield* verifyWorkflowEvidence(f.ports, canonicalInput).pipe(Effect.flip)).reason,
+          "evidence",
+        );
+      }
+      f.commands[0]!.id = TurnItemId.make("check");
+      f.commands[0]!.input = wrapped;
       assert.deepEqual(result.verifiedRequiredChecks, ["vp test run affected.test.ts"]);
       const optionalFlag = {
         ...f.artifact,
