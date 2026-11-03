@@ -6,6 +6,7 @@ import {
   type EnvironmentId,
   type NavigationWorktree,
   type NavigationThread,
+  type ProjectNavigationReadResult,
   type ProjectId,
 } from "@t3tools/contracts";
 import { useIsFocused, useNavigation, type StaticScreenProps } from "@react-navigation/native";
@@ -154,7 +155,6 @@ export function ProjectNavigationPanel({
 }
 
 function ProjectWorktrees({ project, visible }: { project: EnvironmentProject; visible: boolean }) {
-  const [cursor, setCursor] = useState<string | undefined>();
   const { environments } = useEnvironments();
   const connected = environments.some(
     (environment) =>
@@ -164,7 +164,7 @@ function ProjectWorktrees({ project, visible }: { project: EnvironmentProject; v
   const result = useAtomValueWhileVisible(
     projectNavigation.read({
       environmentId: project.environmentId,
-      input: { projectId: project.id, ...(cursor ? { cursor } : {}) },
+      input: { projectId: project.id },
     }),
     visible && connected,
   );
@@ -208,24 +208,139 @@ function ProjectWorktrees({ project, visible }: { project: EnvironmentProject; v
           {view.attentionCount} worktrees need your input · {view.totalWorktrees} worktrees
         </Text>
       ) : null}
-      {view?.worktrees.map((worktree) => (
-        <WorktreeRow
-          key={worktree.key}
-          worktree={worktree}
-          revision={view.revision}
+      {view?.worktrees
+        .filter((worktree) => worktree.isMain)
+        .map((worktree) => (
+          <WorktreeRow
+            key={worktree.key}
+            worktree={worktree}
+            revision={view.revision}
+            project={project}
+            visible={visible && connected}
+            connected={connected}
+          />
+        ))}
+      {view ? (
+        <WorktreePages
+          first={view}
           project={project}
           visible={visible && connected}
           connected={connected}
         />
-      ))}
-      {view && view.worktrees.length === 0 ? (
-        <Text className="text-foreground-muted">No worktrees on this page.</Text>
       ) : null}
-      {view?.nextCursor ? (
-        <Button label="Next worktrees" onPress={() => setCursor(view.nextCursor ?? undefined)} />
-      ) : null}
-      {cursor ? <Button label="First worktrees" onPress={() => setCursor(undefined)} /> : null}
     </View>
+  );
+}
+
+function WorktreePages({
+  first,
+  project,
+  visible,
+  connected,
+}: {
+  first: ProjectNavigationReadResult;
+  project: EnvironmentProject;
+  visible: boolean;
+  connected: boolean;
+}) {
+  const [page, setPage] = useState<{ revision: string; cursor: string } | null>(null);
+  const cursor = page?.revision === first.revision ? page.cursor : null;
+  const setCursor = (next: string | null) =>
+    setPage(next ? { revision: first.revision, cursor: next } : null);
+  return cursor ? (
+    <WorktreePage
+      key={cursor}
+      cursor={cursor}
+      project={project}
+      visible={visible}
+      connected={connected}
+      onCursor={setCursor}
+    />
+  ) : (
+    <WorktreeFeatureRows
+      view={first}
+      project={project}
+      visible={visible}
+      connected={connected}
+      onCursor={setCursor}
+    />
+  );
+}
+
+function WorktreePage({
+  cursor,
+  project,
+  visible,
+  connected,
+  onCursor,
+}: {
+  cursor: string;
+  project: EnvironmentProject;
+  visible: boolean;
+  connected: boolean;
+  onCursor: (cursor: string | null) => void;
+}) {
+  const result = useAtomValueWhileVisible(
+    projectNavigation.page({
+      environmentId: project.environmentId,
+      input: { projectId: project.id, cursor },
+    }),
+    visible,
+  );
+  const view = Option.getOrNull(AsyncResult.value(result));
+  return (
+    <>
+      {view ? (
+        <WorktreeFeatureRows
+          view={view}
+          project={project}
+          visible={visible}
+          connected={connected}
+          onCursor={onCursor}
+        />
+      ) : (
+        <Text accessibilityRole="alert" className="text-foreground-muted">
+          {AsyncResult.isFailure(result)
+            ? "Work changed or this page is unavailable. Return to the first page."
+            : "Loading worktrees…"}
+        </Text>
+      )}
+      <Button label="First worktrees" onPress={() => onCursor(null)} />
+    </>
+  );
+}
+
+function WorktreeFeatureRows({
+  view,
+  project,
+  visible,
+  connected,
+  onCursor,
+}: {
+  view: ProjectNavigationReadResult;
+  project: EnvironmentProject;
+  visible: boolean;
+  connected: boolean;
+  onCursor: (cursor: string | null) => void;
+}) {
+  return (
+    <>
+      {view.worktrees
+        .filter((row) => !row.isMain)
+        .map((worktree) => (
+          <WorktreeRow
+            key={worktree.key}
+            worktree={worktree}
+            revision={view.revision}
+            project={project}
+            visible={visible}
+            connected={connected}
+          />
+        ))}
+      {view.nextCursor ? (
+        <Button label="Next worktrees" onPress={() => onCursor(view.nextCursor)} />
+      ) : null}
+    </>
   );
 }
 

@@ -229,17 +229,18 @@ export function navigationWorktrees(input: {
             ? "reviewing"
             : building
               ? "building"
-              : done
-                ? "done"
-                : parked
-                  ? "parked"
-                  : "building";
+              : open.length > 0 || cardStages.includes("parked")
+                ? "parked"
+                : done
+                  ? "done"
+                  : parked
+                    ? "parked"
+                    : "building";
       const attention = new Set(
         target.threads
           .filter(
             (thread) =>
               thread.archivedAt === null &&
-              (thread.snoozedUntil === null || Date.parse(thread.snoozedUntil) <= input.now) &&
               (thread.hasPendingApprovals ||
                 thread.hasPendingUserInput ||
                 thread.pendingGuestMessageCount > 0),
@@ -256,7 +257,9 @@ export function navigationWorktrees(input: {
           if (
             thread &&
             thread.archivedAt === null &&
-            (!thread.snoozedUntil || Date.parse(thread.snoozedUntil) <= input.now)
+            (workflow.humanInputThreadIds.includes(id) ||
+              !thread.snoozedUntil ||
+              Date.parse(thread.snoozedUntil) <= input.now)
           )
             attention.add(id);
         }

@@ -150,6 +150,14 @@ describe("project navigation relationships", () => {
       snapshot: { ...pr.snapshot!, state: "open", isDraft: false },
     };
     expect(view([{ ...merged, pullRequests: [pr, ready] }])[1]?.stage).toBe("ready");
+    const parkedDraft: ThreadPullRequestLink = {
+      ...ready,
+      snapshot: { ...ready.snapshot!, isDraft: true },
+    };
+    expect(
+      view([{ ...merged, archivedAt: DateTime.makeUnsafe(at), pullRequests: [pr, parkedDraft] }])[1]
+        ?.stage,
+    ).toBe("parked");
     expect(
       view([{ ...merged, pullRequests: [{ ...pr, source: "stack-dismissed" }] }])[1]?.stage,
     ).toBe("building");
@@ -181,6 +189,8 @@ describe("project navigation relationships", () => {
       snoozedUntil: DateTime.makeUnsafe("2026-11-04T10:00:00Z"),
     };
     expect(view([sleeping], [], [workflow({ status: "waiting_user" })])[1]?.attentionCount).toBe(0);
+    expect(view([{ ...sleeping, pendingGuestMessageCount: 1 }])[1]?.attentionCount).toBe(1);
+    expect(view([{ ...sleeping, hasActionableProposedPlan: true }])[1]?.attentionCount).toBe(1);
     const actionable = { ...thread("manager"), hasActionableProposedPlan: true };
     expect(view([actionable], [], [workflow({ status: "paused" })])[1]?.attentionCount).toBe(1);
     expect(view([actionable])[1]?.threads[0]?.hasActionableProposedPlan).toBe(true);

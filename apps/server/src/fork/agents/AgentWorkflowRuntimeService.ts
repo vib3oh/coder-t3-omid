@@ -258,6 +258,7 @@ const make = Effect.gen(function* () {
   const humanInputs = Effect.fn("AgentWorkflowRuntime.humanInputs")(function* (
     workflow: AgentWorkflow,
   ) {
+    if (workflow.status === "completed" || workflow.status === "cancelled") return [];
     const shells = yield* Effect.forEach(workflowCurrentThreadIds(workflow), (threadId) =>
       threads.getThreadShell(threadId).pipe(mapFailure),
     );
