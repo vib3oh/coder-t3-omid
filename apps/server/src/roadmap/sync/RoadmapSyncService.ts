@@ -50,6 +50,8 @@ const Entry = Schema.Struct({
   cardId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(128)),
   externalId: Schema.NullOr(Text),
   baseline: Schema.NullOr(SnapshotSchema),
+  // Retained order conflicts can leave the boards with different ordinals.
+  localRankBaseline: Schema.optional(Schema.Number.check(Schema.isFinite())),
   remote: Schema.NullOr(SnapshotSchema),
   journal: Schema.NullOr(Journal),
   pendingImport: Schema.optional(Schema.Boolean),
@@ -306,6 +308,7 @@ const make = Effect.gen(function* () {
     );
     const runId = yield* uuid;
     const adoptedRanks = new Map<string, number>();
+    const acceptedIds = new Set<string>();
     let revision = remoteBoard.revision;
     let writes = 0;
     state = {
@@ -354,7 +357,12 @@ const make = Effect.gen(function* () {
         journal: null,
       };
       let external = entry.externalId ? remoteById.get(entry.externalId) : undefined;
-      const current = snapshot(record.card, linkedRanks.get(cardId) ?? record.rank);
+      const nativeRank = linkedRanks.get(cardId) ?? record.rank;
+      const comparisonRank =
+        entry.baseline && entry.localRankBaseline !== undefined && nativeRank !== external?.rank
+          ? entry.baseline.rank + nativeRank - entry.localRankBaseline
+          : nativeRank;
+      const current = snapshot(record.card, comparisonRank);
       let desired = current;
       let status: RoadmapSyncRow["status"] = original ? "unchanged" : "pulled";
       let reason: string | null = null;
@@ -535,6 +543,7 @@ const make = Effect.gen(function* () {
       };
       rows.push(row);
       const accepted = ["pulled", "pushed", "unchanged"].includes(status);
+      if (accepted) acceptedIds.add(cardId);
       const adoptedRank =
         !accepted && external && entry.baseline && current.rank === entry.baseline.rank
           ? external.rank
@@ -607,6 +616,36 @@ const make = Effect.gen(function* () {
       };
       yield* checkpoint();
       return state.status;
+    }
+    const committedRanks = new Map(
+      ordered
+        .filter((card) => {
+          const entry = entries.get(card.id);
+          return entry?.externalId && (remoteById.has(entry.externalId) || entry.journal?.receipt);
+        })
+        .map((card, rank) => [card.id, rank]),
+    );
+    for (const [cardId, entry] of entries) {
+      const rank = committedRanks.get(cardId);
+      if (rank === undefined) continue;
+      const previousRank = linkedRanks.get(cardId);
+      const previousBaseline = entry.localRankBaseline ?? entry.baseline?.rank;
+      const source =
+        entry.journal?.receipt ?? (entry.externalId ? remoteById.get(entry.externalId) : undefined);
+      const agreed = rank === source?.rank;
+      const localRankBaseline =
+        agreed ||
+        acceptedIds.has(cardId) ||
+        adoptedRanks.has(cardId) ||
+        previousRank === undefined ||
+        previousBaseline === undefined
+          ? rank
+          : rank - (previousRank - previousBaseline);
+      entries.set(cardId, {
+        ...entry,
+        localRankBaseline,
+        baseline: agreed && entry.baseline ? { ...entry.baseline, rank } : entry.baseline,
+      });
     }
     for (const row of rows) {
       if (resolution && row.cardId !== resolution.cardId) continue;

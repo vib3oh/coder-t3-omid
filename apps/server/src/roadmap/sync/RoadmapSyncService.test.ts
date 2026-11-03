@@ -491,6 +491,42 @@ describe("RoadmapSyncService", () => {
     },
   );
 
+  it.effect("retains an order conflict without turning incoming cards into outgoing edits", () => {
+    const port = fake();
+    port.readOnly();
+    port.setCards([remoteCard("a"), remoteCard("b", { rank: 1 }), remoteCard("c", { rank: 2 })]);
+    return Effect.gen(function* () {
+      const sync = yield* RoadmapSyncService.RoadmapSyncService;
+      const roadmap = yield* RoadmapService.RoadmapService;
+      yield* sync.connect({ projectId, expectedRevision: 0, binding });
+      let status = yield* sync.run({ projectId, expectedRevision: 1 });
+      const board = yield* roadmap.read({ projectId });
+      yield* roadmap.save({
+        projectId,
+        expectedRevision: board.revision,
+        cards: [board.cards[1]!, board.cards[0]!, board.cards[2]!],
+      });
+      port.setCards(["x", "a", "b", "c"].map((id, rank) => remoteCard(id, { rank })));
+      status = yield* sync.run({ projectId, expectedRevision: status.revision });
+      status = yield* sync.run({ projectId, expectedRevision: status.revision });
+      for (const id of ["x", "a", "c"])
+        expect(status.rows.find((row) => row.externalId === id)?.status).toBe("unchanged");
+      expect(status.rows.find((row) => row.externalId === "b")?.status).toBe("conflict");
+      status = yield* sync.resolve({
+        projectId,
+        expectedRevision: status.revision,
+        cardId: board.cards[1]!.id,
+        choice: "remote",
+      });
+      status = yield* sync.run({ projectId, expectedRevision: status.revision });
+      expect(
+        (yield* roadmap.read({ projectId })).cards.map((card) => card.sync?.externalId),
+      ).toEqual(["x", "a", "b", "c"]);
+      expect(status.counts.unchanged).toBe(4);
+      expect(port.writes()).toBe(0);
+    }).pipe(Effect.provide(testLayer(port.service)));
+  });
+
   it.effect("preserves corrupt private state and does not overwrite it", () => {
     const port = fake();
     return Effect.gen(function* () {
