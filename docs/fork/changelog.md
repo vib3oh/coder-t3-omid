@@ -1,8 +1,7 @@
 # Changelog boundary
 
-This extension starts from the fork's `main`, where the separate roadmap board
-has been reverted. Its source is T3's retained PR snapshots, rather than a
-second board or a GitHub fetch. This makes it usable independently and offline;
+This extension runs alongside the fork's roadmap board. Its source remains T3's
+retained PR snapshots, rather than roadmap-card completion or a GitHub fetch. This makes it usable independently and offline;
 unlinked repository merges and deleted threads are outside its history. A future
 roadmap integration should supply explicit card types and completion receipts
 through the same changelog contract rather than infer completion from agent text.

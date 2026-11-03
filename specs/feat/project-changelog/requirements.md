@@ -6,7 +6,7 @@ The owner requested a separate changelog view with HyperCoder's changelog functi
 
 The initial retrospective draft was grounded in product code at `4240713616e5fc12f4d96a1872709aea2d80fc05`. It is a requirements artifact for this PR, not a claim that full HyperCoder parity or independent review has passed. The owner's explicit request to include this artifact in the PR overrides this clone's default `specArtifacts: off` for this file only.
 
-The owner subsequently requested a genuine separate changelog window. CL-20 through CL-22 cover this authorized follow-up; it does not approve reductions in the other HyperCoder parity requirements.
+The owner subsequently requested a genuine separate changelog window. CL-20 through CL-22 cover this authorized follow-up. The owner then requested `/vibe-ship it. ignore ci for now`, authorizing shipment of the current PR and waiving CI for that shipment. This does not establish full HyperCoder parity or a native visual-QA pass.
 
 ## Acceptance criteria
 
@@ -96,18 +96,18 @@ This table records known differences from the supplied reference and prior local
 
 ## Open questions
 
-- **Scope approval:** does the owner accept the merged-work contract as a first slice, or must PR #3 reach the original card-based/full-parity goal before review completion? Prior implementation and a draft PR do not answer this.
+- **Shipment scope:** the owner's attended `/vibe-ship` request authorizes the current PR as the merged-work slice. Card-based/full-parity differences remain visible in this spec; they must not be advertised as delivered.
 - **Public sharing:** should the target remain deliberate snapshots, or include a live hosted public project page and public-address controls comparable to HyperCoder?
 - **Remaining parity:** which roadmap receipts and card navigation must be included before calling the original task complete?
-- **spec-route: Revise / owner decision pending on PR #3.** Keep the PR draft; the separate-window follow-up is authorized, but do not mark ready, apply workflow labels, create a new issue or infer merge approval from this artifact. GitHub-native policy owns any subsequent decision.
+- **spec-route: Ship current slice authorized.** CI is waived by the owner for this shipment. Native visual QA remains unverified and needs completion or an explicit waiver. The native window and card/hosting parity must not be described as fully validated. GitHub-native policy owns readiness and merge state; do not apply workflow labels or create another issue automatically.
 
 ## Product context
 
 - PRD: Not established; this branch has no `docs/product/overview.md` package.
 - Requirements: CL-01 through CL-22 are local to this spec; no `PRD-###` IDs exist for this work.
-- Decisions: The owner explicitly requested the separate-window follow-up. No reductions of the original parity request are owner-approved.
+- Decisions: The owner explicitly requested the separate-window follow-up, then authorized shipping the current PR while ignoring CI. This approves the current shipment; it does not claim full parity or successful native visual verification.
 - Product delta: feature (authorized separate-window follow-up).
-- PRD sync: No central product package to reconcile. This file records the current draft behavior and unresolved original intent; it does not approve a new product direction.
+- PRD sync: No central product package to reconcile. This file records the current draft behavior and unresolved original intent; it does not claim unimplemented parity.
 
 ## References
 

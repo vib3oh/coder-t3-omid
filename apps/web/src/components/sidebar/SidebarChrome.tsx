@@ -4,6 +4,7 @@ import {
   ChartNoAxesColumnIcon,
   ListChecksIcon,
   SettingsIcon,
+  KanbanIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
@@ -296,6 +297,14 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             icon={<ChartNoAxesColumnIcon />}
             label="Usage"
             onClick={handleUsageClick}
+          />
+          <SidebarUtilityItem
+            icon={<KanbanIcon />}
+            label="Roadmap"
+            onClick={() => {
+              closeMobileSidebar();
+              void navigate({ to: "/roadmap" });
+            }}
           />
         </>
       )}

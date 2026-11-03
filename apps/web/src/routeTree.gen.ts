@@ -19,6 +19,7 @@ import { Route as ChatIndexRouteImport } from './routes/_chat.index'
 import { Route as ProjectsProjectKeyRouteImport } from './routes/projects.$projectKey'
 import { Route as ChatUsageRouteImport } from './routes/_chat.usage'
 import { Route as ChatSettingsRouteImport } from './routes/_chat.settings'
+import { Route as ChatRoadmapRouteImport } from './routes/_chat.roadmap'
 import { Route as ChatPullRequestsRouteImport } from './routes/_chat.pull-requests'
 import { Route as ChatNewRouteImport } from './routes/_chat.new'
 import { Route as ChatChangelogRouteImport } from './routes/_chat.changelog'
@@ -98,6 +99,11 @@ const ChatUsageRoute = ChatUsageRouteImport.update({
 const ChatSettingsRoute = ChatSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatRoadmapRoute = ChatRoadmapRouteImport.update({
+  id: '/roadmap',
+  path: '/roadmap',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatPullRequestsRoute = ChatPullRequestsRouteImport.update({
@@ -271,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/changelog': typeof ChatChangelogRoute
   '/new': typeof ChatNewRoute
   '/pull-requests': typeof ChatPullRequestsRoute
+  '/roadmap': typeof ChatRoadmapRoute
   '/settings': typeof ChatSettingsRouteWithChildren
   '/usage': typeof ChatUsageRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
@@ -312,6 +319,7 @@ export interface FileRoutesByTo {
   '/changelog': typeof ChatChangelogRoute
   '/new': typeof ChatNewRoute
   '/pull-requests': typeof ChatPullRequestsRoute
+  '/roadmap': typeof ChatRoadmapRoute
   '/settings': typeof ChatSettingsRouteWithChildren
   '/usage': typeof ChatUsageRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   '/_chat/changelog': typeof ChatChangelogRoute
   '/_chat/new': typeof ChatNewRoute
   '/_chat/pull-requests': typeof ChatPullRequestsRoute
+  '/_chat/roadmap': typeof ChatRoadmapRoute
   '/_chat/settings': typeof ChatSettingsRouteWithChildren
   '/_chat/usage': typeof ChatUsageRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/new'
     | '/pull-requests'
+    | '/roadmap'
     | '/settings'
     | '/usage'
     | '/projects/$projectKey'
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/new'
     | '/pull-requests'
+    | '/roadmap'
     | '/settings'
     | '/usage'
     | '/projects/$projectKey'
@@ -485,6 +496,7 @@ export interface FileRouteTypes {
     | '/_chat/changelog'
     | '/_chat/new'
     | '/_chat/pull-requests'
+    | '/_chat/roadmap'
     | '/_chat/settings'
     | '/_chat/usage'
     | '/projects/$projectKey'
@@ -599,6 +611,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof ChatSettingsRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/_chat/roadmap': {
+      id: '/_chat/roadmap'
+      path: '/roadmap'
+      fullPath: '/roadmap'
+      preLoaderRoute: typeof ChatRoadmapRouteImport
       parentRoute: typeof ChatRoute
     }
     '/_chat/pull-requests': {
@@ -887,6 +906,7 @@ interface ChatRouteChildren {
   ChatChangelogRoute: typeof ChatChangelogRoute
   ChatNewRoute: typeof ChatNewRoute
   ChatPullRequestsRoute: typeof ChatPullRequestsRoute
+  ChatRoadmapRoute: typeof ChatRoadmapRoute
   ChatSettingsRoute: typeof ChatSettingsRouteWithChildren
   ChatUsageRoute: typeof ChatUsageRoute
   ChatIndexRoute: typeof ChatIndexRoute
@@ -898,6 +918,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatChangelogRoute: ChatChangelogRoute,
   ChatNewRoute: ChatNewRoute,
   ChatPullRequestsRoute: ChatPullRequestsRoute,
+  ChatRoadmapRoute: ChatRoadmapRoute,
   ChatSettingsRoute: ChatSettingsRouteWithChildren,
   ChatUsageRoute: ChatUsageRoute,
   ChatIndexRoute: ChatIndexRoute,
