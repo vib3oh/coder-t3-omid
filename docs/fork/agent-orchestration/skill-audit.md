@@ -27,6 +27,13 @@ The built-in package must work without the developer's personal Vibe installatio
 Existing local Vibe can remain an explicit compatibility backend, with its version
 and effective policy shown. It cannot be the only way the feature works.
 
+The subsequent [native T3 compatibility review](upstream-compatibility.md)
+constrains delivery: reuse T3's discovered provider skills, invocation and composer
+paths. The proposed library supplies authored content and role/dependency
+metadata, not a second skill runtime or generic catalog. Native package exposure
+per provider still needs a proof; static source compatibility does not establish
+seamless integration.
+
 ## What each set contributes
 
 Hypercoder contributes concise role responsibilities, concrete kickoff/reply
@@ -291,6 +298,10 @@ Kits remain deferred. Neither games workflow is a porting target.
 5. Validate role behavior with actual-source evals and focused state/service
    tests. Include inspect-versus-repair, no-label mode, unavailable dependencies,
    human/peer distinction, denied shipping, preserved work and stale evidence.
+6. Keep ordinary skills usable without the roadmap. Preserve native discovery,
+   precedence, refresh, invocation restrictions and user configuration; test
+   exact-source selection and collisions. Record minimal shared-file hooks and
+   reassess them when integrating upstream updates.
 
 Audit first is intentional. This PR updates the design and acceptance contract;
 it does not install the combined library, enable operations or execute any of

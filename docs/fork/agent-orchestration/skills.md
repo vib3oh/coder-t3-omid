@@ -78,8 +78,12 @@ not change the instructions of an in-flight assignment silently.
 
 One authored procedure should describe the intent, inputs, evidence and outputs.
 Provider adapters may package it differently for native skill discovery or expose
-it through T3's task context and tool discovery. This avoids keeping separate
-hand-edited behavioral copies for Claude, Codex and every other provider.
+it through T3's task context and tool discovery where that explicit fallback is
+supported. Native T3 discovery and dispatch are the default; do not replace their
+scanners, composer refresh or invocation restrictions. This avoids keeping
+separate hand-edited behavioral copies for Claude, Codex and every other
+provider. The [upstream compatibility contract](upstream-compatibility.md)
+defines the packaging proof and update checks still required.
 
 Resolve these requirements at assignment start:
 

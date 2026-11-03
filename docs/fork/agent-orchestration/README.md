@@ -17,6 +17,11 @@ conditional procedures and requirements for a built-in T3 library. The detailed
 [migration matrix](skills.md) maps Hypercoder behavior into that library. Each
 role gets a small, versioned bundle; games remain outside scope.
 
+The [upstream compatibility contract](upstream-compatibility.md) identifies T3's
+existing skill discovery, invocation and composer paths. It constrains the fork
+to reuse them and keep integration hooks small. These integrations are proposed;
+this PR does not install a working skill library or demonstrate runtime parity.
+
 Two self-contained HTML concepts illustrate the proposal:
 
 - [Role responsibilities and workflow](workflow.html)

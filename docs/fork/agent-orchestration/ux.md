@@ -45,6 +45,12 @@ fleet sync remain outside a worker's default bundle. The [combined audit](skill-
 defines these dispositions; an entry appearing in the catalog is not a claim
 that it is ready or authorized to run.
 
+Use T3's existing provider skill picker for ordinary invocation. Role setup adds
+bundle readiness and provenance to that native selection; it does not introduce
+a second generic skill browser. Keep existing personal/project skills and their
+enabled states visible. A same-name local skill must not silently replace the
+version an assignment expects. See the [compatibility contract](upstream-compatibility.md).
+
 An assignment gives a role actual work: an objective, relevant context, criteria,
 expected deliverable, workspace and manager. Its details preserve the exact role
 configuration used. Editing a preset affects future assignments; changes to work

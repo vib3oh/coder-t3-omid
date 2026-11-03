@@ -4,16 +4,23 @@ Discussion draft, 2026-11-02. This is an engineering proposal grounded in inspec
 
 ## Architecture decision
 
-Build a small workflow control layer over T3's execution services. Keep role definitions, assignment contracts, evidence and team relationships in the fork's roadmap modules. T3 continues to own conversations, provider sessions, permissions, commands, effects, worktrees, checkpoints, cancellation and remote execution.
+Build a small workflow control layer over T3's execution services. Keep role definitions, assignment contracts, evidence and team relationships in cohesive fork-owned modules, with optional links to roadmap cards. T3 continues to own conversations, provider sessions, permissions, commands, effects, worktrees, checkpoints, cancellation and remote execution.
 
 The manager is an agent that proposes work. The server validates whether that work is authorized and whether its prerequisites are satisfied. Do not put an LLM inside the pure orchestrator. Do not give a workflow controller an independent provider launcher.
+
+The [upstream compatibility contract](upstream-compatibility.md) constrains this
+draft. Native T3 owns skill discovery, provider invocation and composer refresh
+as well as execution. Fork-owned role and package metadata extend those paths;
+they do not replace them. Ordinary skills and roles must work without the roadmap
+extension. All storage/controller details below remain subject to a minimal
+integration proof and engineering review.
 
 ```text
 Web / desktop / native mobile / MCP / scheduled invocation
                        |
               permission-checked service
                        |
-       RoadmapAgentService + extension metadata store
+       AgentWorkflowService + workflow metadata
           |                 |                 |
      role compiler     workflow rules    intent reconciler
           |                 |                 |
@@ -40,7 +47,7 @@ Use the existing `createEnvironmentRpcCommand` client pattern and permission ato
 | `apps/server/src/orchestration-v2/DelegatedTaskQuestionReactor.ts` | Child user-input requests wake parents with deduplication/catch-up behavior                                        | Reuse human question/approval flow; do not reimplement it as peer chat           |
 | `apps/server/src/orchestration-v2/Orchestrator.ts`                 | App-owned child task/lineage and completion-delivery behavior; native children have different controls             | First version uses app-owned participants when durable team addressing is needed |
 | `apps/server/src/orchestration-v2/ThreadLaunchService.ts`          | Existing workspace preparation boundary                                                                            | Use it for workflow checkouts; no shell-created worktree controller              |
-| `apps/server/src/roadmap/RoadmapService.ts`                        | Fork-owned planning service                                                                                        | Link workflows to cards without changing the board into an executor              |
+| `apps/server/src/roadmap/RoadmapService.ts`                        | Fork-owned planning service in the inspected feature baseline                                                      | Optional card adapter; ordinary skills and workflows do not require the board    |
 
 Existing `t3_thread_send` can communicate across threads today. Its default `auto` may steer an active turn. The team API should default to queueing at a turn boundary; deliberate steering must be explicit. A message to a finished child can create a fresh delegated task. Capture that returned task id instead of assuming a thread has one task for its lifetime.
 
@@ -49,25 +56,31 @@ Existing `t3_thread_send` can communicate across threads today. Its default `aut
 Proposed owned modules:
 
 ```text
-packages/contracts/src/roadmapAgents.ts
-apps/server/src/roadmap/agents/
-  RoadmapAgentService.ts
+packages/contracts/src/forkAgentWorkflows.ts
+apps/server/src/fork/agents/
+  AgentWorkflowService.ts
   RoleCompiler.ts
   WorkflowRules.ts
   AgentWorkflowStore.ts
   WorkflowReconciler.ts
-apps/web/src/roadmap/agents/
-packages/client-runtime/src/roadmap/agents/
-apps/mobile/src/roadmap/agents/
+apps/web/src/fork/agents/
+packages/client-runtime/src/fork/agents/
+apps/mobile/src/fork/agents/
 ```
 
 These are proposed paths, not existing files. Keep workflow service methods cohesive; split modules only where responsibilities justify it. Client-runtime contains shared commands and state, not server policy.
 
 Expected integration points: contracts RPC/export/permission definitions; server application layer, RPC authorization and `ws.ts`; MCP toolkit definitions/handlers; a narrow internal delegation seam extracted from the current MCP implementation if needed; shared navigation/composer/settings/command palette; native mobile navigation. Record each actual integration path in `fork.json` during implementation. Do not copy the full MCP service or create a parallel provider/worktree runtime.
 
-## Persistence decision
+## Persistence option and decision gate
 
-**Proposed:** a separate SQLite database under server-owned `userdata/extensions/roadmap/agents.sqlite`, with schema and migrations owned by the roadmap module. Namespace rows by environment/project. Use T3's existing SQLite facilities and Effect service patterns. Do not attach it to the live user's database during development.
+Before choosing a store, assess whether existing T3 persistence/projection
+facilities can represent workflow-only metadata. Prove a minimal native handoff
+and restart recovery first. A new database is not a prerequisite for packaging
+skills or invoking role briefs, and avoiding upstream migration numbering alone
+does not justify another consistency boundary.
+
+**Option, not approved:** a separate SQLite database under server-owned `userdata/extensions/agents/workflows.sqlite`, with schema and migrations owned by the fork's workflow module. The remainder of this section describes that option. Namespace rows by environment/project. Use T3's existing SQLite facilities and Effect service patterns. Do not attach it to the live user's database during development.
 
 Why a separate store: roles, correlated questions, revisioned artifacts and pending intents need atomic updates and indexed queries. Expanding the current board JSON into an inbox/job log would increase contention and recovery complexity. Keeping extension migrations separate avoids competing for upstream's migration numbering. This database owns workflow metadata, not copies of provider/run/message histories. Canonical T3 ids are references.
 
@@ -135,14 +148,22 @@ Vibe entries are core candidates; eleven are conditional extensions. Neither tie
 changes authorization, and these are proposed release dispositions rather than
 implemented capability claims.
 
-Resolve each required skill and its transitive dependencies from a versioned
-catalog on the destination environment. A proposed `SkillDefinition` contains
-identity/aliases, canonical family, supported modes, tier, version,
-source/provenance, instructions, dependency refs, tool and provider requirements,
-invocation policy and output contract. `RoleSnapshot`
-captures the resolved versions/hashes and whether each instruction was loaded,
-available on demand or unsupported. Cycles, missing required instructions or
-unavailable required tools prevent dispatch with a clear reason.
+Use the existing `ServerProviderSkill`/workspace snapshots and provider-native
+discovery on the destination environment. Codex already calls `skills/list` for
+the working directory; Claude already discovers user/project/plugin skills and
+handles native invocation. `packages/client-runtime/src/providerSkills.ts`
+already resolves workspace snapshots and composer refresh. Preserve those
+implementations and their precedence/invocation restrictions.
+
+A fork-owned bundle manifest adds only aliases, canonical family/modes, tier,
+package version/provenance, dependency refs, role membership, required tools and
+output contracts. It is not a second discovered-skill catalog. Resolve its
+references against native results and the actual packaged content; do not
+override a disabled skill or substitute a local name collision silently.
+`RoleSnapshot` captures the actual selected source, versions/hashes and whether
+each instruction was loaded, available on demand or unsupported. Cycles, missing
+required instructions or unavailable required tools prevent dispatch with a
+clear reason.
 
 The supported built-in package includes or replaces its audited dependencies;
 it cannot assume helper scripts, stores or profiles under a developer's home.
@@ -152,12 +173,16 @@ unavailable when those prerequisites are missing. An explicit local-Vibe backend
 can preserve legacy integrations with reported version/policy, but must not become
 a second executor or require installing that backend to use the built-in path.
 
-Use audited Vibe procedures for project lifecycle behavior. Provider-native
-skill packaging is optional generated output of the same authored definitions;
-the common T3 context/tool path remains available when the provider supports it.
-Preserve user-only invocation boundaries across formats and avoid rewriting
-agent configuration. Load the small core role bundle first, with optional skill
-discovery on demand, rather than copying the full catalog into every task.
+Use audited Vibe procedures for project lifecycle behavior. Generate native
+packaging from the same authored definitions and use T3's existing discovery,
+selection and dispatch as the default. Prove how the bundled package becomes
+visible to each supported provider without overwriting personal configuration;
+there is no verified universal app-package registration API in this review.
+A common task-context/tool fallback is explicit and capability-gated, preserves
+invocation restrictions and must be tested before use. Never inject a user-only
+procedure into an autonomous bundle. Load the small core role bundle first,
+with optional skill discovery on demand, rather than copying the full catalog
+into every task.
 
 Local policy resolution must follow the real repository configuration. In this
 fork, a linked worktree without its own policy reads it from the primary checkout.
@@ -208,7 +233,7 @@ This matrix is a proposed compatibility strategy, not a live availability report
 
 ## Service and tool contract
 
-Proposed UI RPC namespace: `omid.roadmap.agents.*`, with methods for roles, workflow start/read/list, assignment start/result, messaging and lifecycle controls. Read needs orchestration read access; mutations need operate access plus the method-specific caller/participant policy. Role editing and workflow limits cannot be changed by workers merely because they can send messages.
+Proposed UI RPC namespace: `omid.agents.*`, with methods for roles, workflow start/read/list, assignment start/result, messaging and lifecycle controls. Read needs orchestration read access; mutations need operate access plus the method-specific caller/participant policy. Role editing and workflow limits cannot be changed by workers merely because they can send messages.
 
 Compact proposed MCP tools, calling the same service:
 
@@ -277,7 +302,7 @@ Useful examples adapted from the screenshot:
 
 The second statement is agent-reported unless corroborated by execution evidence. None of these means native validation passed, the PR is ready, or the user must act. Keep work state separate from transport state: a queued message is not a queued native test, and successful delivery does not complete the work.
 
-Build a shared presentation projector in the proposed client-runtime roadmap/agents module. Use stable workflow/assignment/generation, participants, question chain, message kind and revision references for grouping; proximity in time or similar text is insufficient. Routine contiguous updates can share a stable group row with its latest summary and an update count. Questions, user decisions, final outcomes, relevant revision changes and delivery failures remain individually addressable. A group's latest state cannot erase a still-unresolved failure or blocker. Closed/cancelled questions retain their history without continuing to look actionable.
+Build a shared presentation projector in the proposed client-runtime fork/agents module. Use stable workflow/assignment/generation, participants, question chain, message kind and revision references for grouping; proximity in time or similar text is insufficient. Routine contiguous updates can share a stable group row with its latest summary and an update count. Questions, user decisions, final outcomes, relevant revision changes and delivery failures remain individually addressable. A group's latest state cannot erase a still-unresolved failure or blocker. Closed/cancelled questions retain their history without continuing to look actionable.
 
 Use canonical message/intent ids to connect outgoing tool activity, message persistence, receipt and incoming reply. Show one human communication event within a given timeline; put its transport events underneath it. Do not deduplicate by matching text. Each participant may still have the same exchange represented in its own thread. Opaque provider/legacy events without reliable identities remain inspectable rather than being guessed into a group.
 
@@ -351,6 +376,7 @@ Roll out behind a feature flag: role snapshots first; then messaging/artifacts a
 - [Launch, assignment and monitoring UX](ux.md)
 - [Skill migration and role bundles](skills.md)
 - [Combined contract audit and complete Vibe disposition](skill-audit.md)
+- [Upstream compatibility contract and native integration boundaries](upstream-compatibility.md)
 - [Human-readable communication concept](communication.html)
 - T3 sources and baseline are listed in the investigation's E6 evidence register.
 - `docs/fork/roadmap.md`: board owns planning; T3 owns execution.

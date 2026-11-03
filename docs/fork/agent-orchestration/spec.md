@@ -8,6 +8,14 @@ T3 can delegate work, but users must repeatedly explain roles, assemble context,
 
 ## Acceptance criteria
 
+### Upstream compatibility
+
+- [ ] Build on native T3 skill discovery, provider dispatch, workspace snapshots and composer selection. Keep curated content and role/dependency metadata in a fork-owned package; do not introduce a competing skill scanner, parser, generic picker or provider runtime. Follow the [compatibility contract](upstream-compatibility.md).
+- [ ] Prove app-bundled packaging and invocation for each initially supported provider before claiming support. Preserve native precedence, disabled states and invocation restrictions. Report the actual resolved source/version/hash; a collision or unavailable pinned source cannot silently substitute a different skill.
+- [ ] Ordinary built-in skills and role invocation work without the roadmap extension, personal Vibe helpers or a Vibe conductor. Workflow execution continues through T3 services; optional roadmap cards are links, not prerequisites.
+- [ ] Keep shared upstream edits limited to necessary registration, additive contracts and entry points. Record actual integration hooks and reasons. Assess existing persistence facilities before approving a new workflow store; never duplicate task/message/provider state.
+- [ ] Before rollout, prove a minimal supervised handoff through native services and run focused native tests/evals plus integrated client verification. An upstream update must reassess changed hooks and affected behavior even when Git reports no conflicts. Preserve ordinary behavior when the feature is disabled and remove fork duplicates when adopting equivalent upstream capabilities.
+
 ### Roles and assignment quality
 
 - [ ] Ship Planner, Designer, Builder, Debugger and Reviewer presets. Users can clone a preset into a project role and edit its name, purpose, instructions, skill references, expected output and preferred provider/model settings.
@@ -118,7 +126,8 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 
 - Role prompts may drift; snapshot versions and evaluate against the single-agent baseline. Roll back a preset version without rewriting historical assignments.
 - More agents can increase cost and coordination failures. Offer a single-agent path; add agents only when decomposition or independent verification helps.
-- Cross-store workflow/core dispatch cannot be one transaction. Persist intent first and recover through stable command receipts; never promise exactly-once provider execution.
+- Internal T3 interfaces evolve; additive hooks reduce the merge surface but do not guarantee conflict-free updates. Reassess hooks and test affected behavior at each upstream integration.
+- If the separate workflow store is selected, workflow/core dispatch cannot be one transaction. Persist intent first and recover through stable command receipts; never promise exactly-once provider execution.
 - Concurrent edits can invalidate review. Enforce the workflow's writer ownership and recheck revisions before stage completion; external filesystem writers remain outside that enforcement boundary.
 - Protect cancellation from delayed messages and results with assignment generations and server validation.
 - Rollout behind a feature flag. Disabling new starts preserves history and allows management of existing child tasks. Do not delete worktrees, conversations or evidence as rollback.
@@ -129,14 +138,14 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 - Catalog scope settled: build in the Vibe procedures after auditing them against Hypercoder; games are excluded. The proposed core/extension grouping and adapter details remain subject to design review.
 - Should role authoring be project-only initially, or also include personal presets copied into a project? Recommended initial scope: project roles.
 - Are the proposed default attempt/concurrency limits appropriate? They are product defaults to validate, not measured performance claims.
-- Confirm the extension metadata store and minimal upstream hooks described in the technical design before treating the plan as implementation-ready.
+- Confirm native package exposure per provider, the minimal upstream hooks and the need for an extension metadata store before treating the plan as implementation-ready.
 - Review native mobile delivery sequencing; no roadmap screen currently exists there.
 
 ## Product context
 
 - PRD: Not established for this feature.
 - Requirements: None with existing stable ids.
-- Decisions: supervised workflows first, built-in Vibe procedures after a combined audit, and games excluded, confirmed by the user. Catalog tiering and other technical recommendations remain proposals.
+- Decisions: supervised workflows first, built-in Vibe procedures after a combined audit, games excluded, and minimizing upstream conflicts by extending native T3 capabilities, confirmed by the user. Catalog tiering and other technical recommendations remain proposals.
 - Product delta: material capability proposal.
 - PRD sync: no product files changed. Accepted decisions should be reconciled before build routing if a central product package is introduced.
 - Spec route: discuss remaining details; no workflow state or issue created.
@@ -148,6 +157,7 @@ Provisional terms for this draft; reconcile against T3's glossary before impleme
 - [Technical design](technical-design.md)
 - [Skill inventory, migration and role bundles](skills.md)
 - [Combined Vibe and Hypercoder contract audit](skill-audit.md)
+- [Upstream compatibility contract and targeted native-source review](upstream-compatibility.md)
 - [Expandable communication concept](communication.html)
 - Repository: `AGENTS.md`, `docs/fork/maintenance.md`, `docs/fork/roadmap.md`, `fork.json`
 - Existing runtime/contracts: `packages/contracts/src/orchestratorMcp.ts`, `apps/server/src/mcp/delegatedTaskModes.ts`, `apps/server/src/mcp/OrchestratorMcpService.ts`
