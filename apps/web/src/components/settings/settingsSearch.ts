@@ -454,6 +454,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["hide fold running monitoring threads inbox sidebar shelf"],
   },
   {
+    id: "project-worktrees",
+    title: "Project worktrees",
+    to: "/settings/labs",
+    searchTerms: ["beta dual sidebar rail navigation worktrees agents roadmap projects"],
+  },
+  {
     id: "boring-sidebar",
     title: "Boring sidebar (group by project)",
     to: "/settings/labs",

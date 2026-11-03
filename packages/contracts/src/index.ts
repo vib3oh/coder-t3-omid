@@ -76,3 +76,5 @@ export * from "./clientRpcPermissions.ts";
 export * from "./changelog.ts";
 export * from "./forkAgentWorkflows.ts";
 export * from "./forkAgentWorkflowViews.ts";
+
+export * from "./forkProjectNavigation.ts";

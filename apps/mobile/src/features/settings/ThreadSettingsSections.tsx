@@ -43,6 +43,7 @@ export function SettingsLabsRouteScreen() {
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
       >
         <BetaSettingsSection />
+        <ProjectWorktreeNavigationSettings />
         <LegacySettingsSection />
       </ScrollView>
     </SettingsScreen>
@@ -50,6 +51,25 @@ export function SettingsLabsRouteScreen() {
 }
 
 const AUTO_SETTLE_DEFAULT_DAYS = DEFAULT_SERVER_SETTINGS.sidebarAutoSettleAfterDays ?? 3;
+
+function ProjectWorktreeNavigationSettings() {
+  const preferences = useAtomValue(mobilePreferencesAtom);
+  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  return (
+    <SettingsSection title="Project navigation">
+      <SettingsSwitchRow
+        icon="square.on.square"
+        label="Project worktrees"
+        subtitle="Browse projects, worktrees and agent status. All threads stays available."
+        value={
+          AsyncResult.isSuccess(preferences) &&
+          preferences.value.projectWorktreeNavigationEnabled === true
+        }
+        onValueChange={(value) => savePreferences({ projectWorktreeNavigationEnabled: value })}
+      />
+    </SettingsSection>
+  );
+}
 
 /**
  * Usage-limit and auto-settle rows. The Threads page owns their writes, so they share its queue

@@ -113,6 +113,7 @@ export interface Preferences {
   readonly followUpBehavior?: FollowUpBehavior;
   readonly microphones?: ReadonlyArray<MicrophoneEntry>;
   readonly projectGroupingEnabled?: boolean;
+  readonly projectWorktreeNavigationEnabled?: boolean;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
   readonly planModeEnabled?: boolean;
   readonly workingShelfEnabled?: boolean;
@@ -193,6 +194,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     followUpBehavior?: FollowUpBehavior;
     microphones?: ReadonlyArray<MicrophoneEntry>;
     projectGroupingEnabled?: boolean;
+    projectWorktreeNavigationEnabled?: boolean;
     projectGroupingMode?: SidebarProjectGroupingMode;
     planModeEnabled?: boolean;
     workingShelfEnabled?: boolean;
@@ -310,6 +312,9 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (typeof parsed.projectGroupingEnabled === "boolean") {
     preferences.projectGroupingEnabled = parsed.projectGroupingEnabled;
+  }
+  if (typeof parsed.projectWorktreeNavigationEnabled === "boolean") {
+    preferences.projectWorktreeNavigationEnabled = parsed.projectWorktreeNavigationEnabled;
   }
   if (
     parsed.projectGroupingMode === "repository" ||

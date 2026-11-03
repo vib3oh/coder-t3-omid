@@ -50,6 +50,7 @@ import {
 } from "./roadmap.ts";
 import * as AgentWorkflows from "./forkAgentWorkflows.ts";
 import * as AgentWorkflowViews from "./forkAgentWorkflowViews.ts";
+import * as ProjectNavigation from "./forkProjectNavigation.ts";
 import * as Rpc from "effect/rpc/Rpc";
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import * as RpcMiddleware from "effect/rpc/RpcMiddleware";
@@ -424,6 +425,7 @@ import { Project, ProjectMutation, ProjectMutationError } from "./project.ts";
 export const WS_METHODS = {
   projectsListEntries: "projects.listEntries",
   projectsListIgnoredFiles: "projects.listIgnoredFiles",
+  projectNavigationRead: "omid.navigation.projectRead",
   roadmapRead: "omid.roadmap.read",
   roadmapSave: "omid.roadmap.save",
   agentRolesRead: "omid.agents.roles.read",
@@ -2141,6 +2143,11 @@ export const WsRpcGroup = RpcGroup.make(
   WsSubscribeProjectClonesRpc,
   WsProjectsListEntriesRpc,
   WsProjectsListIgnoredFilesRpc,
+  Rpc.make(WS_METHODS.projectNavigationRead, {
+    payload: ProjectNavigation.ProjectNavigationReadInput,
+    success: ProjectNavigation.ProjectNavigationReadResult,
+    error: Schema.Union([ProjectNavigation.ProjectNavigationError, EnvironmentAuthorizationError]),
+  }),
   Rpc.make(WS_METHODS.roadmapRead, {
     payload: RoadmapReadInput,
     success: RoadmapView,

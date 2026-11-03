@@ -1,3 +1,4 @@
+import { useProjectNavigationEnabled } from "../fork/navigation/navigationState";
 import { threadPullRequestLinkMode } from "@t3tools/client-runtime/thread-pull-request-compatibility";
 import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
 
@@ -431,6 +432,7 @@ function OpenCommandPaletteDialog(props: {
     setHighlightedItemValue(null);
   }
   const clientSettings = useClientSettings(selectCommandPaletteClientSettings);
+  const [projectNavigationEnabled, setProjectNavigationEnabled] = useProjectNavigationEnabled();
   const createProject = useAtomCommand(projectEnvironment.create, {
     reportFailure: false,
   });
@@ -1618,12 +1620,28 @@ function OpenCommandPaletteDialog(props: {
   });
   actionItems.push({
     kind: "action",
+    value: "action:project-worktrees",
+    searchTerms: ["project", "worktrees", "sidebar", "rail", "navigation"],
+    title: projectNavigationEnabled ? "Use thread sidebar" : "Use project worktree sidebar",
+    icon: <FolderIcon className={ITEM_ICON_CLASS} />,
+    run: async () => setProjectNavigationEnabled(!projectNavigationEnabled),
+  });
+  actionItems.push({
+    kind: "action",
     value: "action:agent-workflows",
     searchTerms: ["agent", "workflow", "planner", "builder", "reviewer", "roles"],
     title: "Open agent workflows and project roles",
     icon: <SettingsIcon className={ITEM_ICON_CLASS} />,
     run: async () => {
-      await navigate({ to: "/agent-workflows" });
+      await navigate({
+        to: "/agent-workflows",
+        search: contextualProjectRef
+          ? {
+              environmentId: contextualProjectRef.environmentId,
+              projectId: contextualProjectRef.projectId,
+            }
+          : {},
+      });
     },
   });
 

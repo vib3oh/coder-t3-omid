@@ -192,9 +192,10 @@ export function threadListV2LayoutTime(input: {
 export const THREAD_LIST_V2_SETTLED_INITIAL_COUNT = 10;
 export const THREAD_LIST_V2_SETTLED_PAGE_COUNT = 25;
 
-export function threadHasUnseenCompletion(
-  thread: Pick<EnvironmentThreadShell, "latestRun" | "lastVisitedAt">,
-): boolean {
+export function threadHasUnseenCompletion(thread: {
+  readonly latestRun: Pick<NonNullable<EnvironmentThreadShell["latestRun"]>, "completedAt"> | null;
+  readonly lastVisitedAt?: string | null | undefined;
+}): boolean {
   const completedAt = thread.latestRun?.completedAt;
   if (!completedAt) return false;
   const completedAtMs = Date.parse(completedAt);

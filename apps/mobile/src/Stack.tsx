@@ -67,6 +67,7 @@ import { GitOverviewSheet } from "./features/threads/git/GitOverviewSheet";
 import { ThreadPullRequestsSheet } from "./features/threads/ThreadPullRequestsSheet";
 import { ThreadAgentsSheet } from "./features/threads/ThreadAgentsSheet";
 import { AgentWorkflowsScreen } from "./features/agent-workflows/AgentWorkflowsScreen";
+import { ProjectNavigationScreen } from "./features/project-navigation/ProjectNavigationScreen";
 import { ThreadBackgroundWorkSheet } from "./features/threads/ThreadBackgroundWorkSheet";
 import { ThreadQueueSheet } from "./features/threads/ThreadQueueControl";
 import {
@@ -916,6 +917,11 @@ const RootStackConfig = createWorkspaceStackNavigator({
       screen: AgentWorkflowsScreen,
       linking: "agent-workflows",
       options: { title: "Agent workflows" },
+    }),
+    ProjectNavigation: createNativeStackScreen({
+      screen: ProjectNavigationScreen,
+      linking: "project-worktrees",
+      options: { title: "Project worktrees" },
     }),
     GitOverview: createNativeStackScreen({
       screen: GitOverviewSheet,

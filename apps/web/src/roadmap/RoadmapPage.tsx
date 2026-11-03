@@ -3,7 +3,8 @@ import { scopedProjectKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { type RoadmapBoard, type RoadmapCard, type RoadmapLinkedThread } from "@t3tools/contracts";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { resolveExplicitProject } from "../fork/navigation/navigation.logic";
 import { AsyncResult } from "effect/reactivity";
 import * as Option from "effect/Option";
 import { ArrowDownIcon, ArrowUpIcon, KanbanIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
@@ -37,11 +38,14 @@ const SELECT = "rounded-md border border-input bg-background px-2 py-1.5 text-sm
 
 export function RoadmapPage() {
   const projects = useProjects().filter((p) => !p.archivedAt);
-  const [selected, setSelected] = useState("");
-  const project =
-    projects.find(
-      (p) => scopedProjectKey({ environmentId: p.environmentId, projectId: p.id }) === selected,
-    ) ?? projects[0];
+  const routeSearch = useSearch({ strict: false });
+  const search = {
+    project: typeof routeSearch.project === "string" ? routeSearch.project : undefined,
+    card:
+      "card" in routeSearch && typeof routeSearch.card === "string" ? routeSearch.card : undefined,
+  };
+  const navigate = useNavigate();
+  const project = resolveExplicitProject(projects, search.project);
   return (
     <SidebarInset role="main" className="h-dvh min-h-0 overflow-hidden">
       <WorkspacePageHeader electron={isElectron}>
@@ -65,8 +69,13 @@ export function RoadmapPage() {
                 ? scopedProjectKey({ environmentId: project.environmentId, projectId: project.id })
                 : ""
             }
-            onChange={(e) => setSelected(e.target.value)}
+            onChange={(e) => void navigate({ to: "/roadmap", search: { project: e.target.value } })}
           >
+            {!project ? (
+              <option value="" disabled>
+                Choose a project
+              </option>
+            ) : null}
             {projects.map((p) => {
               const key = scopedProjectKey({ environmentId: p.environmentId, projectId: p.id });
               return (
@@ -78,10 +87,16 @@ export function RoadmapPage() {
           </select>
         </div>
         {project ? (
-          <ProjectBoard key={`${project.environmentId}:${project.id}`} project={project} />
+          <ProjectBoard
+            key={`${project.environmentId}:${project.id}`}
+            project={project}
+            cardId={search.card}
+          />
         ) : (
           <p className="text-muted-foreground">
-            Add a project to start its roadmap. A GitHub repository is optional.
+            {search.project
+              ? "This project is unavailable. Choose a project to open its roadmap."
+              : "Add a project to start its roadmap. A GitHub repository is optional."}
           </p>
         )}
       </div>
@@ -89,7 +104,14 @@ export function RoadmapPage() {
   );
 }
 
-function ProjectBoard({ project }: { project: EnvironmentProject }) {
+function ProjectBoard({
+  project,
+  cardId,
+}: {
+  project: EnvironmentProject;
+  cardId?: string | undefined;
+}) {
+  const navigate = useNavigate();
   const target = { environmentId: project.environmentId, input: { projectId: project.id } };
   const result = useAtomValue(roadmapRead(target));
   const canSave = useAtomValue(roadmapSave.permissionAtom(project.environmentId));
@@ -108,10 +130,38 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-  const [editing, setEditing] = useState<{ card: RoadmapCard; board: RoadmapBoard } | null>(null);
+  const [localEditing, setEditing] = useState<{ card: RoadmapCard; board: RoadmapBoard } | null>(
+    null,
+  );
   const view = Option.getOrNull(AsyncResult.value(result));
   const fetched = view?.board ?? null;
   const board = saved && (!fetched || saved.revision > fetched.revision) ? saved : fetched;
+  const routeCard = cardId ? board?.cards.find((card) => card.id === cardId) : undefined;
+  const [routeOpening, setRouteOpening] = useState<{
+    id: string;
+    card: RoadmapCard;
+    board: RoadmapBoard;
+  } | null>(null);
+  if (cardId && routeCard && board && routeOpening?.id !== cardId) {
+    setRouteOpening({ id: cardId, card: routeCard, board });
+  } else if (!cardId && routeOpening) {
+    setRouteOpening(null);
+  }
+  const editing = localEditing ?? (cardId === routeOpening?.id ? routeOpening : null);
+  const closeEditor = () => {
+    setEditing(null);
+    if (cardId)
+      void navigate({
+        to: "/roadmap",
+        search: {
+          project: scopedProjectKey({
+            environmentId: project.environmentId,
+            projectId: project.id,
+          }),
+        },
+        replace: true,
+      });
+  };
   const work = useRoadmapWork(project, save);
   const busy = saving || work.working || transitioning;
   const threadsById = new Map(
@@ -457,6 +507,11 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
           })}
         </div>
       </RoadmapDrag>
+      {cardId && board && !routeCard ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          This roadmap card is unavailable.
+        </p>
+      ) : null}
       {editing ? (
         <CardDrawer
           key={editing.card.id}
@@ -467,12 +522,12 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
           threads={[...threadsById.values()]}
           disabled={busy || !canSave}
           busy={busy}
-          onClose={() => setEditing(null)}
+          onClose={closeEditor}
           onReload={async () => {
             const read = await reload(target);
             if (read._tag === "Success") {
               setSaved(read.value.board);
-              setEditing((current) => (current ? { ...current, board: read.value.board } : null));
+              setEditing({ ...editing, board: read.value.board });
               setError(null);
             }
           }}
@@ -508,7 +563,7 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
                 return;
               }
             }
-            setEditing(null);
+            closeEditor();
           }}
         />
       ) : null}

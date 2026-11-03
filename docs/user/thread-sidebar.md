@@ -1,5 +1,26 @@
 # Working with threads
 
+## Navigate by project and worktree
+
+On web and desktop, turn on **Settings → Labs → Project worktrees** to choose a
+project from a rail and browse its worktrees beside it. The main checkout stays
+available above the worktree sections. Expand a worktree to open its threads,
+linked roadmap cards, or supervised workflows. Work without a roadmap card still
+appears. Turn the setting off to return to the existing thread list.
+
+When a project spans environments, choose the environment in the project panel
+before starting work. A worktree's review or completion stage is separate from
+whether its agent is running, waiting, or needs your input. Opening a project
+does not answer questions or mark every thread read. **New feature** starts the
+ordinary new-worktree flow; starting another thread in a worktree reuses that
+checkout.
+
+On iOS and Android, enable **Settings → Labs → Project worktrees** for the
+project/worktree view on Home. Use **All threads** to return to the global list.
+You can also open it from **Settings → Code → Project worktrees**. Threads and
+workflow monitoring open in the native client. Roadmap and Changelog currently
+remain web/desktop features; their native navigation entries explain that limit.
+
 Use a new thread for a separate task. Choose **New worktree** when its code changes
 need a separate branch and working directory.
 

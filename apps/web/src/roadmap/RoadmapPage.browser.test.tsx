@@ -110,7 +110,7 @@ function setup() {
     );
 }
 
-it("keeps a stale card draft across a conflict and reload without overwriting another client's edit", async () => {
+it("keeps a route-linked card draft across a conflict and reload without overwriting another client's edit", async () => {
   setup();
   state.board = {
     version: 1,
@@ -141,8 +141,9 @@ it("keeps a stale card draft across a conflict and reload without overwriting an
     .mockImplementation(async () =>
       AsyncResult.success({ board: state.board!, linkedThreads: [] }),
     );
-  await using screen = await render(<RoadmapPage />, { router: "/roadmap" });
-  await userEvent.click(screen.getByRole("button", { name: "Original idea", exact: true }));
+  await using screen = await render(<RoadmapPage />, {
+    router: "/roadmap?project=env%3Aproject&card=one",
+  });
   await userEvent.fill(page.getByRole("textbox", { name: "Title", exact: true }), "My draft");
   state.board = {
     ...state.board,

@@ -1,3 +1,4 @@
+import { useProjectNavigationEnabled } from "../../fork/navigation/navigationState";
 import { useAuth } from "@clerk/react";
 import { Link } from "@tanstack/react-router";
 import { managedCapabilityDenial } from "@t3tools/contracts";
@@ -19,6 +20,7 @@ export function LabsSettingsPanel() {
   return (
     <SettingsPageContainer>
       <SettingsSection id="beta" title="Beta">
+        <ProjectNavigationRow />
         <BoringSidebarRow />
         <BoringSidebarMultilineRow />
         {/* Clerk is only mounted when this build has T3 Connect. */}
@@ -28,6 +30,23 @@ export function LabsSettingsPanel() {
       </SettingsSection>
       <LegacyFeaturesSection />
     </SettingsPageContainer>
+  );
+}
+
+function ProjectNavigationRow() {
+  const [enabled, setEnabled] = useProjectNavigationEnabled();
+  return (
+    <SettingsRow
+      {...searchableSetting("project-worktrees")}
+      description="Browse a project rail and worktrees with roadmap, agent activity, and attention. This device only; turn off to return to your current sidebar."
+      control={
+        <Switch
+          checked={enabled}
+          onCheckedChange={(value) => setEnabled(Boolean(value))}
+          aria-label="Project worktrees"
+        />
+      }
+    />
   );
 }
 
