@@ -8,6 +8,14 @@ does not establish seamless integration.
 
 ## Current fork base and rebase audit
 
+The implementation was subsequently rebased onto `origin/main`
+[`424004f58d`](https://github.com/vib3oh/coder-t3-omid/commit/424004f58d0722db9b5f0374d281a64e24195627),
+which adds the project changelog. Its read/share scopes, server layer, HTTP route,
+RPCs, sidebar/palette entries and generated route remain present. The merged
+`fork.json` retains both roadmap and changelog ownership records alongside the
+new workflow entry. Workflow completion does not publish or share a changelog.
+The older roadmap audit below remains the source of the planning constraints.
+
 The design branch was rebased onto `origin/main`
 [`08f7150f56`](https://github.com/vib3oh/coder-t3-omid/commit/08f7150f560df3f43ad0745c8f2e88f932a8424d),
 which merges roadmap PR #1. The incoming range from `aeb2e46aa9` contains one

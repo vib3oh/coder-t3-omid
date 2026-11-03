@@ -18,7 +18,7 @@ T3 can delegate work, but users must repeatedly explain roles, assemble context,
 
 ### Existing roadmap compatibility
 
-Baseline: `origin/main` at [`08f7150f56`](https://github.com/vib3oh/coder-t3-omid/commit/08f7150f560df3f43ad0745c8f2e88f932a8424d). The board already supports planning, linked-thread launch/resume, managed agent review and checklist/spec editing. These are existing capabilities, not new deliverables of this proposal.
+Baseline: `origin/main` at [`08f7150f56`](https://github.com/vib3oh/coder-t3-omid/commit/08f7150f560df3f43ad0745c8f2e88f932a8424d). The board already supports planning, linked-thread launch/resume, managed agent review and checklist/spec editing. Implementation also incorporates the later changelog update at `424004f58d`; its reporting and sharing behavior remains independent of workflow completion. These are existing capabilities, not new deliverables of this proposal.
 
 - [ ] Add an explicit supervised workflow action while preserving ordinary **Start building** and **Start agent review** behavior. The latter currently asks an agent to fix findings and mark a passing PR ready; it cannot silently stand in for the proposed inspect-only Reviewer or grant merge authority.
 - [ ] Snapshot card/criterion ids, board revision and resolved spec content/version at acceptance. A spec path or checked criterion alone is not evidence of a satisfied assignment. Concurrent card edits require deliberate reconciliation; no full-board write may overwrite unrelated edits. Keep existing expected-revision conflicts and stable criterion ids.

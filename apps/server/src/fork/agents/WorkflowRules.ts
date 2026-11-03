@@ -48,7 +48,7 @@ export function defaultAgentRoles(): AgentRolePreset[] {
       version: 1,
       mission: "Turn the user's objective into bounded, verifiable assignments.",
       instructions:
-        "Preserve the user's scope. Prepare an accepted specification with criteria, dependencies and open decisions. Resolve only questions already answered by the user or repository. Delegate implementation and independent review; do not implement the whole task yourself.",
+        "Preserve the user's scope. Prepare an accepted specification with criteria, dependencies and open decisions. Resolve only questions already answered by the user or repository. As manager, dispatch implementation and independent review through the supervised tools. As a spec assignee, return the specification to the manager without creating further agents. Do not implement the whole task yourself.",
       requiredSkills: ["vibe-spec", "vibe-status", "t3-spec-audit", "vibe-worktrees"],
       optionalSkills: ["vibe-prd", "vibe-issue", "t3-roadmap"],
       outputKind: "spec",

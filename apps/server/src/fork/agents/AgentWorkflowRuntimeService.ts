@@ -398,7 +398,24 @@ const make = Effect.gen(function* () {
     workflow: AgentWorkflow,
   ) {
     const manager = yield* threads.getThreadShell(workflow.managerThreadId).pipe(mapFailure);
-    if (!manager || (workflow.workspaceStrategy.type === "worktree" && !manager.worktreePath))
+    if (!manager) return workflow;
+    const records = yield* threads
+      .getThreadRecords(workflow.managerThreadId, ["runs"])
+      .pipe(mapFailure);
+    const initialRun =
+      records.runs.find((run) => run.userMessageId === `agent-workflow:${workflow.id}:initial`) ??
+      records.runs.at(-1);
+    if (initialRun?.status === "failed" || initialRun?.status === "cancelled")
+      return yield* core.failIntent({
+        projectId: workflow.projectId,
+        workflowId: workflow.id,
+        intentId: workflow.intents.find((intent) => intent.operation === "launch")!.id,
+      });
+    if (
+      initialRun?.status === "preparing" ||
+      initialRun?.status === "queued" ||
+      (workflow.workspaceStrategy.type === "worktree" && !manager.worktreePath)
+    )
       return workflow;
     const workspacePath =
       manager.worktreePath ??
@@ -427,18 +444,7 @@ const make = Effect.gen(function* () {
       const initial = records.messages.find(
         (message) => message.id === `agent-workflow:${workflow.id}:initial`,
       );
-      if (initial) {
-        const bound = yield* bindManagerWorkspace(workflow);
-        if (bound.workspacePath !== null) return bound;
-        const run = records.runs.find((run) => run.id === initial.runId);
-        if (run?.status === "failed" || run?.status === "cancelled")
-          return yield* core.failIntent({
-            projectId: workflow.projectId,
-            workflowId: workflow.id,
-            intentId: workflow.intents.find((intent) => intent.operation === "launch")!.id,
-          });
-        return workflow;
-      }
+      if (initial) return yield* bindManagerWorkspace(workflow);
     }
     yield* launch
       .launch({
@@ -509,7 +515,9 @@ const make = Effect.gen(function* () {
     const cwd =
       input.workspaceStrategy.type === "existing_worktree"
         ? input.workspaceStrategy.worktreePath
-        : (sourceRoot ?? ownedProject.workspaceRoot);
+        : input.workspaceStrategy.type === "worktree"
+          ? (sourceRoot ?? ownedProject.workspaceRoot)
+          : ownedProject.workspaceRoot;
     const status = yield* git.statusDetailsLocal(cwd).pipe(mapFailure);
     if (!status.isRepo || status.hasWorkingTreeChanges)
       return yield* invalid(
@@ -1101,23 +1109,37 @@ const make = Effect.gen(function* () {
     if (input.action === "resume" || input.action === "retry") {
       const manager = yield* threads.getThreadShell(workflow.managerThreadId).pipe(mapFailure);
       const records =
-        manager && input.action === "retry" && !workflow.workspacePath
+        manager &&
+        input.action === "retry" &&
+        workflow.intents.some(
+          (intent) => intent.operation === "launch" && intent.state !== "accepted",
+        )
           ? yield* threads.getThreadRecords(workflow.managerThreadId, ["runs"]).pipe(mapFailure)
           : null;
       const failedPreparation = records?.runs
         .toReversed()
         .find((run) => run.status === "failed" && run.workspacePreparation !== undefined);
       if (failedPreparation) {
-        yield* reserveCard(workflow);
-        yield* launch
-          .retryPreparation({
-            commandId: CommandId.make(
-              `agent-workflow:${workflow.id}:retry-preparation:${input.requestId}`,
-            ),
-            threadId: workflow.managerThreadId,
-            runId: failedPreparation.id,
-          })
-          .pipe(mapFailure);
+        yield* Effect.gen(function* () {
+          yield* reserveCard(workflow);
+          yield* launch
+            .retryPreparation({
+              commandId: CommandId.make(
+                `agent-workflow:${workflow.id}:retry-preparation:${input.requestId}`,
+              ),
+              threadId: workflow.managerThreadId,
+              runId: failedPreparation.id,
+            })
+            .pipe(mapFailure);
+        }).pipe(
+          Effect.tapError(() =>
+            core.failIntent({
+              projectId: workflow.projectId,
+              workflowId: workflow.id,
+              intentId: workflow.intents.find((intent) => intent.operation === "launch")!.id,
+            }),
+          ),
+        );
       } else if (
         !manager ||
         !workflow.workspacePath ||

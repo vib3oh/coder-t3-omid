@@ -185,6 +185,9 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
   const records = yield* Ref.make(new Map<ThreadId, OrchestrationV2ThreadProjection>());
   const nativeEvents = yield* Ref.make<ReadonlyArray<OrchestrationV2StoredEvent>>([]);
   const launches = yield* Ref.make<ReadonlyArray<Launch.ThreadLaunchInput>>([]);
+  const preparationRetries = yield* Ref.make<ReadonlyArray<Launch.ThreadLaunchPreparationInput>>(
+    [],
+  );
   const nativeTasks = yield* Ref.make<ReadonlyArray<NodeId>>([]);
   const nativeRequests = yield* Ref.make<
     ReadonlyArray<Parameters<Native.OrchestratorMcpService["Service"]["delegateTask"]>[1]>
@@ -369,6 +372,13 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
           const started = projection(request.threadId!, "running");
           const accepted = {
             ...started,
+            runs: options.deferWorkspacePreparation
+              ? started.runs.map((run) => ({
+                  ...run,
+                  status: "preparing" as const,
+                  workspacePreparation: request.workspaceStrategy,
+                }))
+              : started.runs,
             thread: {
               ...started.thread,
               worktreePath: options.deferWorkspacePreparation ? null : started.thread.worktreePath,
@@ -390,6 +400,20 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
             projection: accepted,
             resumed: previous.length > 0,
           };
+        }),
+      retryPreparation: (request) =>
+        Effect.gen(function* () {
+          yield* Ref.update(preparationRetries, (all) => [...all, request]);
+          const native = (yield* Ref.get(records)).get(request.threadId)!;
+          yield* put({
+            ...native,
+            runs: native.runs.map((run) =>
+              run.id === request.runId ? { ...run, status: "preparing" } : run,
+            ),
+          });
+          return { sequence: 1 } as unknown as Effect.Success<
+            ReturnType<Launch.ThreadLaunchService["Service"]["retryPreparation"]>
+          >;
         }),
     }),
     Layer.mock(Native.OrchestratorMcpService)({
@@ -533,6 +557,7 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
     records,
     nativeEvents,
     launches,
+    preparationRetries,
     nativeTasks,
     nativeRequests,
     commands,
@@ -600,12 +625,59 @@ describe("AgentWorkflowRuntimeService", () => {
       });
       yield* f.runtime.reconcile;
       expect(yield* f.core.read({ projectId, workflowId: started.id })).toMatchObject({
+        status: "draft",
+        workspacePath: null,
+      });
+      const assignedPath = (yield* Ref.get(f.records)).get(started.managerThreadId)!;
+      yield* f.put({
+        ...assignedPath,
+        runs: assignedPath.runs.map((run) => ({ ...run, status: "failed" })),
+      });
+      yield* f.runtime.reconcile;
+      const failed = yield* f.core.read({ projectId, workflowId: started.id });
+      expect(failed.status).toBe("failed");
+      expect(failed.workspacePath).toBeNull();
+      const retry = {
+        projectId,
+        workflowId: started.id,
+        requestId: "retry-preparation",
+        action: "retry" as const,
+      };
+      yield* f.runtime.control(retry);
+      const pendingRetry = yield* f.core.read({ projectId, workflowId: started.id });
+      expect(pendingRetry.intents.find((intent) => intent.operation === "launch")).toMatchObject({
+        state: "pending",
+        generation: pendingRetry.generation,
+        commandId: pending.intents[0]!.commandId,
+      });
+      expect(pendingRetry.workspacePath).toBeNull();
+      yield* f.runtime.control(retry);
+      expect(yield* Ref.get(f.preparationRetries)).toHaveLength(1);
+      const retried = (yield* Ref.get(f.records)).get(started.managerThreadId)!;
+      yield* f.put({ ...retried, runs: retried.runs.map((run) => ({ ...run, status: "failed" })) });
+      yield* f.runtime.reconcile;
+      const failedAgain = yield* f.core.read({ projectId, workflowId: started.id });
+      expect(failedAgain.status).toBe("failed");
+      expect(failedAgain.intents.find((intent) => intent.operation === "launch")).toMatchObject({
+        state: "failed",
+        generation: pendingRetry.generation,
+      });
+      yield* f.runtime.control({ ...retry, requestId: "retry-preparation-again" });
+      expect(yield* Ref.get(f.preparationRetries)).toHaveLength(2);
+      const finalPreparation = (yield* Ref.get(f.records)).get(started.managerThreadId)!;
+      yield* f.put({
+        ...finalPreparation,
+        runs: finalPreparation.runs.map((run) => ({ ...run, status: "running" })),
+      });
+      yield* f.runtime.reconcile;
+      expect(yield* f.core.read({ projectId, workflowId: started.id })).toMatchObject({
         status: "running",
         workspacePath: "/fixture/prepared-worktree",
         baseRef: "head-one",
       });
       expect(yield* Ref.get(f.launches)).toHaveLength(1);
       expect((yield* Ref.get(f.launches))[0]?.reuseExistingThread).toBe(false);
+      expect(yield* Ref.get(f.sent)).toEqual([]);
     }).pipe(Effect.provide(baseLayer)),
   );
   it.effect(
@@ -841,6 +913,13 @@ describe("AgentWorkflowRuntimeService", () => {
           baseRef: "source-head",
         });
         expect(yield* Ref.get(f.gitReads)).not.toContain("/fixture/project");
+        expect(
+          yield* f.runtime
+            .start({ ...request, requestId: "root-mismatch", workspaceStrategy: { type: "root" } })
+            .pipe(Effect.flip),
+        ).toMatchObject({ reason: "invalid" });
+        expect(yield* Ref.get(f.launches)).toHaveLength(1);
+        expect((yield* f.store.read(projectId)).workflows).toHaveLength(1);
       }).pipe(Effect.provide(baseLayer)),
   );
 
