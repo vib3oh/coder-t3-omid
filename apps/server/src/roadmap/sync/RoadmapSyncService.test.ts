@@ -3,6 +3,7 @@ import { describe, expect, it } from "@effect/vitest";
 import {
   ProjectId,
   RoadmapSyncError,
+  RoadmapSyncDetail,
   type RoadmapCard,
   type RoadmapSyncCapabilities,
 } from "@t3tools/contracts";
@@ -10,6 +11,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as Schema from "effect/Schema";
 import * as ServerConfig from "../../config.ts";
 import * as ProjectStore from "../../orchestration-v2/ProjectStore.ts";
 import * as ProjectionStore from "../../orchestration-v2/ProjectionStore.ts";
@@ -19,6 +21,7 @@ import * as RoadmapSyncService from "./RoadmapSyncService.ts";
 import { snapshot } from "./reconcile.ts";
 
 const projectId = ProjectId.make("sync-fixture");
+const encodeDetail = Schema.encodeEffect(RoadmapSyncDetail);
 const binding = {
   contextPath: "/fixture/context.json",
   backend: "fixture.invalid",
@@ -418,6 +421,72 @@ describe("RoadmapSyncService", () => {
         expect(repeated.counts.unchanged).toBe(1);
         expect(repeated.counts.conflicts).toBe(1);
         expect(repeated.counts.unsupported).toBe(0);
+        const missingDetail = yield* sync.detail({ projectId, cardId: "local" });
+        expect(missingDetail.localRank).toBeNull();
+        yield* encodeDetail(missingDetail);
+      }).pipe(Effect.provide(testLayer(port.service)));
+    },
+  );
+
+  it.effect("keeps source insertions ordered beside retained read-only cards", () => {
+    const port = fake();
+    port.readOnly();
+    port.setCards([remoteCard("locked", { column: "done" }), remoteCard("second", { rank: 1 })]);
+    return Effect.gen(function* () {
+      const sync = yield* RoadmapSyncService.RoadmapSyncService;
+      const roadmap = yield* RoadmapService.RoadmapService;
+      yield* sync.connect({ projectId, expectedRevision: 0, binding });
+      let status = yield* sync.run({ projectId, expectedRevision: 1 });
+      for (const ids of [
+        ["inserted", "locked", "second"],
+        ["newest", "inserted", "locked", "second"],
+        ["newest", "inserted", "second", "locked"],
+      ]) {
+        port.setCards(
+          ids.map((id, rank) => remoteCard(id, { rank, column: id === "locked" ? "done" : null })),
+        );
+        status = yield* sync.run({ projectId, expectedRevision: status.revision });
+        status = yield* sync.run({ projectId, expectedRevision: status.revision });
+        expect(
+          (yield* roadmap.read({ projectId })).cards.map((card) => card.sync?.externalId),
+        ).toEqual(ids);
+        for (const id of ids.filter((id) => id !== "locked"))
+          expect(status.rows.find((row) => row.externalId === id)?.status).toBe("unchanged");
+      }
+      expect(port.writes()).toBe(0);
+    }).pipe(Effect.provide(testLayer(port.service)));
+  });
+
+  it.effect(
+    "reinserts a resolved card at its source position without an outgoing rank write",
+    () => {
+      const port = fake();
+      port.readOnly();
+      port.setCards([remoteCard("first"), remoteCard("second", { rank: 1 })]);
+      return Effect.gen(function* () {
+        const sync = yield* RoadmapSyncService.RoadmapSyncService;
+        const roadmap = yield* RoadmapService.RoadmapService;
+        yield* sync.connect({ projectId, expectedRevision: 0, binding });
+        let status = yield* sync.run({ projectId, expectedRevision: 1 });
+        const board = yield* roadmap.read({ projectId });
+        yield* roadmap.save({
+          projectId,
+          expectedRevision: board.revision,
+          cards: [...board.cards].reverse(),
+        });
+        status = yield* sync.run({ projectId, expectedRevision: status.revision });
+        status = yield* sync.resolve({
+          projectId,
+          expectedRevision: status.revision,
+          cardId: board.cards[0]!.id,
+          choice: "remote",
+        });
+        status = yield* sync.run({ projectId, expectedRevision: status.revision });
+        expect(
+          (yield* roadmap.read({ projectId })).cards.map((card) => card.sync?.externalId),
+        ).toEqual(["first", "second"]);
+        expect(status.counts.unchanged).toBe(2);
+        expect(port.writes()).toBe(0);
       }).pipe(Effect.provide(testLayer(port.service)));
     },
   );

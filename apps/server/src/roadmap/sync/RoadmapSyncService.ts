@@ -305,6 +305,7 @@ const make = Effect.gen(function* () {
       state.entries.flatMap((entry) => (entry.externalId ? [entry.externalId] : [])),
     );
     const runId = yield* uuid;
+    const adoptedRanks = new Map<string, number>();
     let revision = remoteBoard.revision;
     let writes = 0;
     state = {
@@ -534,13 +535,18 @@ const make = Effect.gen(function* () {
       };
       rows.push(row);
       const accepted = ["pulled", "pushed", "unchanged"].includes(status);
+      const adoptedRank =
+        !accepted && external && entry.baseline && current.rank === entry.baseline.rank
+          ? external.rank
+          : undefined;
+      if (adoptedRank !== undefined) adoptedRanks.set(cardId, adoptedRank);
       cards.set(cardId, {
         card: {
           ...record.card,
           ...(accepted ? desired.fields : {}),
           sync: metadata(row, external?.column ?? null),
         },
-        rank: accepted ? desired.rank : record.rank,
+        rank: accepted ? desired.rank : (adoptedRank ?? record.rank),
       });
       entries.set(cardId, {
         ...entry,
@@ -563,9 +569,25 @@ const make = Effect.gen(function* () {
         conflictingFields: [],
       });
     }
-    const ordered = [...cards.values()]
-      .sort((a, b) => a.rank - b.rank)
-      .map((record) => record.card);
+    let ordered = [...cards.values()].sort((a, b) => a.rank - b.rank).map((record) => record.card);
+    const resolved = resolution ? cards.get(resolution.cardId) : undefined;
+    const resolvedRow = resolution
+      ? rows.find((row) => row.cardId === resolution.cardId)
+      : undefined;
+    if (resolved && resolvedRow && ["pulled", "pushed", "unchanged"].includes(resolvedRow.status)) {
+      const retained = ordered.filter((card) => card.id !== resolved.card.id);
+      const positions = retained.flatMap((card, index) => {
+        const externalId = entries.get(card.id)?.externalId;
+        return externalId && remoteById.has(externalId) ? [index] : [];
+      });
+      const position =
+        positions[resolved.rank] ??
+        (positions.length
+          ? positions[positions.length - 1]! + 1
+          : Math.min(resolved.rank, retained.length));
+      retained.splice(position, 0, resolved.card);
+      ordered = retained;
+    }
     state = { ...state, status: { ...state.status, rows, counts: counts(rows) } };
     yield* checkpoint();
     const committed = yield* roadmap
@@ -588,9 +610,14 @@ const make = Effect.gen(function* () {
     }
     for (const row of rows) {
       if (resolution && row.cardId !== resolution.cardId) continue;
-      if (!["pulled", "pushed", "unchanged"].includes(row.status)) continue;
       const entry = entries.get(row.cardId);
       const record = cards.get(row.cardId);
+      if (!["pulled", "pushed", "unchanged"].includes(row.status)) {
+        const rank = adoptedRanks.get(row.cardId);
+        if (entry?.baseline && rank !== undefined)
+          entries.set(row.cardId, { ...entry, baseline: { ...entry.baseline, rank } });
+        continue;
+      }
       if (entry && record)
         entries.set(row.cardId, {
           ...entry,
@@ -658,7 +685,7 @@ const make = Effect.gen(function* () {
             local: card ? snapshot(card, rank).fields : null,
             remote: entry?.remote?.fields ?? null,
             baseline: entry?.baseline?.fields ?? null,
-            localRank: card ? localRank : null,
+            localRank: card && localRank >= 0 ? localRank : null,
             remoteRank: entry?.remote?.rank ?? null,
             baselineRank: entry?.baseline?.rank ?? null,
             conflictingFields:
