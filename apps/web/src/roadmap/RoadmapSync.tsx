@@ -225,9 +225,9 @@ function SyncDialog({
               }}
             >
               <p className="text-sm text-muted-foreground">
-                Run <code>hc roadmap context</code> in this project on {project.environmentId}. Copy
-                its context diagnostics below. Keep Hypercoder running and signed in there. Both
-                directories must belong to the same Git repository.
+                Run <code>hc roadmap context</code> in this project’s Hypercoder terminal on the
+                machine hosting T3. Copy its context diagnostics below. Keep Hypercoder running and
+                signed in there. Both directories must belong to the same Git repository.
               </p>
               <fieldset disabled={unavailable || !canConnect} className="space-y-3">
                 <label className="block space-y-1 text-sm">

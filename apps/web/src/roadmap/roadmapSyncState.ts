@@ -25,8 +25,12 @@ const refresh = (
   target: { environmentId: EnvironmentId; input: { projectId: ProjectId } },
   registry: AtomRegistry.AtomRegistry,
 ) => {
-  registry.refresh(roadmapRead(target));
-  registry.refresh(roadmapSyncRead(target));
+  const queryTarget = {
+    environmentId: target.environmentId,
+    input: { projectId: target.input.projectId },
+  };
+  registry.refresh(roadmapRead(queryTarget));
+  registry.refresh(roadmapSyncRead(queryTarget));
   return Effect.void;
 };
 
