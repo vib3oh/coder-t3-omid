@@ -79,6 +79,8 @@ export function ProjectNavigationPanel({
   const environmentLabel = (environmentId: EnvironmentId) =>
     environments.find((environment) => environment.environmentId === environmentId)?.label ??
     "Unavailable environment";
+  const projectLabel = (project: EnvironmentProject) =>
+    `${project.title} · ${environmentLabel(project.environmentId)}`;
   const pickProject = (project: EnvironmentProject) => {
     setSelected(scopedProjectKey(project.environmentId, project.id));
     savePreferences({
@@ -115,7 +117,7 @@ export function ProjectNavigationPanel({
                   onPress={() => pickProject(project)}
                   className={`min-h-12 justify-center rounded-xl border px-4 ${project === target ? "border-primary bg-secondary" : "border-border"}`}
                 >
-                  <Text className="text-foreground">{environmentLabel(project.environmentId)}</Text>
+                  <Text className="text-foreground">{projectLabel(project)}</Text>
                 </Pressable>
               ))}
           </View>
@@ -139,7 +141,7 @@ export function ProjectNavigationPanel({
               {group.projects.map((project) => (
                 <Button
                   key={scopedProjectKey(project.environmentId, project.id)}
-                  label={environmentLabel(project.environmentId)}
+                  label={projectLabel(project)}
                   onPress={() => pickProject(project)}
                 />
               ))}

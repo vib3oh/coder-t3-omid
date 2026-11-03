@@ -1,9 +1,11 @@
-import { parseScopedProjectKey, scopedProjectKey } from "@t3tools/client-runtime/environment";
+import { parseScopedProjectKey, scopeProjectRef } from "@t3tools/client-runtime/environment";
+import { resolveNavigationRouteProject } from "../../fork/navigation/navigation.logic";
 import {
   useProjectNavigationEnabled,
   useProjectNavigationPreferences,
 } from "../../fork/navigation/navigationState";
-import { useThreadRouteRef } from "../../hooks/useThreadRouteTarget";
+import { useThreadRouteRef, useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
+import { useComposerDraftStore } from "../../composerDraftStore";
 import { useQuietThreadShell } from "../../state/entities";
 import {
   ArrowLeftIcon,
@@ -16,7 +18,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { useAtomValue } from "@effect/atom-react";
 import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
@@ -239,13 +241,19 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   const [projectNavigationEnabled] = useProjectNavigationEnabled();
   const [navigationPreferences] = useProjectNavigationPreferences();
   const routeThread = useQuietThreadShell(useThreadRouteRef());
+  const routeTarget = useThreadRouteTarget();
+  const routeDraft = useComposerDraftStore((store) =>
+    routeTarget?.kind === "draft" ? store.getDraftSession(routeTarget.draftId) : null,
+  );
+  const search = useSearch({ strict: false });
   const navigationProjectKey = projectNavigationEnabled
-    ? routeThread
-      ? scopedProjectKey({
-          environmentId: routeThread.environmentId,
-          projectId: routeThread.projectId,
-        })
-      : navigationPreferences.selectedProject
+    ? (resolveNavigationRouteProject({
+        thread: routeThread
+          ? scopeProjectRef(routeThread.environmentId, routeThread.projectId)
+          : null,
+        draft: routeDraft ? scopeProjectRef(routeDraft.environmentId, routeDraft.projectId) : null,
+        search,
+      }) ?? navigationPreferences.selectedProject)
     : "";
   const navigationProject = navigationProjectKey
     ? parseScopedProjectKey(navigationProjectKey)

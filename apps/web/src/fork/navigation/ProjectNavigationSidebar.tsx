@@ -37,7 +37,8 @@ import { connectionAtomRuntime } from "../../connection/runtime";
 import { useSidebarProjectGroups } from "../../hooks/useSidebarProjectGroups";
 import { useNewThreadHandler } from "../../hooks/useHandleNewThread";
 import { useThreadActions } from "../../hooks/useThreadActions";
-import { useThreadRouteRef } from "../../hooks/useThreadRouteTarget";
+import { useThreadRouteRef, useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
+import { useComposerDraftStore } from "../../composerDraftStore";
 import { useConnectedEnvironmentIds } from "../../state/environments";
 import { useQuietThreadShell, useQuietThreadShells } from "../../state/entities";
 import { useEnvironmentScope } from "../../state/session";
@@ -72,6 +73,8 @@ import {
   changelogDestination,
   isScopedUtilityDestination,
   roadmapDestination,
+  resolveNavigationRouteProject,
+  resolveProjectGroupMember,
   workflowDestination,
   WORKTREE_SECTIONS,
   WORKTREE_STAGE_LABELS,
@@ -92,24 +95,20 @@ export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: Sidebar
   const threads = useQuietThreadShells();
   const routeRef = useThreadRouteRef();
   const routeThread = useQuietThreadShell(routeRef);
+  const routeTarget = useThreadRouteTarget();
+  const routeDraft = useComposerDraftStore((store) =>
+    routeTarget?.kind === "draft" ? store.getDraftSession(routeTarget.draftId) : null,
+  );
   const search = useSearch({ strict: false });
   const location = useLocation();
   const navigate = useNavigate();
   const [preferences, setPreferences] = useProjectNavigationPreferences();
   const [globalThreads, setGlobalThreads] = useState(false);
-  const routeProject = routeThread
-    ? scopedProjectKey({
-        environmentId: routeThread.environmentId,
-        projectId: routeThread.projectId,
-      })
-    : "project" in search && typeof search.project === "string"
-      ? search.project
-      : "environmentId" in search &&
-          "projectId" in search &&
-          typeof search.environmentId === "string" &&
-          typeof search.projectId === "string"
-        ? `${search.environmentId}:${search.projectId}`
-        : null;
+  const routeProject = resolveNavigationRouteProject({
+    thread: routeThread ? scopeProjectRef(routeThread.environmentId, routeThread.projectId) : null,
+    draft: routeDraft ? scopeProjectRef(routeDraft.environmentId, routeDraft.projectId) : null,
+    search,
+  });
   const selectedKey = routeProject ?? preferences.selectedProject;
   const selectedGroup =
     groups.find((group) =>
@@ -165,18 +164,32 @@ export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: Sidebar
         })
       ] = routeThread.id;
     const lastDestinations = { ...preferences.lastDestinations };
+    const lastMembers = { ...preferences.lastMembers };
     if (selectedProject) {
       const currentKey = scopedProjectKey({
         environmentId: selectedProject.environmentId,
         projectId: selectedProject.id,
       });
+      if (selectedGroup) lastMembers[selectedGroup.projectKey] = currentKey;
       if (routeThread) delete lastDestinations[currentKey];
       else if (
         isScopedUtilityDestination(location.href, selectedProject.environmentId, selectedProject.id)
       )
         lastDestinations[currentKey] = location.href;
     }
-    setPreferences({ ...preferences, selectedProject: key, lastThreads, lastDestinations });
+    const nextGroup = groups.find((group) =>
+      group.memberProjects.some(
+        (member) => member.environmentId === project.environmentId && member.id === project.id,
+      ),
+    );
+    if (nextGroup) lastMembers[nextGroup.projectKey] = key;
+    setPreferences({
+      ...preferences,
+      selectedProject: key,
+      lastMembers,
+      lastThreads,
+      lastDestinations,
+    });
     setGlobalThreads(false);
     const lastThread = threads.find(
       (thread) =>
@@ -215,16 +228,12 @@ export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: Sidebar
           </RailButton>
           <div className="my-1 w-7 border-t border-sidebar-border" />
           {groups.map((group) => {
-            const member =
-              group.memberProjects.find(
-                (project) =>
-                  scopedProjectKey({
-                    environmentId: project.environmentId,
-                    projectId: project.id,
-                  }) === preferences.selectedProject,
-              ) ??
-              group.memberProjects.find((project) => connected.includes(project.environmentId)) ??
-              group.memberProjects[0];
+            const member = resolveProjectGroupMember({
+              projects: group.memberProjects,
+              selectedProject: selectedKey,
+              rememberedProject: preferences.lastMembers?.[group.projectKey],
+              connectedEnvironmentIds: connected,
+            });
             if (!member) return null;
             const groupThreads = threads.filter((thread) =>
               group.memberProjects.some(

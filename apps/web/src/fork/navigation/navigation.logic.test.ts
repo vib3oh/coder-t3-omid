@@ -4,6 +4,8 @@ import {
   changelogDestination,
   isScopedUtilityDestination,
   resolveExplicitProject,
+  resolveNavigationRouteProject,
+  resolveProjectGroupMember,
   roadmapDestination,
   workflowDestination,
 } from "./navigation.logic";
@@ -36,5 +38,34 @@ describe("scoped navigation destinations", () => {
     expect(isScopedUtilityDestination("//outside.invalid/roadmap", environmentId, projectId)).toBe(
       false,
     );
+  });
+
+  it("restores a group's physical member after switching away, including an offline member", () => {
+    const local = { id: projectId, environmentId };
+    const remote = { id: projectId, environmentId: EnvironmentId.make("remote") };
+    const projects = [local, remote];
+    const input = {
+      projects,
+      selectedProject: "other:project",
+      rememberedProject: "remote:project",
+      connectedEnvironmentIds: [environmentId],
+    };
+    expect(resolveProjectGroupMember(input)).toBe(remote);
+    expect(resolveProjectGroupMember({ ...input, selectedProject: "local:project" })).toBe(local);
+    expect(resolveProjectGroupMember({ ...input, rememberedProject: "deleted:project" })).toBe(
+      local,
+    );
+  });
+
+  it("keeps a draft's physical project authoritative when no persisted thread is routed", () => {
+    const draft = { environmentId: EnvironmentId.make("remote"), projectId };
+    const thread = { environmentId, projectId };
+    expect(resolveNavigationRouteProject({ thread: null, draft, search: {} })).toBe(
+      "remote:project",
+    );
+    expect(resolveNavigationRouteProject({ thread, draft, search: {} })).toBe("local:project");
+    expect(
+      resolveNavigationRouteProject({ thread: null, draft: null, search: { project: "missing" } }),
+    ).toBe("missing");
   });
 });

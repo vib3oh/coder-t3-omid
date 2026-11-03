@@ -527,7 +527,19 @@ function ProjectBoard({
             const read = await reload(target);
             if (read._tag === "Success") {
               setSaved(read.value.board);
-              setEditing({ ...editing, board: read.value.board });
+              if (localEditing) {
+                setEditing((current) =>
+                  current?.card.id === editing.card.id
+                    ? { ...current, board: read.value.board }
+                    : current,
+                );
+              } else {
+                setRouteOpening((current) =>
+                  current?.id === editing.card.id
+                    ? { ...current, board: read.value.board }
+                    : current,
+                );
+              }
               setError(null);
             }
           }}

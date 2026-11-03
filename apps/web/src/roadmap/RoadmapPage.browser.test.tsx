@@ -110,67 +110,80 @@ function setup() {
     );
 }
 
-it("keeps a route-linked card draft across a conflict and reload without overwriting another client's edit", async () => {
-  setup();
-  state.board = {
-    version: 1,
-    revision: 0,
-    cards: [
-      {
-        id: "one",
-        title: "Original idea",
-        summary: "A brief",
-        type: "feature",
-        effort: "M",
-        lane: "backlog",
-        threadId: null,
-        completed: false,
-        archived: false,
-      },
-    ],
-  };
-  state.save.mockReset().mockImplementation(async ({ input }: { input: RoadmapSaveInput }) => {
-    if (input.expectedRevision !== state.board!.revision) {
-      return AsyncResult.failure(Cause.fail(new RoadmapError({ reason: "conflict" })));
+it.each(["save", "navigate away"] as const)(
+  "keeps a route-linked card draft across a conflict and reload (%s)",
+  async (ending) => {
+    setup();
+    state.board = {
+      version: 1,
+      revision: 0,
+      cards: [
+        {
+          id: "one",
+          title: "Original idea",
+          summary: "A brief",
+          type: "feature",
+          effort: "M",
+          lane: "backlog",
+          threadId: null,
+          completed: false,
+          archived: false,
+        },
+      ],
+    };
+    state.save.mockReset().mockImplementation(async ({ input }: { input: RoadmapSaveInput }) => {
+      if (input.expectedRevision !== state.board!.revision) {
+        return AsyncResult.failure(Cause.fail(new RoadmapError({ reason: "conflict" })));
+      }
+      state.board = { version: 1, revision: state.board!.revision + 1, cards: input.cards };
+      return AsyncResult.success(state.board);
+    });
+    state.reload
+      .mockReset()
+      .mockImplementation(async () =>
+        AsyncResult.success({ board: state.board!, linkedThreads: [] }),
+      );
+    await using screen = await render(<RoadmapPage />, {
+      router: "/roadmap?project=env%3Aproject&card=one",
+    });
+    await userEvent.fill(page.getByRole("textbox", { name: "Title", exact: true }), "My draft");
+    state.board = {
+      ...state.board,
+      revision: 1,
+      cards: [
+        { ...state.board.cards[0]!, title: "Another client's edit", completed: true, effort: "XL" },
+      ],
+    };
+    await screen.rerender(<RoadmapPage />);
+    await userEvent.click(page.getByRole("button", { name: "Save card", exact: true }));
+    await expect.element(page.getByRole("dialog").getByRole("alert")).toBeVisible();
+    await expect
+      .element(page.getByRole("textbox", { name: "Title", exact: true }))
+      .toHaveValue("My draft");
+    expect(state.board.cards[0]?.title).toBe("Another client's edit");
+    await userEvent.click(page.getByRole("button", { name: "Reload board and keep my draft" }));
+    await expect
+      .element(page.getByRole("textbox", { name: "Title", exact: true }))
+      .toHaveValue("My draft");
+    await userEvent.click(page.getByText("Latest saved card (review before replacing it)"));
+    await expect
+      .element(page.getByRole("dialog").getByText("Another client's edit", { exact: true }))
+      .toBeVisible();
+    if (ending === "navigate away") {
+      await screen.router!.navigate({ to: "/roadmap", search: { project: "env:project" } });
+      await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+      expect(state.board.cards[0]?.title).toBe("Another client's edit");
+      return;
     }
-    state.board = { version: 1, revision: state.board!.revision + 1, cards: input.cards };
-    return AsyncResult.success(state.board);
-  });
-  state.reload
-    .mockReset()
-    .mockImplementation(async () =>
-      AsyncResult.success({ board: state.board!, linkedThreads: [] }),
-    );
-  await using screen = await render(<RoadmapPage />, {
-    router: "/roadmap?project=env%3Aproject&card=one",
-  });
-  await userEvent.fill(page.getByRole("textbox", { name: "Title", exact: true }), "My draft");
-  state.board = {
-    ...state.board,
-    revision: 1,
-    cards: [
-      { ...state.board.cards[0]!, title: "Another client's edit", completed: true, effort: "XL" },
-    ],
-  };
-  await screen.rerender(<RoadmapPage />);
-  await userEvent.click(page.getByRole("button", { name: "Save card", exact: true }));
-  await expect.element(page.getByRole("dialog").getByRole("alert")).toBeVisible();
-  await expect
-    .element(page.getByRole("textbox", { name: "Title", exact: true }))
-    .toHaveValue("My draft");
-  expect(state.board.cards[0]?.title).toBe("Another client's edit");
-  await userEvent.click(page.getByRole("button", { name: "Reload board and keep my draft" }));
-  await expect
-    .element(page.getByRole("textbox", { name: "Title", exact: true }))
-    .toHaveValue("My draft");
-  await userEvent.click(page.getByText("Latest saved card (review before replacing it)"));
-  await expect
-    .element(page.getByRole("dialog").getByText("Another client's edit", { exact: true }))
-    .toBeVisible();
-  await userEvent.click(page.getByRole("button", { name: "Save card", exact: true }));
-  await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
-  expect(state.board.cards[0]).toMatchObject({ title: "My draft", completed: true, effort: "XL" });
-});
+    await userEvent.click(page.getByRole("button", { name: "Save card", exact: true }));
+    await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+    expect(state.board.cards[0]).toMatchObject({
+      title: "My draft",
+      completed: true,
+      effort: "XL",
+    });
+  },
+);
 
 it("lets a read-only user inspect and close a card", async () => {
   setup();

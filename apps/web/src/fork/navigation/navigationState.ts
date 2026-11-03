@@ -8,6 +8,7 @@ const MODE_KEY = "t3code.project-worktrees.v1.enabled";
 const PREFERENCES_KEY = "t3code.project-worktrees.v1.preferences";
 const Preferences = Schema.Struct({
   selectedProject: Schema.String,
+  lastMembers: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   lastThreads: Schema.Record(Schema.String, Schema.String),
   lastDestinations: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   expanded: Schema.Record(Schema.String, Schema.Boolean),

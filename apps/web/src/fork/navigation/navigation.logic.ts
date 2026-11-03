@@ -1,5 +1,19 @@
 import { scopedProjectKey } from "@t3tools/client-runtime/environment";
-import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
+import type { EnvironmentId, ProjectId, ScopedProjectRef } from "@t3tools/contracts";
+
+export function resolveNavigationRouteProject(input: {
+  thread: ScopedProjectRef | null;
+  draft: ScopedProjectRef | null;
+  search: { project?: unknown; environmentId?: unknown; projectId?: unknown };
+}): string | null {
+  const project = input.thread ?? input.draft;
+  if (project) return scopedProjectKey(project);
+  if (typeof input.search.project === "string") return input.search.project;
+  return typeof input.search.environmentId === "string" &&
+    typeof input.search.projectId === "string"
+    ? `${input.search.environmentId}:${input.search.projectId}`
+    : null;
+}
 
 export function roadmapDestination(
   environmentId: EnvironmentId,
@@ -41,6 +55,32 @@ export function resolveExplicitProject<T extends { environmentId: EnvironmentId;
           scopedProjectKey({ environmentId: project.environmentId, projectId: project.id }) ===
           selected,
       );
+}
+
+export function resolveProjectGroupMember<
+  T extends { environmentId: EnvironmentId; id: ProjectId },
+>(input: {
+  projects: readonly T[];
+  selectedProject: string;
+  rememberedProject?: string | undefined;
+  connectedEnvironmentIds: readonly EnvironmentId[];
+}): T | undefined {
+  return (
+    input.projects.find(
+      (project) =>
+        scopedProjectKey({ environmentId: project.environmentId, projectId: project.id }) ===
+        input.selectedProject,
+    ) ??
+    input.projects.find(
+      (project) =>
+        scopedProjectKey({ environmentId: project.environmentId, projectId: project.id }) ===
+        input.rememberedProject,
+    ) ??
+    input.projects.find((project) =>
+      input.connectedEnvironmentIds.includes(project.environmentId),
+    ) ??
+    input.projects[0]
+  );
 }
 
 export const WORKTREE_SECTIONS = [
