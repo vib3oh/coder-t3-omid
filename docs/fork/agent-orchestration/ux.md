@@ -10,6 +10,11 @@ implementation constraints.
 A roadmap card offers **Start workflow**. An existing thread offers
 **Use agent workflow**, carrying the relevant conversation into the brief.
 Thread-based workflows also support projects without a board or GitHub repository.
+These are proposed additions alongside the board's existing **Start building**
+and **Start agent review** controls. The latter is a managed repair flow; the
+workflow's Reviewer is a separate inspection assignment. Keep those choices
+explicit. Linked active work requires an ownership decision before another
+editing assignment starts.
 The launch sheet shows the objective, selected role presets, the resolved
 provider/model for each stage and the finish line. Resource limits and advanced
 options sit behind a disclosure.
@@ -18,6 +23,12 @@ The initial team is Planner → Builder → Reviewer. An accepted spec supplies 
 starting contract; otherwise the planner prepares it. The default finish is a
 reviewed result presented to the user. PR creation, publishing, merging and
 deployment use existing authorization and repository policy.
+
+The launch sheet identifies the accepted card/spec/criteria revision. Later board
+edits do not silently change an active assignment. Workflow status supplements
+the existing board's thread/PR-derived columns; a reviewed result does not by
+itself move a card to Done or check off its criteria. Parking a thread and pausing
+or cancelling its workflow remain distinct operations.
 
 **Start** authorizes the configured workflow. Agents start when their stages are
 ready, rather than all consuming turns at launch. The user can inspect the

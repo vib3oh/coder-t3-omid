@@ -2,7 +2,9 @@
 
 These instructions apply to `vib3oh/coder-t3-omid` alongside the upstream
 [AGENTS.md](../../AGENTS.md). Keep the root fork pointer small and maintain
-`CLAUDE.md` as an import of the same instructions, without a second policy copy.
+`CLAUDE.md` as the relative symlink to `AGENTS.md`, without a second policy copy.
+Read [fork maintenance](maintenance.md), the relevant feature contract and
+`fork.json` before changing an extension or its integration points.
 
 ## Build on native T3
 
@@ -17,8 +19,9 @@ These instructions apply to `vib3oh/coder-t3-omid` alongside the upstream
 - Keep new logic in cohesive fork-owned modules. Limit edits in shared upstream
   files to necessary integration points. Do not copy large upstream modules to
   avoid editing them. Record actual hooks and their reasons in the fork's
-  integration manifest when present, otherwise in concise feature documentation;
-  do not invent an implemented manifest or API.
+  existing `fork.json` integration manifest when implementing them; do not register
+  proposed runtime modules as if they already exist. Preserve the roadmap entry
+  when adding a different extension.
 - Keep custom features independent where practical, using optional adapters for
   links between them. Ordinary skills and role use must not require the roadmap
   feature. Shipped features must not require the developer's personal Vibe
@@ -57,7 +60,7 @@ workflow for affected surfaces and evals for changed model-facing text.
 Adopt equivalent upstream capabilities and remove superseded fork code. Do not
 maintain two implementations just to preserve the fork's original shape. Update
 hook records, documentation and tests when a boundary changes. Keep the root
-fork pointer and CLAUDE import when reconciling upstream instruction updates.
+fork pointer and relative CLAUDE symlink when reconciling upstream instruction updates.
 
 ## Keep claims grounded
 

@@ -11,6 +11,12 @@ explicit modes. Vibe names remain familiar entry points. The supported built-in
 path must not require a personal Vibe installation; existing local Vibe is an
 optional, explicitly selected compatibility backend.
 
+The refreshed base `08f7150f56` already includes the roadmap service, checklist/spec
+drawer and ordinary build/review launch controls. Its review action performs
+managed repair; the supervised Reviewer uses inspection. The roadmap skill still
+needs an agent-facing adapter over read/save; board UI availability does not
+establish MCP parity. See the [base audit](upstream-compatibility.md#current-fork-base-and-rebase-audit).
+
 ## Inventory and scope
 
 The inspected Hypercoder app bundles **15 distinct workflows**: 11 Claude skill

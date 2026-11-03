@@ -9,7 +9,10 @@ draft PR; publishing does not authorize review, marking ready or merging.
 This checkout extends `pingdotgg/t3code`; `origin` is `vib3oh/coder-t3-omid` and
 `upstream` is the original repository. Read [fork maintenance](docs/fork/maintenance.md)
 and [the roadmap contract](docs/fork/roadmap.md) before changing the extension.
-Keep feature code in the dedicated `roadmap` modules. Keep upstream edits small;
+For all custom features and upstream updates, also read and follow the
+[fork AI instructions](docs/fork/ai-instructions.md). Keep detailed fork policy
+there and preserve the upstream guidance below.
+Keep roadmap feature code in the dedicated `roadmap` modules. Keep upstream edits small;
 record new integration points in `fork.json`. Preserve upstream history, license,
 checks and supported providers. Do not install builds over the running T3 app or
 use its live data directory. `CLAUDE.md` must remain a relative symlink to this file.
@@ -21,13 +24,6 @@ below does not prohibit durable fork architecture or investigation evidence.
 T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provider CLIs and agents (Codex, Claude Code, Cursor, Grok, OpenCode, Antigravity) and serves web, desktop, and mobile clients.
 
 You can think of T3 Code as an open source "bring-your-own-subscription" alternative to apps like Claude Desktop, Codex App, Cursor Glass and Conductor.
-
-## Working on Omid's fork
-
-For work on `vib3oh/coder-t3-omid`, read and follow the
-[fork AI instructions](docs/fork/ai-instructions.md) before making changes or
-integrating upstream updates. Keep fork-specific policy in that file and preserve
-the upstream guidance below. `CLAUDE.md` imports this file.
 
 ## What makes T3 Code special?
 

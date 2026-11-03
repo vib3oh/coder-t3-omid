@@ -9,6 +9,8 @@ connections without a GitHub repository or a separate cloud account.
 - [Changelog boundary](changelog.md)
 - [Architecture and product contract](roadmap.md)
 - [Maintain the fork and take upstream updates](maintenance.md)
+- [AI instructions for custom features and upstream updates](ai-instructions.md)
+- [Agent orchestration and combined skill audit](agent-orchestration/README.md) (discussion draft; no runtime implementation)
 - [HyperCoder investigation and REA evidence](hypercoder-investigation.md)
 - [Verification and coverage](verification.md)
 

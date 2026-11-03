@@ -33,11 +33,13 @@ application components or evidence that the proposed feature already works.
 
 ## Source baseline and evidence
 
-The investigation inspected T3 fork revision
+The original investigation inspected T3 fork revision
 [`36f7afa9c7`](https://github.com/vib3oh/coder-t3-omid/tree/36f7afa9c7a6a87e331c09c001f426e35e894d5a),
-including its roadmap extension. The current main branch does not include that extension.
-References to its modules and fork documentation describe the inspected baseline;
-this PR does not reintroduce that implementation or depend on merging it.
+including its roadmap extension. This design is now rebased onto `origin/main`
+[`08f7150f56`](https://github.com/vib3oh/coder-t3-omid/commit/08f7150f560df3f43ad0745c8f2e88f932a8424d),
+which includes the merged roadmap feature. The [base-change audit](upstream-compatibility.md#current-fork-base-and-rebase-audit)
+records the resulting launch, review, persistence and permission constraints.
+The supervised workflow remains proposed; the existing roadmap is retained.
 
 HyperCoder `0.2.0-nightly.20261102.290.1` was inspected using REA `6.8.0` and direct
 static reading of packaged JavaScript. The focused REA pass parsed two CLI/control
@@ -50,5 +52,6 @@ normalize local paths and retain a hash of their original source file. Extracted
 application code, full evidence bundles and the supplied personal screenshot are
 not included.
 
-This package records a proposed capability contract and its research basis. It
-does not change runtime prompts, tools, provider behavior or the shipped UI.
+This package records a proposed capability contract and its research basis, plus
+contributor AI guidance. It does not change runtime prompts, tools, provider
+behavior or the shipped UI.

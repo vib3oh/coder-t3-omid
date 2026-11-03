@@ -34,6 +34,13 @@ metadata, not a second skill runtime or generic catalog. Native package exposure
 per provider still needs a proof; static source compatibility does not establish
 seamless integration.
 
+The [fork-base refresh](upstream-compatibility.md#current-fork-base-and-rebase-audit)
+now includes the merged roadmap at `08f7150f56`. Its review action is managed
+repair, reinforcing F2's required separation from Reviewer inspection. Existing
+board read/save, checklist/spec editing and protected launch are reusable; a
+roadmap MCP tool and supervised workflow are still proposals. Original source
+inventory hashes and dispositions remain static audit evidence.
+
 ## What each set contributes
 
 Hypercoder contributes concise role responsibilities, concrete kickoff/reply

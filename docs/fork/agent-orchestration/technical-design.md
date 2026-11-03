@@ -1,6 +1,6 @@
 # Technical design: role-based workflows for the T3 fork
 
-Discussion draft, 2026-11-02. This is an engineering proposal grounded in inspected code, not an implemented API or an approved plan. It accompanies the [spec](spec.md) and [Hypercoder investigation](understanding.md). All `omid.*` names and schemas below are proposed. Existing APIs are identified explicitly against the source baseline in the [investigation](understanding.md); roadmap modules cited from that baseline are not shipped by this PR.
+Discussion draft, 2026-11-02. This is an engineering proposal grounded in inspected code, not an implemented workflow API or an approved plan. It accompanies the [spec](spec.md) and [Hypercoder investigation](understanding.md). Agent-workflow `omid.*` names and schemas below are proposed; existing `omid.roadmap.read/save` RPCs are identified explicitly. The current source baseline is `origin/main` at [`08f7150f56`](https://github.com/vib3oh/coder-t3-omid/commit/08f7150f560df3f43ad0745c8f2e88f932a8424d), which includes the roadmap. See the [rebase audit](upstream-compatibility.md#current-fork-base-and-rebase-audit); original research provenance remains in the investigation.
 
 ## Architecture decision
 
@@ -47,9 +47,35 @@ Use the existing `createEnvironmentRpcCommand` client pattern and permission ato
 | `apps/server/src/orchestration-v2/DelegatedTaskQuestionReactor.ts` | Child user-input requests wake parents with deduplication/catch-up behavior                                        | Reuse human question/approval flow; do not reimplement it as peer chat           |
 | `apps/server/src/orchestration-v2/Orchestrator.ts`                 | App-owned child task/lineage and completion-delivery behavior; native children have different controls             | First version uses app-owned participants when durable team addressing is needed |
 | `apps/server/src/orchestration-v2/ThreadLaunchService.ts`          | Existing workspace preparation boundary                                                                            | Use it for workflow checkouts; no shell-created worktree controller              |
-| `apps/server/src/roadmap/RoadmapService.ts`                        | Fork-owned planning service in the inspected feature baseline                                                      | Optional card adapter; ordinary skills and workflows do not require the board    |
+| `apps/server/src/roadmap/RoadmapService.ts`                        | Existing revision-checked board read/save and scoped linked-thread view on current main                            | Reuse planning storage through an optional card adapter; do not duplicate it     |
 
 Existing `t3_thread_send` can communicate across threads today. Its default `auto` may steer an active turn. The team API should default to queueing at a turn boundary; deliberate steering must be explicit. A message to a finished child can create a fresh delegated task. Capture that returned task id instead of assuming a thread has one task for its lifetime.
+
+### Roadmap integration on the refreshed base
+
+`useRoadmapWork.ts` already launches through the guarded native launch command,
+or unarchives and sends a turn to linked work. Initial launch reserves a thread
+through the board's revision check and uses stable command/message ids for retry.
+Preserve this path for ordinary board actions. The workflow service must use the
+underlying T3 services, with durable authorization/context; it cannot invoke a
+React hook as its agent or scheduled-task API. Resolve an existing linked writer
+before starting a workflow. Project defaults inform the launch preview; the
+accepted assignment pins the actual resolved provider/model and workspace.
+
+The board's current review prompt is managed repair plus marking a passing PR
+ready. The supervised Reviewer instead inspects a pinned revision and returns
+findings. Keep those modes distinct and retain the existing board action. Repairs
+return to the authorized writer, followed by a fresh review assignment.
+
+Read optional spec/checklist inputs through existing environment-scoped services
+and snapshot their content, stable criterion ids and source revision. The board
+stores editable planning data, not accepted evidence. Its only saved lanes are
+Backlog/Up Next; execution columns are derived from thread/PR snapshots and
+explicit completion. Workflow completion, pause/cancel and evidence validation
+cannot be encoded by rewriting a lane, checkbox or thread archive flag. Preserve
+expected-revision conflicts when linking/updating a card; reconcile against the
+latest board rather than resaving a stale full card array. Existing read/save
+RPCs do not imply a roadmap MCP tool or a server-side workflow launch API exists.
 
 ## Ownership and file boundaries
 
@@ -82,7 +108,7 @@ does not justify another consistency boundary.
 
 **Option, not approved:** a separate SQLite database under server-owned `userdata/extensions/agents/workflows.sqlite`, with schema and migrations owned by the fork's workflow module. The remainder of this section describes that option. Namespace rows by environment/project. Use T3's existing SQLite facilities and Effect service patterns. Do not attach it to the live user's database during development.
 
-Why a separate store: roles, correlated questions, revisioned artifacts and pending intents need atomic updates and indexed queries. Expanding the current board JSON into an inbox/job log would increase contention and recovery complexity. Keeping extension migrations separate avoids competing for upstream's migration numbering. This database owns workflow metadata, not copies of provider/run/message histories. Canonical T3 ids are references.
+The existing board JSON already has serialized, atomic, revision-checked saves and remains the authority for planning metadata. The possible separate store addresses correlated questions, revisioned artifacts and pending intents requiring atomic updates and indexed queries; it must not replace that board. Expanding board JSON into an inbox/job log would increase contention and recovery complexity. Keeping extension migrations separate avoids competing for upstream's migration numbering, but adds the recovery cost below. This database would own workflow metadata, not copies of provider/run/message histories. Canonical T3 ids are references.
 
 There is deliberately no cross-database transaction. Each mutation records workflow state plus its next action intent in one extension transaction. A stable command id bridges to the existing T3 command receipt. The reconciler records the accepted task/message result afterward. This is recoverable at-least-once dispatch with idempotent acceptance, not exactly-once provider execution.
 
@@ -360,6 +386,7 @@ Test at the lowest layer that proves each failure. Extend existing task/message/
 - Messaging: two concurrent questions plus an unrelated update, wrong-sender reply, duplicate/conflicting reply, cycle detection, answer after cancellation and restart while unresolved.
 - Integration: accepted dispatch followed by crash, unaccepted dispatch with expired manager run, finished-child answer creating a new task, permission ceilings, cancellation and wake disposal.
 - Workspaces: one writer, safe transfer after a terminal editing attempt, review invalidation and dirty parent inputs.
+- Roadmap adapter: stale card edits and stable criterion ids, failed reserved-thread retry, existing writer ownership, managed repair versus inspect-only review, reviewed-result versus board completion, archive versus cancellation, and destination-environment launch grants. Extend the existing roadmap, launch and permission cases where appropriate.
 - Clients: permission-aware operations and one integrated web/desktop and native mobile pass when their changes land. Use project `test-t3-app` / `test-t3-mobile` workflows and isolated state; Replay exercises pipelines without paid provider turns.
 - Communication projection: old/missing summaries, concurrent question chains, update grouping without losing failures, differing revisions, misleading sender summaries versus factual badges and exact-id deduplication. Extend existing folding/find behavior coverage where applicable. Capture collapsed/expanded, mobile and keyboard-focused states as visual evidence; avoid UI tests for pure spacing.
 

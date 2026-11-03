@@ -16,6 +16,17 @@ T3 can delegate work, but users must repeatedly explain roles, assemble context,
 - [ ] Keep shared upstream edits limited to necessary registration, additive contracts and entry points. Record actual integration hooks and reasons. Assess existing persistence facilities before approving a new workflow store; never duplicate task/message/provider state.
 - [ ] Before rollout, prove a minimal supervised handoff through native services and run focused native tests/evals plus integrated client verification. An upstream update must reassess changed hooks and affected behavior even when Git reports no conflicts. Preserve ordinary behavior when the feature is disabled and remove fork duplicates when adopting equivalent upstream capabilities.
 
+### Existing roadmap compatibility
+
+Baseline: `origin/main` at [`08f7150f56`](https://github.com/vib3oh/coder-t3-omid/commit/08f7150f560df3f43ad0745c8f2e88f932a8424d). The board already supports planning, linked-thread launch/resume, managed agent review and checklist/spec editing. These are existing capabilities, not new deliverables of this proposal.
+
+- [ ] Add an explicit supervised workflow action while preserving ordinary **Start building** and **Start agent review** behavior. The latter currently asks an agent to fix findings and mark a passing PR ready; it cannot silently stand in for the proposed inspect-only Reviewer or grant merge authority.
+- [ ] Snapshot card/criterion ids, board revision and resolved spec content/version at acceptance. A spec path or checked criterion alone is not evidence of a satisfied assignment. Concurrent card edits require deliberate reconciliation; no full-board write may overwrite unrelated edits. Keep existing expected-revision conflicts and stable criterion ids.
+- [ ] Reuse protected native launch/resume services and preserve the board's reserved thread and stable initial command/message ids when recovering an ordinary launch. A workflow start on already-linked work must resolve ownership before dispatch; do not create a second writer or restart active work silently. Server-side workflow dispatch must be callable without the browser-only `useRoadmapWork` hook.
+- [ ] Preserve board lane derivation from linked thread/PR facts and explicit completion. Workflow state is separate: a reviewed result is not a merge, a ready PR is not approval, and idle linked work still counts as Building. Do not invent a writable execution lane or automatically mark a card/criteria complete to report workflow progress.
+- [ ] Preserve read/operate permission boundaries, including the newly guarded launch-thread command, at the destination environment. Include archived/older linked work through the existing board view. Do not treat board parking/archive as workflow cancellation or pause without an explicit lifecycle operation.
+- [ ] Reuse the existing roadmap service for planning metadata; keep workflow-only state out of board JSON until its persistence design is approved. Current roadmap RPCs are read/save only: dedicated agent tools, native mobile roadmap controls, durable merge receipts and cross-environment workflow state remain unimplemented capabilities, not assumed dependencies.
+
 ### Roles and assignment quality
 
 - [ ] Ship Planner, Designer, Builder, Debugger and Reviewer presets. Users can clone a preset into a project role and edit its name, purpose, instructions, skill references, expected output and preferred provider/model settings.
