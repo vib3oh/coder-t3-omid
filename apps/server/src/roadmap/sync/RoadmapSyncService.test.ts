@@ -556,7 +556,8 @@ describe("RoadmapSyncService", () => {
     "recovers stable incoming ids when the final private-state replacement fails after the native commit",
     () => {
       const port = fake();
-      port.setCards([remoteCard()]);
+      port.readOnly();
+      port.setCards([remoteCard("a"), remoteCard("b", { rank: 1 }), remoteCard("c", { rank: 2 })]);
       return Effect.gen(function* () {
         const sync = yield* RoadmapSyncService.RoadmapSyncService;
         const roadmap = yield* RoadmapService.RoadmapService;
@@ -564,6 +565,14 @@ describe("RoadmapSyncService", () => {
         const path = yield* Path.Path;
         const config = yield* ServerConfig.ServerConfig;
         yield* sync.connect({ projectId, expectedRevision: 0, binding });
+        const imported = yield* sync.run({ projectId, expectedRevision: 1 });
+        const original = yield* roadmap.read({ projectId });
+        yield* roadmap.save({
+          projectId,
+          expectedRevision: original.revision,
+          cards: [original.cards[1]!, original.cards[0]!, original.cards[2]!],
+        });
+        port.setCards(["x", "a", "b", "c"].map((id, rank) => remoteCard(id, { rank })));
         let replacements = 0;
         const faulting = yield* RoadmapSyncService.RoadmapSyncService.pipe(
           Effect.provide(Layer.fresh(RoadmapSyncService.layer)),
@@ -578,12 +587,20 @@ describe("RoadmapSyncService", () => {
           }),
         );
         expect(
-          yield* faulting.run({ projectId, expectedRevision: 1 }).pipe(Effect.flip),
+          yield* faulting.run({ projectId, expectedRevision: imported.revision }).pipe(Effect.flip),
         ).toMatchObject({ reason: "storage" });
         const first = yield* roadmap.read({ projectId });
-        expect(first.cards).toHaveLength(1);
+        expect(first.cards).toHaveLength(4);
+        expect(first).not.toHaveProperty("syncCommitId");
+        const receipt = yield* roadmap.readSyncCommit({ projectId });
+        expect(receipt).not.toBeNull();
+        yield* roadmap.save({ projectId, expectedRevision: first.revision, cards: first.cards });
+        expect(yield* roadmap.readSyncCommit({ projectId })).toBe(receipt);
         const current = yield* sync.read({ projectId });
-        yield* sync.run({ projectId, expectedRevision: current.revision });
+        const recovered = yield* sync.run({ projectId, expectedRevision: current.revision });
+        for (const id of ["x", "a", "c"])
+          expect(recovered.rows.find((row) => row.externalId === id)?.status).toBe("unchanged");
+        expect(recovered.rows.find((row) => row.externalId === "b")?.status).toBe("conflict");
         expect((yield* roadmap.read({ projectId })).cards.map((card) => card.id)).toEqual(
           first.cards.map((card) => card.id),
         );

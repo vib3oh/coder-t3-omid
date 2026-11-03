@@ -18,8 +18,14 @@ import * as ServerConfig from "../config.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 
 const decodeBoard = Schema.decodeUnknownEffect(RoadmapBoard);
-const decodeBoardJson = Schema.decodeUnknownEffect(Schema.fromJsonString(RoadmapBoard));
-const encodeBoardJson = Schema.encodeEffect(Schema.fromJsonString(RoadmapBoard));
+const StoredBoard = Schema.Struct({
+  ...RoadmapBoard.fields,
+  syncCommitId: Schema.optional(Schema.String.check(Schema.isMaxLength(128))),
+});
+const decodeBoardJson = Schema.decodeUnknownEffect(Schema.fromJsonString(StoredBoard));
+const encodeBoardJson = Schema.encodeEffect(Schema.fromJsonString(StoredBoard));
+
+type SyncSaveInput = RoadmapSaveInput & { readonly commitId?: string };
 
 export class RoadmapService extends Context.Service<
   RoadmapService,
@@ -28,7 +34,10 @@ export class RoadmapService extends Context.Service<
       readonly projectId: ProjectId;
     }) => Effect.Effect<RoadmapBoard, RoadmapError>;
     readonly save: (input: RoadmapSaveInput) => Effect.Effect<RoadmapBoard, RoadmapError>;
-    readonly applySync: (input: RoadmapSaveInput) => Effect.Effect<RoadmapBoard, RoadmapError>;
+    readonly applySync: (input: SyncSaveInput) => Effect.Effect<RoadmapBoard, RoadmapError>;
+    readonly readSyncCommit: (input: {
+      readonly projectId: ProjectId;
+    }) => Effect.Effect<string | null, RoadmapError>;
     readonly readView: (input: {
       readonly projectId: ProjectId;
     }) => Effect.Effect<RoadmapView, RoadmapError>;
@@ -45,7 +54,7 @@ const make = Effect.gen(function* () {
   const filename = (projectId: ProjectId) =>
     path.join(directory, `project-${encodeURIComponent(projectId)}.json`);
 
-  const read = Effect.fn("RoadmapService.read")(function* ({
+  const readStored = Effect.fn("RoadmapService.readStored")(function* ({
     projectId,
   }: {
     readonly projectId: ProjectId;
@@ -59,17 +68,25 @@ const make = Effect.gen(function* () {
             : Effect.fail(new RoadmapError({ reason: "storage" })),
       }),
     );
-    if (contents === null) return { version: 1 as const, revision: 0, cards: [] };
+    if (contents === null)
+      return { version: 1 as const, revision: 0, cards: [], syncCommitId: undefined };
     return yield* decodeBoardJson(contents).pipe(
       Effect.mapError(() => new RoadmapError({ reason: "invalid" })),
     );
   });
 
-  const write = Effect.fn("RoadmapService.write")((input: RoadmapSaveInput, trusted: boolean) =>
+  const read = Effect.fn("RoadmapService.read")((input: { readonly projectId: ProjectId }) =>
+    Effect.map(readStored(input), ({ version, revision, cards }) => ({ version, revision, cards })),
+  );
+  const readSyncCommit = Effect.fn("RoadmapService.readSyncCommit")(
+    (input: { readonly projectId: ProjectId }) =>
+      Effect.map(readStored(input), (board) => board.syncCommitId ?? null),
+  );
+  const write = Effect.fn("RoadmapService.write")((input: SyncSaveInput, trusted: boolean) =>
     lock.withLock(
       input.projectId,
       Effect.gen(function* () {
-        const current = yield* read(input);
+        const current = yield* readStored(input);
         if (current.revision !== input.expectedRevision)
           return yield* new RoadmapError({ reason: "conflict" });
         if (!trusted) {
@@ -116,7 +133,14 @@ const make = Effect.gen(function* () {
         const file = filename(input.projectId);
         yield* Effect.gen(function* () {
           yield* fs.makeDirectory(directory, { recursive: true });
-          yield* fs.writeFileString(`${file}.tmp`, yield* encodeBoardJson(next), { mode: 0o600 });
+          yield* fs.writeFileString(
+            `${file}.tmp`,
+            yield* encodeBoardJson({
+              ...next,
+              syncCommitId: trusted ? input.commitId : current.syncCommitId,
+            }),
+            { mode: 0o600 },
+          );
           yield* fs.rename(`${file}.tmp`, file);
         }).pipe(Effect.mapError(() => new RoadmapError({ reason: "storage" })));
         return next;
@@ -124,7 +148,7 @@ const make = Effect.gen(function* () {
     ),
   );
   const save = Effect.fn("RoadmapService.save")((input: RoadmapSaveInput) => write(input, false));
-  const applySync = Effect.fn("RoadmapService.applySync")((input: RoadmapSaveInput) =>
+  const applySync = Effect.fn("RoadmapService.applySync")((input: SyncSaveInput) =>
     write(input, true),
   );
   const readView = Effect.fn("RoadmapService.readView")(function* (input: {
@@ -161,7 +185,7 @@ const make = Effect.gen(function* () {
       ),
     };
   });
-  return RoadmapService.of({ read, save, applySync, readView });
+  return RoadmapService.of({ read, save, applySync, readSyncCommit, readView });
 });
 
 export const layer = Layer.effect(RoadmapService, make);

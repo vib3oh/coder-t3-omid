@@ -57,9 +57,20 @@ const Entry = Schema.Struct({
   pendingImport: Schema.optional(Schema.Boolean),
 });
 type Entry = typeof Entry.Type;
+const RankUpdate = Schema.Struct({
+  cardId: Entry.fields.cardId,
+  localRankBaseline: SnapshotSchema.fields.rank,
+  baselineRank: Schema.optional(SnapshotSchema.fields.rank),
+});
 const State = Schema.Struct({
   version: Schema.Literal(1),
   disconnecting: Schema.optional(Schema.Boolean),
+  pendingLocalCommit: Schema.optional(
+    Schema.Struct({
+      id: Text,
+      ranks: Schema.Array(RankUpdate).check(Schema.isMaxLength(10_000)),
+    }),
+  ),
   status: RoadmapSyncStatus,
   entries: Schema.Array(Entry).check(Schema.isMaxLength(10_000)),
 });
@@ -249,6 +260,26 @@ const make = Effect.gen(function* () {
       ),
   );
 
+  const applyRanks = (
+    entries: ReadonlyArray<Entry>,
+    ranks: ReadonlyArray<typeof RankUpdate.Type>,
+  ) => {
+    const updates = new Map(ranks.map((rank) => [rank.cardId, rank]));
+    return entries.map((entry) => {
+      const update = updates.get(entry.cardId);
+      return update
+        ? {
+            ...entry,
+            localRankBaseline: update.localRankBaseline,
+            baseline:
+              entry.baseline && update.baselineRank !== undefined
+                ? { ...entry.baseline, rank: update.baselineRank }
+                : entry.baseline,
+          }
+        : entry;
+    });
+  };
+
   const synchronize = Effect.fn("RoadmapSyncService.synchronize")(function* (
     input: typeof RoadmapSyncRunInput.Type,
     resolution?: { readonly cardId: string; readonly choice: "local" | "remote" },
@@ -258,6 +289,20 @@ const make = Effect.gen(function* () {
     if (state.disconnecting) return yield* new RoadmapSyncError({ reason: "conflict" });
     const binding = state.status.binding;
     if (!binding) return yield* new RoadmapSyncError({ reason: "invalid" });
+    if (state.pendingLocalCommit) {
+      const receipt = yield* roadmap
+        .readSyncCommit(input)
+        .pipe(Effect.mapError(() => new RoadmapSyncError({ reason: "storage" })));
+      state = {
+        ...state,
+        entries:
+          receipt === state.pendingLocalCommit.id
+            ? applyRanks(state.entries, state.pendingLocalCommit.ranks)
+            : state.entries,
+        pendingLocalCommit: undefined,
+      };
+      yield* persist(input.projectId, state);
+    }
     const workspaceRoot = yield* workspace(input.projectId);
     const result = yield* remote.read({ binding, workspaceRoot }).pipe(Effect.result);
     if (result._tag === "Failure") {
@@ -597,27 +642,7 @@ const make = Effect.gen(function* () {
       retained.splice(position, 0, resolved.card);
       ordered = retained;
     }
-    state = { ...state, status: { ...state.status, rows, counts: counts(rows) } };
-    yield* checkpoint();
-    const committed = yield* roadmap
-      .applySync({ projectId: input.projectId, expectedRevision: local.revision, cards: ordered })
-      .pipe(Effect.result);
-    if (committed._tag === "Failure") {
-      state = {
-        ...state,
-        status: {
-          ...state.status,
-          connection: "blocked",
-          message:
-            "The T3 board changed during sync. Its edits were retained; run Sync again to reconcile confirmed receipts.",
-          rows,
-          counts: counts(rows),
-        },
-      };
-      yield* checkpoint();
-      return state.status;
-    }
-    const committedRanks = new Map(
+    const plannedRanks = new Map(
       ordered
         .filter((card) => {
           const entry = entries.get(card.id);
@@ -625,8 +650,9 @@ const make = Effect.gen(function* () {
         })
         .map((card, rank) => [card.id, rank]),
     );
+    const rankUpdates: Array<typeof RankUpdate.Type> = [];
     for (const [cardId, entry] of entries) {
-      const rank = committedRanks.get(cardId);
+      const rank = plannedRanks.get(cardId);
       if (rank === undefined) continue;
       const previousRank = linkedRanks.get(cardId);
       const previousBaseline = entry.localRankBaseline ?? entry.baseline?.rank;
@@ -641,12 +667,47 @@ const make = Effect.gen(function* () {
         previousBaseline === undefined
           ? rank
           : rank - (previousRank - previousBaseline);
-      entries.set(cardId, {
-        ...entry,
+      rankUpdates.push({
+        cardId,
         localRankBaseline,
-        baseline: agreed && entry.baseline ? { ...entry.baseline, rank } : entry.baseline,
+        baselineRank: acceptedIds.has(cardId)
+          ? cards.get(cardId)!.rank
+          : (adoptedRanks.get(cardId) ?? (agreed && entry.baseline ? rank : undefined)),
       });
     }
+    state = {
+      ...state,
+      pendingLocalCommit: { id: runId, ranks: rankUpdates },
+      status: { ...state.status, rows, counts: counts(rows) },
+    };
+    yield* checkpoint();
+    const committed = yield* roadmap
+      .applySync({
+        projectId: input.projectId,
+        expectedRevision: local.revision,
+        cards: ordered,
+        commitId: runId,
+      })
+      .pipe(Effect.result);
+    if (committed._tag === "Failure") {
+      state = {
+        ...state,
+        pendingLocalCommit: undefined,
+        status: {
+          ...state.status,
+          connection: "blocked",
+          message:
+            "The T3 board changed during sync. Its edits were retained; run Sync again to reconcile confirmed receipts.",
+          rows,
+          counts: counts(rows),
+        },
+      };
+      yield* checkpoint();
+      return state.status;
+    }
+    for (const entry of applyRanks([...entries.values()], rankUpdates))
+      entries.set(entry.cardId, entry);
+    state = { ...state, pendingLocalCommit: undefined };
     for (const row of rows) {
       if (resolution && row.cardId !== resolution.cardId) continue;
       const entry = entries.get(row.cardId);
