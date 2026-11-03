@@ -153,6 +153,7 @@
         "apps/server/src/mcp/OrchestratorMcpService.test.ts",
         "apps/server/src/orchestration-v2/Adapters/ClaudeAdapterV2.test.ts",
         "apps/server/src/orchestration-v2/Adapters/CodexAdapterV2.test.ts",
+        "apps/server/src/orchestration-v2/Adapters/CodexAdapterV2.testkit.ts",
         "apps/server/src/orchestration-v2/DelegatedCompletionDelivery.test.ts",
         "apps/server/src/provider/AgentContextBudget.test.ts",
         "apps/server/src/provider/ClaudeCapabilitiesProbe.test.ts",
