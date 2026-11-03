@@ -99,7 +99,7 @@ export function AgentWorkflowsPage() {
               </p>
             </div>
             <select
-              className={SELECT}
+              className={`${SELECT} w-full min-w-0 max-w-full sm:w-auto`}
               aria-label="Workflow project"
               value={
                 project
@@ -285,8 +285,8 @@ function ProjectWorkflows({
           }}
         />
       ) : null}
-      <div className="grid items-start gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <nav aria-label="Project agent workflows" className="space-y-2">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <nav aria-label="Project agent workflows" className="min-w-0 space-y-2">
           {list?.workflows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No workflows yet. Creating a role does not start an agent.

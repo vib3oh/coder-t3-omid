@@ -115,15 +115,15 @@ function CommunicationRow({
     >
       <summary className="cursor-pointer rounded-lg px-4 py-3 focus-visible:outline-2 focus-visible:outline-ring">
         <span className="inline-grid w-[calc(100%_-_1rem)] grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 align-middle text-sm">
-          <span className="truncate font-medium sm:col-span-2">
+          <span className="col-start-1 row-start-1 truncate font-medium sm:col-span-2">
             {names.get(message.senderId) ?? "Agent"} → {names.get(message.recipientId) ?? "Agent"}
           </span>
           <span className="col-span-2 row-start-2 truncate sm:col-span-1">{group.summary}</span>
           <span
             className={
               group.needsAttention
-                ? "row-start-1 shrink-0 text-xs font-medium text-foreground sm:col-start-2 sm:row-start-2"
-                : "row-start-1 shrink-0 text-xs text-muted-foreground sm:col-start-2 sm:row-start-2"
+                ? "col-start-2 row-start-1 shrink-0 text-xs font-medium text-foreground sm:row-start-2"
+                : "col-start-2 row-start-1 shrink-0 text-xs text-muted-foreground sm:row-start-2"
             }
           >
             {communicationStatus(message)}
