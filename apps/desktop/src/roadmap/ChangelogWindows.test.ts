@@ -22,6 +22,7 @@ function fakeWindow(id: number) {
   >();
   let destroyed = false;
   let pinned = false;
+  let currentUrl = "";
   let opens: Electron.WindowOpenHandlerResponse | undefined;
   let openHandler: (details: { url: string }) => Electron.WindowOpenHandlerResponse;
   const loaded: string[] = [];
@@ -29,6 +30,7 @@ function fakeWindow(id: number) {
   const window = {
     webContents: {
       id,
+      getURL: () => currentUrl,
       session: { fixture: "authenticated-session" },
       send: (...args: unknown[]) => sent.push(args),
       setWindowOpenHandler: (handler: typeof openHandler) => {
@@ -48,6 +50,7 @@ function fakeWindow(id: number) {
     },
     loadURL: async (url: string) => {
       loaded.push(url);
+      currentUrl = url;
     },
     setAlwaysOnTop: (value: boolean) => {
       pinned = value;
@@ -57,6 +60,9 @@ function fakeWindow(id: number) {
   return {
     window: window as unknown as Electron.BrowserWindow,
     loaded,
+    route: (url: string) => {
+      currentUrl = url;
+    },
     sent,
     closed: () => destroyed,
     navigate: (url: string) => {
@@ -164,8 +170,11 @@ describe("changelog windows", () => {
         assert.isTrue(yield* windows.open(1, "remote:project"));
         assert.equal(fixture.created.length, 1);
         assert.equal(popup.loaded.length, 1);
+        popup.route("t3code-dev://app/#/changelog?detached=true&project=changed-in-child");
+        assert.isTrue(yield* windows.open(1, "remote:project"));
+        assert.equal(popup.loaded.length, 2);
         assert.isTrue(yield* windows.open(1, "other:project"));
-        assert.include(popup.loaded[1], "project=other%3Aproject");
+        assert.include(popup.loaded[2], "project=other%3Aproject");
         assert.isFalse(yield* windows.setPinned(1, true));
         assert.isFalse(popup.window.isAlwaysOnTop());
         assert.isTrue(yield* windows.setPinned(2, true));

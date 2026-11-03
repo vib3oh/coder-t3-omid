@@ -24,7 +24,7 @@ Back up this directory with userdata. One server must own that directory.
 The React view serves web, desktop and mobile browsers. Desktop opens a dedicated
 auxiliary window on the same app origin and Electron session, using the app preload.
 It reuses one window, supports always-on-top, and closes with its owning app window.
-Window controls validate the IPC sender; auxiliary windows cannot create pop-outs
-or control the main window through those methods. Browser clients use a pop-up.
+Window controls validate the IPC sender; unrelated renderers cannot control the
+changelog window, and only the main renderer can open it. Browser clients use a pop-up.
 Native React Native navigation is not supplied. There is no new provider adapter or dedicated MCP/CLI command; Ask an agent uses
 the existing composer with the selected facts.

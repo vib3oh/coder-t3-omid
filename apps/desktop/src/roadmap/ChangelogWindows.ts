@@ -17,12 +17,10 @@ export const make = Effect.gen(function* () {
   const mutex = yield* Semaphore.make(1);
   let detached: Electron.BrowserWindow | undefined;
   let owner: Electron.BrowserWindow | undefined;
-  let selectedProject: string | undefined;
   const close = () => {
     const window = detached;
     detached = undefined;
     owner = undefined;
-    selectedProject = undefined;
     if (window && !window.isDestroyed()) window.close();
   };
   yield* Effect.addFinalizer(() => Effect.sync(close));
@@ -45,7 +43,14 @@ export const make = Effect.gen(function* () {
         if (detached?.isDestroyed()) close();
         const existing = detached;
         if (existing) {
-          if (selectedProject !== project) {
+          const current = URL.parse(existing.webContents.getURL());
+          const [route, query] = (current?.hash.slice(1) ?? "").split("?");
+          const parameters = new URLSearchParams(query);
+          if (
+            route !== "/changelog" ||
+            parameters.get("detached") !== "true" ||
+            (parameters.get("project") ?? undefined) !== project
+          ) {
             const loaded = yield* Effect.promise(() =>
               existing.loadURL(url.href).then(
                 () => true,
@@ -53,7 +58,6 @@ export const make = Effect.gen(function* () {
               ),
             );
             if (!loaded || existing.isDestroyed()) return false;
-            selectedProject = project;
           }
           yield* windows.reveal(existing);
           return true;
@@ -79,7 +83,6 @@ export const make = Effect.gen(function* () {
         );
         detached = window;
         owner = main.value;
-        selectedProject = project;
         const parent = main.value;
         const onParentClosed = () => {
           if (owner === parent) close();
@@ -90,7 +93,6 @@ export const make = Effect.gen(function* () {
           if (detached === window) {
             detached = undefined;
             owner = undefined;
-            selectedProject = undefined;
           }
         });
         window.webContents.setWindowOpenHandler(({ url: external }) => {
