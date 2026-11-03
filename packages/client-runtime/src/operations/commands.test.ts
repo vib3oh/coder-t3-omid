@@ -33,6 +33,7 @@ import {
 } from "../connection/model.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
 import * as RpcSession from "../rpc/session.ts";
+import { RpcPermissionGuard } from "../rpc/client.ts";
 import type { WsRpcProtocolClient } from "../rpc/protocol.ts";
 import { v2Now, v2Projection, v2ThreadId } from "../state/orchestrationV2TestFixtures.ts";
 import {
@@ -257,7 +258,10 @@ describe("V2 environment commands", () => {
           branch: "feature",
         },
       });
-    }).pipe(Effect.provide(layerTestCrypto)),
+    }).pipe(
+      Effect.provide(layerTestCrypto),
+      Effect.provideService(RpcPermissionGuard, { authorize: () => Effect.void }),
+    ),
   );
 
   it.effect("uses server-resolved delivery intent without fetching the full projection", () =>

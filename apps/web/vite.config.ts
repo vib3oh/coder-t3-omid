@@ -137,6 +137,21 @@ const browserTestProject = {
       instances: [{ browser: "chromium" }],
       screenshotFailures: false,
       commands: {
+        dragPointer: async ({ page, frame }, source: string, target: string) => {
+          const content = await frame();
+          await content.locator(source).scrollIntoViewIfNeeded();
+          await content.locator(source).click({ trial: true });
+          const from = await content.locator(source).boundingBox();
+          const to = await content.locator(target).boundingBox();
+          if (!from || !to) throw new Error("Drag source or target is not visible.");
+          await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+          await page.mouse.down();
+          await page.mouse.move(from.x + from.width / 2 + 10, from.y + from.height / 2, {
+            steps: 2,
+          });
+          await page.mouse.move(to.x + to.width / 2, to.y + 80, { steps: 12 });
+          await page.mouse.up();
+        },
         // Playwright's mouse outlives each test, so whatever mounts under its last
         // position starts hovered. test/browserSetup.ts parks it off the page before each test.
         resetPointer: async ({ page }) => {

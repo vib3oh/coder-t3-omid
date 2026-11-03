@@ -1,0 +1,40 @@
+{
+  "name": "coder-t3-omid",
+  "upstream": {
+    "repository": "https://github.com/pingdotgg/t3code",
+    "branch": "main",
+    "initialCommit": "9bcf75335f9b2a8af877e1317c809b72a070b280"
+  },
+  "origin": "https://github.com/vib3oh/coder-t3-omid",
+  "extensions": {
+    "roadmap": {
+      "schemaVersion": 1,
+      "ownedPaths": [
+        "packages/contracts/src/roadmap.ts",
+        "apps/server/src/roadmap/",
+        "apps/web/src/roadmap/",
+        "apps/web/src/routes/_chat.roadmap.tsx"
+      ],
+      "integrationPaths": [
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/rpc.ts",
+        "packages/contracts/src/clientRpcPermissions.ts",
+        "apps/server/src/auth/RpcAuthorization.ts",
+        "apps/server/src/server.ts",
+        "apps/server/src/ws.ts",
+        "apps/web/src/components/sidebar/SidebarChrome.tsx",
+        "apps/web/src/components/sidebar/mainAppLocation.ts",
+        "apps/web/src/routeTree.gen.ts",
+        "apps/server/src/observability/RpcInstrumentation.ts",
+        "packages/client-runtime/src/operations/commands.ts"
+      ],
+      "verificationPaths": [
+        "packages/client-runtime/src/state/commandPermissions.test.ts",
+        "packages/client-runtime/src/operations/commands.test.ts",
+        "apps/server/src/ws.test.ts",
+        "apps/web/test/browserSetup.ts",
+        "apps/web/vite.config.ts"
+      ]
+    }
+  }
+}
