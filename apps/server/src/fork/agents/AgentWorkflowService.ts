@@ -747,7 +747,11 @@ const make = Effect.gen(function* () {
                 ),
             ))
         )
-          return yield* new AgentWorkflowError({ reason: "evidence" });
+          return yield* new AgentWorkflowError({
+            reason: "evidence",
+            detail:
+              "Assignments need nonempty criteria with unique IDs and text. Implementation criteria must come from the frozen workflow; the final Reviewer must cover every workflow criterion.",
+          });
         if (
           (writer &&
             active.some((row) => row.writeResponsibility || row.role.role.kind === "reviewer")) ||

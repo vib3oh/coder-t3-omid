@@ -49,7 +49,7 @@ tools fail the sample. Nothing in a model-authored shell command executes on
 the host. Claude's `--bare` mode is deliberately unused because it disables
 subscription authentication.
 
-The default cases are the six supervised-workflow cases. Native runs currently
+The default cases are the seven supervised-workflow cases. Native runs currently
 support top-level cases without prior turns, device worlds or composer context;
 unsupported setups fail before invoking a model. `--cases`, repeated `--case`,
 `--model`, `--effort`, `--samples` (default 2), `--out` and `--dry-run` are
@@ -152,7 +152,7 @@ This API replay measures routing and recovery decisions. Screenshots return prod
 
 ## Supervised workflow cases
 
-`cases/agent-workflows.ndjson` covers supervised manager assignment and yielding, stage-scoped criteria that avoid a Builder/review dependency cycle, an independent Reviewer refusing peer-requested repairs, exact answer correlation across concurrent questions, blocking-question yielding, and ordinary single-agent work. Its authored Acme state loads the current role compiler and `managerInstructions`/`assignmentInstructions` from source; the tool schemas come from `AgentWorkflowToolkit`. `setup.workflowRole` selects that fixture without copying model-facing instructions into case data.
+`cases/agent-workflows.ndjson` covers supervised manager assignment and yielding, initial Planner criteria before a spec is frozen, stage-scoped criteria that avoid a Builder/review dependency cycle, an independent Reviewer refusing peer-requested repairs, exact answer correlation across concurrent questions, blocking-question yielding, and ordinary single-agent work. Its authored Acme state loads the current role compiler and `managerInstructions`/`assignmentInstructions` from source; the tool schemas come from `AgentWorkflowToolkit`. `setup.workflowRole` selects that fixture without copying model-facing instructions into case data.
 
 Run these cases with `pnpm mcp-tool-use --cases mcp-tool-use/cases/agent-workflows.ndjson --samples 1 --out runs/agent-workflows`. Results measure model routing against simulated tools, not native task execution, filesystem restrictions, checkpoint verification or delivered work. The Reviewer guard checks explicit edit tools and bounded shell patterns; it is not a shell sandbox.
 

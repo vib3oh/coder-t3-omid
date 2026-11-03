@@ -43,7 +43,7 @@ const workflowCases = () =>
 it("builds supervised workflow evals from the actual role compiler and runtime instructions", () => {
   const base = buildBase(template, { model: "claude-sonnet-5-5", keepUserInstructions: false });
   const cases = workflowCases();
-  assert.equal(cases.length, 6);
+  assert.equal(cases.length, 7);
   assert.includeMembers(
     base.deferred.map((tool) => normalizeToolName(tool.name)),
     ["omid_team_read", "omid_assignment_start", "omid_assignment_result", "omid_team_message"],
@@ -70,6 +70,18 @@ it("grades supervised workflow yield, inspect authority and concurrent answer co
     stopReason: "end_turn",
   });
   const manager = cases.find((c) => c.id === "WF-MANAGER")!;
+  const unfrozen = cases.find((c) => c.id === "WF-UNFROZEN-PLAN")!;
+  const initialPlan = (criteria: unknown[]) =>
+    sample(
+      { tool: "omid_team_read" },
+      { tool: "orchestrator_capabilities" },
+      { tool: "omid_assignment_start", input: { roleId: "planner", generation: 3, criteria } },
+    );
+  assert.isNotEmpty(failed(unfrozen.expect, initialPlan([])));
+  assert.deepEqual(
+    failed(unfrozen.expect, initialPlan([{ id: "draft", text: "Reject empty names" }])),
+    [],
+  );
   const staged = cases.find((c) => c.id === "WF-STAGE-CRITERIA")!;
   const builderStart = {
     tool: "omid_assignment_start",

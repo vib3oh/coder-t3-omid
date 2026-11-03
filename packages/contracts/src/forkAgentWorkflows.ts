@@ -373,7 +373,7 @@ export const AgentAssignmentStartInput = Schema.Struct({
   generation: NonNegativeInt,
   roleId: Id,
   objective: Instructions,
-  criteria: Schema.Array(AgentCriterion).check(Schema.isMaxLength(200)),
+  criteria: Schema.Array(AgentCriterion).check(Schema.isMinLength(1), Schema.isMaxLength(200)),
   inputArtifactIds: Ids,
   dependencies: Ids,
   modelSelection: Schema.optional(ModelSelection),

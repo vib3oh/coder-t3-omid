@@ -1671,7 +1671,15 @@ const matches = (expected: unknown, actual: unknown): boolean => {
   const at = (path: string) =>
     path
       .split(".")
-      .reduce<unknown>((value, key) => (isRecord(value) ? value[key] : undefined), actual);
+      .reduce<unknown>(
+        (value, key) =>
+          isRecord(value)
+            ? value[key]
+            : Array.isArray(value) && key === "length"
+              ? value.length
+              : undefined,
+        actual,
+      );
   return Object.entries(expected).every(([path, value]) => matches(value, at(path)));
 };
 
