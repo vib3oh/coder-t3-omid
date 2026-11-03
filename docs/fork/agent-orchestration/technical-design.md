@@ -33,6 +33,11 @@ only a valid structured result can do that. Builder owns repairs, followed by a
 fresh independent Reviewer against the new exact snapshot. Reviewer instructions
 are advisory behavior, not a provider filesystem sandbox.
 
+Implementation assignments may take a subset of the frozen criterion IDs and
+text. This keeps later review requirements from becoming prerequisites for
+Builder acceptance. The final Reviewer must take and satisfy every workflow
+criterion; stage scoping never removes one from the workflow or its final gate.
+
 Client mutations use `createEnvironmentRpcCommand` and destination permission
 atoms. The server checks read/operate scopes. MCP additionally requires an
 orchestration-capable credential and an authenticated participant; the caller

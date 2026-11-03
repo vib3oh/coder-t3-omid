@@ -733,6 +733,13 @@ const make = Effect.gen(function* () {
           ((writer || role.role.kind === "reviewer" || role.role.kind === "planner") &&
             input.criteria.length === 0) ||
           ((writer || role.role.kind === "reviewer") &&
+            input.criteria.some(
+              (criterion) =>
+                !workflow.criteria.some(
+                  (row) => row.id === criterion.id && row.text === criterion.text,
+                ),
+            )) ||
+          (role.role.kind === "reviewer" &&
             workflow.criteria.some(
               (criterion) =>
                 !input.criteria.some(

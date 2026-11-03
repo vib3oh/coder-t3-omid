@@ -73,12 +73,14 @@ function snapshot(role: AgentRolePreset): AgentRoleSnapshot {
   };
 }
 
-const setup = Effect.gen(function* () {
+const setupWithCriteria = Effect.fn("test.setupWithCriteria")(function* (
+  workflowCriteria = criteria,
+) {
   const service = yield* Service.AgentWorkflowService;
   const settings = yield* service.roles({ projectId });
   yield* service.settings({ projectId, expectedRevision: settings.revision, enabled: true });
   const created = yield* service.create({
-    input: start,
+    input: { ...start, criteria: workflowCriteria },
     workflowId: "workflow",
     managerThreadId,
     commandId: CommandId.make("launch"),
@@ -97,6 +99,7 @@ const setup = Effect.gen(function* () {
   });
   return { service, workflow };
 });
+const setup = setupWithCriteria();
 
 const prepare = Effect.fn("test.prepareAssignment")(function* (
   service: Service.AgentWorkflowService["Service"],
@@ -105,6 +108,7 @@ const prepare = Effect.fn("test.prepareAssignment")(function* (
   id: string,
   inputs: string[] = [],
   dependencies: string[] = [],
+  assignmentCriteria = criteria,
 ) {
   const role = (yield* service.roles({ projectId })).roles.find((row) => row.id === roleId)!;
   return yield* service.prepareAssignment({
@@ -116,7 +120,7 @@ const prepare = Effect.fn("test.prepareAssignment")(function* (
       generation: workflow.generation,
       roleId,
       objective: `Perform ${roleId}`,
-      criteria,
+      criteria: assignmentCriteria,
       inputArtifactIds: inputs,
       dependencies,
     },
@@ -133,8 +137,17 @@ const dispatch = Effect.fn("test.dispatchAssignment")(function* (
   id: string,
   inputs: string[] = [],
   dependencies: string[] = [],
+  assignmentCriteria = criteria,
 ) {
-  const prepared = yield* prepare(service, workflow, roleId, id, inputs, dependencies);
+  const prepared = yield* prepare(
+    service,
+    workflow,
+    roleId,
+    id,
+    inputs,
+    dependencies,
+    assignmentCriteria,
+  );
   const actor = {
     type: "agent" as const,
     threadId: ThreadId.make(`thread-${id}`),
@@ -203,6 +216,104 @@ const plan = Effect.fn("test.acceptPlan")(function* (
 });
 
 describe("AgentWorkflowService", () => {
+  it.effect(
+    "scopes implementation criteria to its stage while retaining every final review criterion",
+    () =>
+      Effect.gen(function* () {
+        const reviewCriterion = {
+          id: "review",
+          text: "An independent reviewer verifies the exact implementation.",
+        };
+        const allCriteria = [...criteria, reviewCriterion];
+        const { service, workflow } = yield* setupWithCriteria(allCriteria);
+        const planned = yield* plan(service, workflow);
+        expect(
+          yield* prepare(
+            service,
+            planned,
+            "builder",
+            "unknown",
+            [],
+            ["plan"],
+            [{ id: "unknown", text: "Unaccepted scope" }],
+          ).pipe(Effect.flip),
+        ).toMatchObject({ reason: "evidence" });
+        const built = yield* dispatch(service, planned, "builder", "build", [], ["plan"], criteria);
+        const first = yield* service.result({
+          input: {
+            projectId,
+            workflowId: workflow.id,
+            requestId: "build-result",
+            assignmentId: "build",
+            generation: 0,
+            artifact: report("implementation", "head-one"),
+          },
+          actor: built.actor,
+          contentHash: "implementation",
+          verified: true,
+        });
+        expect(first.status).toBe("running");
+        expect(first.criteria).toEqual(allCriteria);
+        expect(
+          yield* prepare(
+            service,
+            first,
+            "reviewer",
+            "incomplete-review",
+            [first.artifacts.at(-1)!.id],
+            ["build"],
+            criteria,
+          ).pipe(Effect.flip),
+        ).toMatchObject({ reason: "evidence" });
+        const reviewed = yield* dispatch(
+          service,
+          first,
+          "reviewer",
+          "review",
+          [first.artifacts.at(-1)!.id],
+          ["build"],
+          allCriteria,
+        );
+        const resultInput = {
+          projectId,
+          workflowId: workflow.id,
+          requestId: "review-result",
+          assignmentId: "review",
+          generation: 0,
+          artifact: report("review", "head-one"),
+        };
+        expect(
+          yield* service
+            .result({
+              input: resultInput,
+              actor: reviewed.actor,
+              contentHash: "review",
+              verified: true,
+            })
+            .pipe(Effect.flip),
+        ).toMatchObject({ reason: "evidence" });
+        const done = yield* service.result({
+          input: {
+            ...resultInput,
+            artifact: {
+              ...resultInput.artifact,
+              criteria: [
+                ...resultInput.artifact.criteria,
+                {
+                  id: reviewCriterion.id,
+                  passed: true,
+                  evidence: ["Independent inspection of head-one"],
+                },
+              ],
+            },
+          },
+          actor: reviewed.actor,
+          contentHash: "review",
+          verified: true,
+        });
+        expect(done.status).toBe("completed");
+      }).pipe(Effect.provide(layer)),
+  );
   it.effect.each(["planner", "designer", "builder", "debugger", "reviewer"] as const)(
     "rejects incompatible %s outputs in saved roles and dispatch snapshots",
     (kind) =>
