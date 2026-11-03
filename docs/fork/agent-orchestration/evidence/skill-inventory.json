@@ -1,0 +1,169 @@
+{
+  "inspectedAt": "2026-11-02",
+  "appVersion": "0.2.0-nightly.20261102.290.1",
+  "bundledPluginVersion": "0.12.80",
+  "uniqueWorkflows": 15,
+  "claudeSkillCount": 11,
+  "claudeCommandCount": 4,
+  "codexSkillCount": 15,
+  "method": "Static inventory of installed files; original workflow instructions are not copied.",
+  "licensingObservation": {
+    "appPackageLicense": "UNLICENSED",
+    "bundledPluginManifestLicense": null,
+    "note": "The inspected metadata does not establish redistribution permission for verbatim workflow text."
+  },
+  "items": [
+    {
+      "name": "changelog",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/changelog/SKILL.md",
+      "claudeSha256": "356d6d2ca00e043ef04ad37f8e3c54ec97b25cfb5080462ddb0d617b3c4230f4",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/changelog/SKILL.md",
+      "codexSha256": "356d6d2ca00e043ef04ad37f8e3c54ec97b25cfb5080462ddb0d617b3c4230f4",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "commit",
+      "claudePackaging": "command",
+      "claudePath": "hypercoder-plugin/commands/commit.md",
+      "claudeSha256": "34092ad53074207f32a23041d21a312ead772bb2e7aad4ee078bf7fc3b691c9e",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/commit/SKILL.md",
+      "codexSha256": "965b78e842a5120ba85575a75de962c31d19e1bd68670e44095f5f6a1721702f",
+      "sameContentAcrossProviders": false,
+      "portingScope": true
+    },
+    {
+      "name": "debug",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/debug/SKILL.md",
+      "claudeSha256": "1cd557832072e5c538b5a4a5540b78661bde6bcb62e74a20263535ae87b3b36b",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/debug/SKILL.md",
+      "codexSha256": "1cd557832072e5c538b5a4a5540b78661bde6bcb62e74a20263535ae87b3b36b",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "hypergames",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/hypergames/SKILL.md",
+      "claudeSha256": "6a94f8e15ab63d70adc5ce2bf01975ec5ee3e77e0791021e859ab489d36a0d4e",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/hypergames/SKILL.md",
+      "codexSha256": "6a94f8e15ab63d70adc5ce2bf01975ec5ee3e77e0791021e859ab489d36a0d4e",
+      "sameContentAcrossProviders": true,
+      "portingScope": false
+    },
+    {
+      "name": "hyperspace-init",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/hyperspace-init/SKILL.md",
+      "claudeSha256": "d8e98812de37dc552c8a11e3b79a4c4f1a12ac2d8b26d0723010f6032fc8b461",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/hyperspace-init/SKILL.md",
+      "codexSha256": "d8e98812de37dc552c8a11e3b79a4c4f1a12ac2d8b26d0723010f6032fc8b461",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "ios-simulator",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/ios-simulator/SKILL.md",
+      "claudeSha256": "bdbf6ed3b48c8f63e4fb409534cf0f77ecb3e898c53f3e817e62f88c81414d00",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/ios-simulator/SKILL.md",
+      "codexSha256": "bdbf6ed3b48c8f63e4fb409534cf0f77ecb3e898c53f3e817e62f88c81414d00",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "kits",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/kits/SKILL.md",
+      "claudeSha256": "6cccd2b4c8d9310bbefdf3e78595295ea1746c8aeb2d28f6bd7911973dfe237b",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/kits/SKILL.md",
+      "codexSha256": "6cccd2b4c8d9310bbefdf3e78595295ea1746c8aeb2d28f6bd7911973dfe237b",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "new-pr",
+      "claudePackaging": "command",
+      "claudePath": "hypercoder-plugin/commands/new-pr.md",
+      "claudeSha256": "47528119e96439d8d617b79e11edd57c4f1809104e527f863d723bfbdc3c159b",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/new-pr/SKILL.md",
+      "codexSha256": "e68400f33b8e847cf2cc4f339eb45a2faa55f7eb5851fa8a04b9b145ebef3e70",
+      "sameContentAcrossProviders": false,
+      "portingScope": true
+    },
+    {
+      "name": "prototype",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/prototype/SKILL.md",
+      "claudeSha256": "0c4a89df6684a64c18749a4260cb1585deba3ab6f5f475d109c8ea11d5e0e7f6",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/prototype/SKILL.md",
+      "codexSha256": "0c4a89df6684a64c18749a4260cb1585deba3ab6f5f475d109c8ea11d5e0e7f6",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "review-pr",
+      "claudePackaging": "command",
+      "claudePath": "hypercoder-plugin/commands/review-pr.md",
+      "claudeSha256": "3f32fad398d2f2bee85bfdc903fae89089779004d0282ade1cf78758d8d87db5",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/review-pr/SKILL.md",
+      "codexSha256": "3f32fad398d2f2bee85bfdc903fae89089779004d0282ade1cf78758d8d87db5",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "roadmap",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/roadmap/SKILL.md",
+      "claudeSha256": "1652f57749085562dd1cdd1f3b602fd2f08a3ccc35ad29dbebf75c279ca3c786",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/roadmap/SKILL.md",
+      "codexSha256": "1652f57749085562dd1cdd1f3b602fd2f08a3ccc35ad29dbebf75c279ca3c786",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "roadmap-audit",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/roadmap-audit/SKILL.md",
+      "claudeSha256": "5fd12a8cf28d0a7058f1e50cd3a68d773b8bddb9422dda301e8bb9f446159db9",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/roadmap-audit/SKILL.md",
+      "codexSha256": "5fd12a8cf28d0a7058f1e50cd3a68d773b8bddb9422dda301e8bb9f446159db9",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "ship-it",
+      "claudePackaging": "command",
+      "claudePath": "hypercoder-plugin/commands/ship-it.md",
+      "claudeSha256": "4888d8e1063135da32ecedd5097e971073709373c877f6790292307e290fb886",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/ship-it/SKILL.md",
+      "codexSha256": "11bdc5518a7169454f2e543aec3c3fa2ac07dfc22aa3ef05919305fc951f63f7",
+      "sameContentAcrossProviders": false,
+      "portingScope": true
+    },
+    {
+      "name": "spec",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/spec/SKILL.md",
+      "claudeSha256": "dcfe4c9284791e9d5c48af96c124e6b24abb4fa113a665e12572af436ef22f23",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/spec/SKILL.md",
+      "codexSha256": "dcfe4c9284791e9d5c48af96c124e6b24abb4fa113a665e12572af436ef22f23",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    },
+    {
+      "name": "workspaces",
+      "claudePackaging": "skill",
+      "claudePath": "hypercoder-plugin/skills/workspaces/SKILL.md",
+      "claudeSha256": "53a584ba83f785011c8533805e8242aaaa8e09a7e21c4dcc5bfba86ffc9afdfa",
+      "codexPath": "codex-plugin/plugins/hypercoder/skills/workspaces/SKILL.md",
+      "codexSha256": "53a584ba83f785011c8533805e8242aaaa8e09a7e21c4dcc5bfba86ffc9afdfa",
+      "sameContentAcrossProviders": true,
+      "portingScope": true
+    }
+  ],
+  "portingScopeCount": 14,
+  "excludedByUser": ["hypergames"]
+}

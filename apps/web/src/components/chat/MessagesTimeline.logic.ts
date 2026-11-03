@@ -63,6 +63,7 @@ import {
 } from "@t3tools/contracts";
 import type { ThreadRunSummary } from "@t3tools/client-runtime/state/shell";
 import { resolveT3McpToolDefinition } from "@t3tools/shared/t3McpToolPresentation";
+import { teamMessageToolIsRepresented } from "@t3tools/client-runtime/t3ToolSummary";
 import { compactDynamicToolOutput } from "@t3tools/shared/toolOutput";
 import { htmlRenderReferencesEqual, type HtmlRenderReference } from "@t3tools/shared/htmlRender";
 import { mcpAppReferencesEqual, type McpAppReference } from "@t3tools/shared/mcpApp";
@@ -1313,9 +1314,18 @@ function attachTrailingToolGroupsToAssistant(
 }
 
 // Hide delegation rows only when task ids identify durable child cards; prompts can repeat.
-function withoutSubagentDelegationRows(entries: ReadonlyArray<TimelineEntry>) {
+function withoutRepresentedToolRows(entries: ReadonlyArray<TimelineEntry>) {
   const childrenByRun = new Map<RunId, Set<string>>();
+  const peerMessageIds = new Set<string>();
   for (const entry of entries) {
+    if (
+      entry.kind === "message" &&
+      entry.message.role === "user" &&
+      entry.message.createdBy === "agent" &&
+      entry.message.creationSource !== "server" &&
+      entry.message.senderThreadId
+    )
+      peerMessageIds.add(entry.message.id);
     if (entry.kind !== "event" || entry.projectedItem.item.type !== "subagent") continue;
     const item = entry.projectedItem.item;
     if (item.origin !== "app_owned" || item.runId === null) continue;
@@ -1326,6 +1336,7 @@ function withoutSubagentDelegationRows(entries: ReadonlyArray<TimelineEntry>) {
   return entries.filter((entry) => {
     if (entry.kind !== "work" || workEntryDisplayIndicatesToolFailure(entry.entry)) return true;
     const item = entry.entry.projectedItem?.item ?? entry.entry.structuredPayload;
+    if (item && teamMessageToolIsRepresented(item, peerMessageIds)) return false;
     if (
       item?.type !== "dynamic_tool" ||
       item.runId === null ||
@@ -1364,7 +1375,7 @@ function settleSupersededReasoning(entries: ReadonlyArray<TimelineEntry>) {
 }
 
 function timelineRowEntries(entries: ReadonlyArray<TimelineEntry>) {
-  return withoutSubagentDelegationRows(settleSupersededReasoning(entries));
+  return withoutRepresentedToolRows(settleSupersededReasoning(entries));
 }
 
 function deriveTimelineTurnFolds(

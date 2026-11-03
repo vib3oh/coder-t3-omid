@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "revision": 0,
+  "cards": [
+    {
+      "id": "agent-followup-fork-ci",
+      "title": "Publish fork-owned CI checks",
+      "summary": "PR #2 has no published checks. Preserve upstream workflows and check names while configuring fork-owned execution for this public repository; the private self-hosted runner policy does not enroll this fork. Source: PR #2 local QA at 0626934371; docs/fork/maintenance.md. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-ci-1",
+          "text": "Inventory required checks and fork-accessible runner/release dependencies without weakening upstream tests.",
+          "checked": false
+        },
+        {
+          "id": "fork-ci-2",
+          "text": "Run the applicable CI jobs on a PR and publish native checks bound to the tested head.",
+          "checked": false
+        },
+        {
+          "id": "fork-ci-3",
+          "text": "Document public-fork runner ownership and ensure private credentials and upstream release services are not assumed.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "M",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "agent-followup-hermetic-ci",
+      "title": "Complete package and server CI in a reproducible environment",
+      "summary": "The package sweep failed on Mac filesystem/socket/tar/path differences. The cached server sweep failed on machine-global Git URL rewriting; two direct full-server attempts were interrupted. Focused diagnostic passes do not establish a full pass. Source: PR #2 local QA at f0f304ebdf2. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "hermetic-ci-1",
+          "text": "Provide a documented Linux ARM64 or equivalent supported CI environment with required system tools and case-sensitive paths.",
+          "checked": false
+        },
+        {
+          "id": "hermetic-ci-2",
+          "text": "Isolate test Git configuration and preserve that isolation through cached-test subprocesses without changing personal Git settings.",
+          "checked": false
+        },
+        {
+          "id": "hermetic-ci-3",
+          "text": "Complete the full applicable package and server suites, retain original failures, and distinguish environment failures from product regressions.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "M",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "agent-followup-web-regressions",
+      "title": "Resolve remaining browser-suite failures",
+      "summary": "Full web sweep: 503/509 files and 5445/5450 tests passed, with five test failures and two import-suite errors. Focused import diagnostics passed; four failures remained across FilePreviewPanel, fileEditorDismissal and GuestPage. Source files are unchanged from main, but a baseline comparison is still needed. Source: PR #2 local QA at f0f304ebdf2. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "web-regressions-1",
+          "text": "Reproduce the EPUB/output-budget, editor-selection and follow-end-scroll failures against both the shipped feature and its main baseline under the same browser/worker settings.",
+          "checked": false
+        },
+        {
+          "id": "web-regressions-2",
+          "text": "Fix confirmed regressions at the responsible layer with behavioral proof; classify environment-only failures using preserved diagnostics.",
+          "checked": false
+        },
+        {
+          "id": "web-regressions-3",
+          "text": "Complete the web suite successfully without adding retries, per-test timeouts, unreasoned skips or weakened assertions.",
+          "checked": false
+        }
+      ],
+      "type": "bug",
+      "effort": "M",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "agent-followup-client-proof",
+      "title": "Finish native and final-source workflow QA",
+      "summary": "Web QA covered 23 captures on 52fe82b393. The real Luna workflow completed on b54202e6 with corrective handoffs; autonomous completion after the fixes remains unverified. No native Electron interaction or mobile-device pass was completed. iOS inventory was empty and Android SDK unavailable. Source: PR #2 QA evidence comment. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "client-proof-1",
+          "text": "Provision an available device through the supported Device workflow and test mobile monitoring, evidence, questions and lifecycle controls on iOS and Android.",
+          "checked": false
+        },
+        {
+          "id": "client-proof-2",
+          "text": "Run an integrated Electron client pass and a fresh Planner \u2192 Builder \u2192 independent Reviewer fixture on the final source without corrective human protocol handoffs.",
+          "checked": false
+        },
+        {
+          "id": "client-proof-3",
+          "text": "Capture authenticated empty, populated, error, message, lifecycle and narrow states with an exact-source manifest, inspect them visually, and publish the complete evidence bundle.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "M",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "agent-followup-native-eval",
+      "title": "Diagnose the remaining Claude native-eval fixture error",
+      "summary": "Final native evals on clean 0626934371: Codex 16/16; Claude 15/16. One WF-REVIEWER sample failed with Unsupported native fixture shell operator. This is a failed sample, not a model-behavior pass. Source: PR #2 validation. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "native-eval-1",
+          "text": "Preserve the failing tool attempt and identify the exact unsupported command without exposing subscription credentials or running it on the host.",
+          "checked": false
+        },
+        {
+          "id": "native-eval-2",
+          "text": "If the command is legitimate, represent its behavior through a bounded deterministic fixture; otherwise return an actionable refusal and evaluate model recovery.",
+          "checked": false
+        },
+        {
+          "id": "native-eval-3",
+          "text": "Add a failing regression for the diagnosed cause and rerun the eight workflow cases on both native providers, retaining all attempts and counting infrastructure errors as failures.",
+          "checked": false
+        }
+      ],
+      "type": "bug",
+      "effort": "S",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "agent-followup-context-budget",
+      "title": "Resolve the agent context budget increase",
+      "summary": "The ten workflow tools increase the measured MCP catalog from 47538 to 56626 bytes (+9088). The inherited Agent Context Budget workflow requires explicit maintainer approval for growth. No approval label or green check was fabricated for PR #2. Source: apps/server/src/provider/agentContextBudget.json and .github/workflows/agent-context-budget.yml. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "context-budget-1",
+          "text": "Assess whether existing tool/schema text can be reduced while preserving contracts, useful errors and provider behavior.",
+          "checked": false
+        },
+        {
+          "id": "context-budget-2",
+          "text": "Keep the measured budget file equal to the actual catalog and rerun the instruction/tool evals for any text change.",
+          "checked": false
+        },
+        {
+          "id": "context-budget-3",
+          "text": "Record maintainer acceptance of any remaining growth through the existing policy, or reduce the catalog to pass without an exception.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "S",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    }
+  ]
+}

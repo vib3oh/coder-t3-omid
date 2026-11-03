@@ -116,6 +116,11 @@ import * as KnownWorkspaces from "./workspace/KnownWorkspaces.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as RoadmapService from "./roadmap/RoadmapService.ts";
+import * as AgentWorkflowRuntimeService from "./fork/agents/AgentWorkflowRuntimeService.ts";
+import * as AgentWorkflowService from "./fork/agents/AgentWorkflowService.ts";
+import * as AgentWorkflowStore from "./fork/agents/AgentWorkflowStore.ts";
+import * as WorkflowEvidence from "./fork/agents/WorkflowEvidence.ts";
+import * as BuiltinSkillService from "./fork/skills/BuiltinSkillService.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
 import * as VcsDriverRegistry from "./vcs/VcsDriverRegistry.ts";
 import * as VcsProjectConfig from "./vcs/VcsProjectConfig.ts";
@@ -524,6 +529,12 @@ const layerProjectFaviconResolver = ProjectFaviconResolver.layer.pipe(
 
 const layerServerEnvironment = ServerEnvironment.layer.pipe(Layer.provide(ServerSecretStore.layer));
 
+const layerAgentWorkflows = AgentWorkflowRuntimeService.layer.pipe(
+  Layer.provideMerge(AgentWorkflowService.layer.pipe(Layer.provideMerge(AgentWorkflowStore.layer))),
+  Layer.provide(BuiltinSkillService.layer),
+  Layer.provide(WorkflowEvidence.layer),
+);
+
 const layerAuth = EnvironmentAuth.layer.pipe(
   Layer.provideMerge(layerPersistence),
   Layer.provide(layerServerEnvironment),
@@ -695,7 +706,8 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ),
 );
 
-const layerRuntimeCoreDependencies = layerRuntimeCoreDependenciesBase.pipe(
+const layerRuntimeCoreDependencies = layerAgentWorkflows.pipe(
+  Layer.provideMerge(layerRuntimeCoreDependenciesBase),
   Layer.provideMerge(layerPtyAdapter),
   Layer.provideMerge(AcpRegistrySupport.layerFromHost.pipe(Layer.provide(ProviderHostLive.layer))),
   Layer.provideMerge(
@@ -792,6 +804,11 @@ const layerMakeRoutes = Layer.mergeAll(
   // Follows delegated tasks running in linked environments, including after a restart.
   Layer.effectDiscard(
     RemoteDelegation.RemoteDelegation.pipe(Effect.flatMap((remote) => remote.start())),
+  ),
+  Layer.effectDiscard(
+    AgentWorkflowRuntimeService.AgentWorkflowRuntimeService.pipe(
+      Effect.flatMap((service) => service.startRecovery),
+    ),
   ),
 ).pipe(
   Layer.provide(

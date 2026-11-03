@@ -1,4 +1,5 @@
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
+import { ThreadWorkflowEntry } from "../fork/agents/ThreadWorkflowEntry";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { resolveNewThreadModelSelection } from "@t3tools/shared/usageLimits";
@@ -3341,6 +3342,13 @@ export default function ChatView(props: ChatViewProps) {
                 : {})}
               {...(threadFindEnabled ? { onFindInThread: openThreadFindStable } : {})}
             />
+            {activeProject ? (
+              <ThreadWorkflowEntry
+                environmentId={activeThread.environmentId}
+                projectId={activeProject.id}
+                threadId={activeThread.id}
+              />
+            ) : null}
           </header>
         )}
 

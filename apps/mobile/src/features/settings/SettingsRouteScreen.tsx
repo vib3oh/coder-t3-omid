@@ -210,6 +210,7 @@ function SettingsList(props: { readonly connections: readonly SettingsListRow[] 
 }
 
 function useSettingsIndexSections(): SettingsListSection[] {
+  const navigation = useNavigation();
   const { selectedTargets, projectGroups, selectedProjectKey } = useSettingsEnvironmentFilter();
   const noServerTargets = selectedTargets.length === 0;
   const selectedProject = projectGroups.find((group) => group.key === selectedProjectKey);
@@ -258,6 +259,22 @@ function useSettingsIndexSections(): SettingsListSection[] {
         serverPage("SettingsProviderAccounts", "person.crop.circle", "Providers"),
         serverPage("SettingsThreads", "text.bubble", "Threads"),
         page("SettingsScheduledTasks", "clock", "Scheduled tasks"),
+        {
+          id: "agent-workflows",
+          icon: "person.2",
+          label: "Agent workflows",
+          disabled: noServerTargets,
+          onPress: () =>
+            navigation.navigate("AgentWorkflows", {
+              ...(selectedTargets[0] ? { environmentId: selectedTargets[0].environmentId } : {}),
+              ...(scopedProjectMembers[0]
+                ? {
+                    environmentId: scopedProjectMembers[0].environmentId,
+                    projectId: scopedProjectMembers[0].id,
+                  }
+                : {}),
+            }),
+        },
       ],
     },
     {

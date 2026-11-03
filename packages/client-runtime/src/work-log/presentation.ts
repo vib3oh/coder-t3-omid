@@ -235,6 +235,30 @@ export function resolveWorkEntryToolPresentation(
     workEntryToolInput(entry),
   );
   const status = entry.toolLifecycleStatus ?? fallbackStatus;
+  if (
+    definition &&
+    (definition.summaryAction.startsWith("team-") ||
+      definition.summaryAction.startsWith("assignment-") ||
+      definition.summaryAction === "agent-roles") &&
+    status !== undefined &&
+    status !== "inProgress"
+  ) {
+    return {
+      displayName: summarizeT3ToolCalls(definition.summaryAction, [
+        {
+          input: workEntryToolInput(entry),
+          output: workEntryToolOutput(entry),
+          outcome:
+            status === "completed"
+              ? "completed"
+              : status === "failed" || status === "declined"
+                ? "failed"
+                : "unfinished",
+        },
+      ]).label,
+      icon: definition.icon,
+    };
+  }
   return resolveT3McpToolPresentation(
     definition,
     definition && t3ToolResultIndicatesFailure(workEntryToolOutput(entry)) ? "failed" : status,
@@ -479,6 +503,11 @@ function summaryActionPriority(action: ToolGroupAction | T3McpToolSummaryAction)
     case "task-cancel":
     case "thread-create":
     case "thread-send":
+    case "team-message":
+    case "team-control":
+    case "assignment-start":
+    case "assignment-snapshot":
+    case "assignment-result":
     case "thread-interrupt":
     case "workflow-stop":
     case "background-wait":

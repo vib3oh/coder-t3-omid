@@ -1616,6 +1616,16 @@ function OpenCommandPaletteDialog(props: {
       await navigate({ to: "/settings" });
     },
   });
+  actionItems.push({
+    kind: "action",
+    value: "action:agent-workflows",
+    searchTerms: ["agent", "workflow", "planner", "builder", "reviewer", "roles"],
+    title: "Open agent workflows and project roles",
+    icon: <SettingsIcon className={ITEM_ICON_CLASS} />,
+    run: async () => {
+      await navigate({ to: "/agent-workflows" });
+    },
+  });
 
   // Every group, so an archived project's thread still opens its own settings.
   const currentProjectGroup =

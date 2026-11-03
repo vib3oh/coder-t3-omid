@@ -1,5 +1,9 @@
 import { historyResponseItems } from "@t3tools/provider-core/server/handoffBudget";
 import {
+  prepareBuiltinSkillPackage,
+  type BuiltinSkillPackage,
+} from "../../fork/skills/BuiltinSkillService.ts";
+import {
   makeProviderTextDeltaCoalescer,
   type ProviderTextDeltaUpdate,
 } from "./ProviderTextDeltaCoalescer.ts";
@@ -886,6 +890,7 @@ describe("CodexAdapterV2 session initialize", () => {
     transcript: CodexReplay.CodexAppServerReplayTranscript,
     beforeEmitInbound?: CodexReplay.CodexAppServerReplayDriver["beforeEmitInbound"],
     compatibility?: CodexAdapterV2.CodexAdapterV2Options["compatibility"],
+    builtinSkillPackage?: BuiltinSkillPackage,
   ) =>
     Effect.gen(function* () {
       const driver = yield* CodexReplay.makeReplayDriver(
@@ -898,6 +903,7 @@ describe("CodexAdapterV2 session initialize", () => {
         settings: DEFAULT_CODEX_SETTINGS,
         environment: {},
         ...(compatibility === undefined ? {} : { compatibility }),
+        ...(builtinSkillPackage === undefined ? {} : { builtinSkillPackage }),
         clientFactory: {
           open: (openInput) =>
             Layer.build(CodexReplay.layerReplayWithDriver(driver)).pipe(
@@ -950,6 +956,53 @@ describe("CodexAdapterV2 session initialize", () => {
 
   const replayPreamble = (nativeThreadId: string) =>
     codexReplayPreamble({ nativeThreadId, nativeTurnId: "unused", prompt: "unused" });
+
+  it.effect.each([true, false])(
+    "registers built-in roots before thread startup and tolerates unsupported roots (%s)",
+    (supported) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const directory = yield* fs.makeTempDirectoryScoped({ prefix: "t3-codex-skills-" });
+        const pkg = yield* prepareBuiltinSkillPackage(directory);
+        const preamble = replayPreamble("builtin-root-thread");
+        const session = yield* openReplaySession(
+          makeCodexReplayTranscript({
+            scenario: `builtin-roots-${supported}`,
+            entries: [
+              ...preamble.slice(0, 3),
+              {
+                type: "expect_outbound",
+                label: "skills/extraRoots/set",
+                frame: {
+                  id: 2,
+                  method: "skills/extraRoots/set",
+                  params: { extraRoots: [pkg.codexRoot] },
+                },
+              },
+              {
+                type: "emit_inbound",
+                label: "skills/extraRoots/set",
+                frame: supported
+                  ? { id: 2, result: {} }
+                  : { id: 2, error: { code: -32601, message: "Method not found" } },
+              },
+              ...preamble.slice(3, 5).map((entry) => withReplayRequestId(entry, 3)),
+            ],
+          }),
+          undefined,
+          undefined,
+          pkg,
+        );
+        const thread = yield* session.ensureThread("thread-builtin-roots");
+        assert.equal(thread.nativeThreadRef?.nativeId, "builtin-root-thread");
+        assert.equal(session.initializeRequests(), 1);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          Layer.mergeAll(IdAllocator.layer, McpProviderSessions.layer, NodeServices.layer),
+        ),
+      ),
+  );
 
   it.effect("sends one initialize when two threads start on a fresh session at once", () =>
     Effect.gen(function* () {

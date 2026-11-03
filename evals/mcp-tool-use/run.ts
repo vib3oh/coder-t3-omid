@@ -47,6 +47,7 @@ import { buildCodexAdditionalContext } from "../../apps/server/src/provider/Code
 import { makeSideChatContext } from "../../apps/server/src/orchestration-v2/ContextHandoffService.ts";
 import { withInlineContext } from "../../apps/server/src/orchestration-v2/ContextHandoffDelivery.ts";
 import { AttachmentToolkit } from "../../apps/server/src/mcp/toolkits/attachment/tools.ts";
+import { AgentWorkflowToolkit } from "../../apps/server/src/mcp/toolkits/agentWorkflows/tools.ts";
 import { DeviceToolkit } from "../../apps/server/src/mcp/toolkits/device/tools.ts";
 import { EnvironmentToolkit } from "../../apps/server/src/mcp/toolkits/environment/tools.ts";
 import { HtmlToolkit } from "../../apps/server/src/mcp/toolkits/html/tools.ts";
@@ -67,6 +68,8 @@ import {
 import { proxyConfig } from "../shared/proxy.ts";
 import { changeRequestsCreatedBy } from "../../apps/server/src/orchestration-v2/PullRequestSyncReactor.ts";
 import { DeviceExpect, gradeDevice } from "./device-grading.ts";
+import { agentWorkflowFixture } from "./agent-workflow-fixture.ts";
+import { fixtureShellOutput } from "./native-fixtures.ts";
 import {
   AGENT_DEVICE_SHELL,
   deviceFailure,
@@ -250,6 +253,7 @@ export const McpToolUseCase = Schema.Struct({
     /** delegate_task `role` for a delegated child. T3 builds the child's first message from it. */
     delegateRole: Schema.optional(OrchestratorMcpTaskRole),
     context: Schema.optional(Schema.String),
+    workflowRole: Schema.optional(Schema.Literals(["manager", "builder", "reviewer"])),
     priorTurns: Schema.optional(
       Schema.Array(
         Schema.Struct({
@@ -269,6 +273,7 @@ export const McpToolUseCase = Schema.Struct({
     shellMocks: Schema.optional(
       Schema.Array(Schema.Struct({ match: Schema.String, output: Schema.String })),
     ),
+    exactShellMocks: Schema.optional(Schema.Record(Schema.String, Schema.String)),
     /** The thread is a side chat's first turn: T3 puts the parent's digest ahead of `prompt`. */
     sideChat: Schema.optional(
       Schema.Struct({ parentThreadId: Schema.String, digest: Schema.Array(Schema.String) }),
@@ -380,6 +385,7 @@ export const normalizeToolInput = (name: string, input: unknown) => {
 // McpHttpServer advertises each tool's JSON schema, and Claude Code passes the MCP name,
 // description, and schema through unchanged.
 const t3SourceTools: ReadonlyArray<Tool.Any> = [
+  AgentWorkflowToolkit,
   OrchestratorToolkit,
   ThreadToolkit,
   AttachmentToolkit,
@@ -599,6 +605,7 @@ export const buildBase = (
 };
 
 type Base = ReturnType<typeof buildBase> & {
+  readonly nativeEffort?: string;
   readonly codex?: typeof ResponsesRequest.Type;
   /** What T3's SubagentStart hooks give a native subagent. */
   readonly subagentContext?: string;
@@ -885,6 +892,9 @@ export const buildMessages = (sample: Sample) => {
       ? "You are a subagent started by the parent agent's Agent tool. Your final message goes to the parent agent, not to the user."
       : undefined,
     context,
+    testCase.setup.workflowRole
+      ? agentWorkflowFixture(testCase.setup.workflowRole).instructions
+      : undefined,
   ];
   const reminders = base.reminders.toSpliced(base.gitStatusAt, 0, reminder(gitStatus(testCase)));
   push("user", ...reminders, ...notes.flatMap((note) => (note ? [reminder(note)] : [])));
@@ -1028,6 +1038,17 @@ export const t3Default = (
     };
   };
   switch (name) {
+    case "omid_team_read":
+      return sample.testCase.setup.workflowRole
+        ? agentWorkflowFixture(sample.testCase.setup.workflowRole).view
+        : {};
+    case "omid_assignment_start":
+      return {
+        assignmentId: input.assignmentId,
+        taskId: "acme-native-task",
+        childThreadId: uuid(20),
+        next: "The native assignment is running. End your turn; completion wakes you.",
+      };
     case "t3_thread_launch":
       return newThread(input, input.message);
     case "create_threads":
@@ -1240,10 +1261,15 @@ const capabilities = ({ base }: Sample, value: unknown) =>
     ? {
         ...value,
         inheritedModel: base.model,
-        ...(base.codex
+        ...(isCodex(base.model)
           ? {
               inheritedProviderInstanceId: "codex",
-              inheritedOptions: [{ id: "reasoningEffort", value: base.codex.reasoning.effort }],
+              inheritedOptions: [
+                {
+                  id: "reasoningEffort",
+                  value: base.codex?.reasoning.effort ?? base.nativeEffort ?? "high",
+                },
+              ],
             }
           : {}),
       }
@@ -1363,6 +1389,7 @@ type Config = {
   readonly effort: string;
   readonly maxSteps: number;
   readonly shellModel: PricedModel;
+  readonly fixtureOnly?: boolean;
 };
 
 /**
@@ -1381,7 +1408,64 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
   call: Omit<ShellEntry, "output">,
 ) {
   const command = call.tool === "Bash" && isRecord(call.input) ? call.input.command : undefined;
-  let output = typeof command === "string" ? cannedOutput(sample, command) : undefined;
+  const exactMocks = sample.testCase.setup.exactShellMocks;
+  const exactOutput =
+    typeof command === "string" && exactMocks && Object.hasOwn(exactMocks, command)
+      ? exactMocks[command]
+      : undefined;
+  if (
+    config.fixtureOnly &&
+    exactOutput === undefined &&
+    typeof command === "string" &&
+    command.split(/\s*&&\s*/).some((part) => /[;&|`$<>\n]/.test(part))
+  )
+    throw new Error("Unsupported native fixture shell operator");
+  let output =
+    exactOutput ?? (typeof command === "string" ? cannedOutput(sample, command) : undefined);
+  if (output === undefined && config.fixtureOnly && typeof command === "string") {
+    const parts = command.split(/\s*&&\s*/).map((part) => part.trim());
+    const outputs: Array<string | undefined> = [];
+    for (const part of parts) {
+      const result =
+        mockOutput(sample, part) ??
+        fixtureShellOutput(
+          part,
+          sample.base.environment.cwd,
+          sample.testCase.setup.world?.files,
+          sample.testCase.setup.world?.commits?.map(({ sha }) => sha),
+          sample.testCase.setup.world?.gitRefs,
+        );
+      outputs.push(result);
+      if (result === undefined || /^(Exit code [1-9]|<tool_use_error>)/.test(result)) break;
+    }
+    if (outputs.every((part) => part !== undefined)) {
+      output = outputs.filter(Boolean).join("\n");
+      const failed = outputs.at(-1)?.match(/^(Exit code [1-9]\d*|<tool_use_error>)/)?.[1];
+      if (failed && !output.startsWith(failed)) output = `${failed}\n${output}`;
+    }
+  }
+  if (output === undefined && config.fixtureOnly) {
+    if (call.tool === "Read" && isRecord(call.input)) {
+      const file = valueText(call.input.file_path ?? call.input.path);
+      const relative = file.startsWith(`${sample.base.environment.cwd}/`)
+        ? file.slice(sample.base.environment.cwd.length + 1)
+        : file;
+      const files = sample.testCase.setup.world?.files;
+      const content = isRecord(files) ? (files[file] ?? files[relative]) : undefined;
+      output = typeof content === "string" ? content : undefined;
+      if (
+        output === undefined &&
+        isRecord(files) &&
+        relative &&
+        !relative.startsWith("/") &&
+        !relative.split("/").includes("..")
+      ) {
+        output =
+          "<tool_use_error>ENOENT: no such file in the authored fixture workspace</tool_use_error>";
+      }
+    }
+    if (output === undefined) throw new Error(`Missing native eval fixture: ${callText(call)}`);
+  }
   if (output === undefined) {
     const body = shellRequest(sample, call, config.shellModel);
     const response = yield* callModel(
@@ -1398,6 +1482,112 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
   for (const url of createdPullRequests(entry)) sample.linked.add(url);
   return output;
 });
+
+/** Native harnesses supply their own prompts; only app-owned text and authored case data enter. */
+export const nativeFixture = (testCase: McpToolUseCase, model: Model, effort = "high") => {
+  if (
+    testCase.setup.role !== "top" ||
+    testCase.setup.priorTurns?.length ||
+    testCase.setup.world?.devices?.length ||
+    testCase.setup.sideChat ||
+    testCase.promptContext
+  ) {
+    throw new Error(
+      "Native evals currently support top-level cases without prior turns, devices or composer context.",
+    );
+  }
+  const t3 = visibleT3Tools({ links: testCase.setup.linkedEnvironments === true });
+  const nativeTools: ApiTool[] = [
+    {
+      name: "Read",
+      description: "Read a file from the fixture workspace.",
+      input_schema: {
+        type: "object",
+        properties: { file_path: { type: "string" } },
+        required: ["file_path"],
+      },
+    },
+    {
+      name: "Bash",
+      description: `Run fixture-backed shell commands; no host commands execute. Supported reads: cat files, rg --files [--hidden] [-g glob ...], git show <authored SHA>:<file>, git rev-parse <authored refs>. Command mock patterns: ${testCase.setup.shellMocks?.map(({ match }) => match).join("; ") || "none"}. Supported commands may be chained with &&; unknown commands fail. Prefer Read for file contents.`,
+      input_schema: {
+        type: "object",
+        properties: { command: { type: "string" } },
+        required: ["command"],
+      },
+    },
+    ...["Edit", "Write", "Agent"].map((name) => ({
+      name,
+      description: `Fixture ${name} tool.`,
+      input_schema: { type: "object", additionalProperties: true },
+    })),
+  ];
+  const base: Base = {
+    model,
+    nativeEffort: effort,
+    system: [],
+    reminders: [],
+    gitStatusAt: 0,
+    environment: { cwd: "/home/user/acme/app", platform: "linux", date: "2026-01-01" },
+    nativeTools,
+    t3,
+    deferred: t3,
+  };
+  const sample = makeSample(testCase, base);
+  sample.tools.push(...t3);
+  const config: Config = {
+    apiKey: "",
+    model,
+    effort,
+    maxSteps: 10,
+    shellModel: "claude-haiku-5-5",
+    fixtureOnly: true,
+  };
+  const instructions = isCodex(model)
+    ? Object.entries(
+        buildCodexAdditionalContext(
+          { model, reasoningEffort: effort },
+          { browser: true, device: false },
+        ),
+      )
+        .map(([key, entry]) => `<${key}>${entry.value}</${key}>`)
+        .join("\n")
+    : t3SystemAppend(model, false);
+  return {
+    instructions,
+    prompt: buildMessages(sample)
+      .flatMap((message) => message.content.map((block) => valueText(block.text)))
+      .join("\n\n"),
+    tools: [...t3, ...nativeTools].map((tool) => ({
+      name: isT3Name(tool.name) ? normalizeToolName(tool.name) : tool.name,
+      description: valueText(tool.description),
+      inputSchema: tool.input_schema,
+    })),
+    call: async (name: string, input: unknown) => {
+      const source = t3.find((tool) => normalizeToolName(tool.name) === name);
+      if (!source && !nativeTools.some((tool) => tool.name === name))
+        throw new Error(`Unknown native eval tool: ${name}`);
+      if (source) {
+        const decode = t3InputDecoders.get(name)!;
+        if (Option.isNone(decode(input)))
+          throw new Error(`Invalid native eval tool input: ${name}`);
+      }
+      const normalized = normalizeToolInput(source?.name ?? name, input);
+      const result = await Effect.runPromise(
+        answerToolCall(sample, config, {
+          type: "tool_use",
+          id: "native-call",
+          name: source?.name ?? name,
+          input: normalized,
+        }).pipe(Effect.provide(FetchHttpClient.layer)),
+      );
+      return {
+        content: [{ type: "text" as const, text: valueText(result.content) }],
+        isError: result.is_error === true,
+      };
+    },
+  };
+};
 
 /** The result for one tool call. */
 const answerToolCall = Effect.fn("evaluateMcpToolUse.answerToolCall")(function* (
@@ -1489,7 +1679,15 @@ const matches = (expected: unknown, actual: unknown): boolean => {
   const at = (path: string) =>
     path
       .split(".")
-      .reduce<unknown>((value, key) => (isRecord(value) ? value[key] : undefined), actual);
+      .reduce<unknown>(
+        (value, key) =>
+          isRecord(value)
+            ? value[key]
+            : Array.isArray(value) && key === "length"
+              ? value.length
+              : undefined,
+        actual,
+      );
   return Object.entries(expected).every(([path, value]) => matches(value, at(path)));
 };
 

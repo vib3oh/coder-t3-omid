@@ -4,7 +4,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { assert, expect, it } from "@effect/vitest";
-import { ComposerContextId, EnvironmentId, ThreadId } from "@t3tools/contracts";
+import { AgentWorkflowView, ComposerContextId, EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { projectComposerContextForProvider } from "@t3tools/shared/composerContextReferences";
 
 import {
@@ -30,6 +30,134 @@ import {
 } from "./run.ts";
 import { briefRoute, gradeDevice, shellInvocations } from "./device-grading.ts";
 import { taskPrompt } from "../../apps/server/src/mcp/delegatedTaskModes.ts";
+import { agentWorkflowFixture } from "./agent-workflow-fixture.ts";
+
+const decodeWorkflowCase = Schema.decodeSync(Schema.fromJsonString(McpToolUseCase));
+const decodeWorkflowView = Schema.decodeUnknownSync(AgentWorkflowView);
+const workflowCases = () =>
+  NodeFS.readFileSync(new URL("./cases/agent-workflows.ndjson", import.meta.url), "utf8")
+    .trim()
+    .split("\n")
+    .map((line) => decodeWorkflowCase(line));
+
+it("builds supervised workflow evals from the actual role compiler and runtime instructions", () => {
+  const base = buildBase(template, { model: "claude-sonnet-5-5", keepUserInstructions: false });
+  const cases = workflowCases();
+  assert.equal(cases.length, 8);
+  const wrapper = cases.find((testCase) => testCase.id === "WF-REVIEW-CHECK-WRAPPER")?.expect
+    .calls?.[0]?.args?.command;
+  if (typeof wrapper !== "string") throw new Error("Missing Reviewer execution expectation");
+  assert.include(agentWorkflowFixture("reviewer").instructions, wrapper);
+  assert.includeMembers(
+    base.deferred.map((tool) => normalizeToolName(tool.name)),
+    ["omid_team_read", "omid_assignment_start", "omid_assignment_result", "omid_team_message"],
+  );
+  for (const testCase of cases) {
+    const sample = makeSample(testCase, base);
+    const messages = JSON.stringify(buildMessages(sample));
+    if (testCase.setup.workflowRole) {
+      const fixture = agentWorkflowFixture(testCase.setup.workflowRole);
+      assert.doesNotThrow(() => decodeWorkflowView(fixture.view));
+      assert.include(messages, JSON.stringify(fixture.instructions).slice(1, -1));
+      assert.deepEqual(t3Default(sample, "omid_team_read", {}), fixture.view);
+    } else {
+      assert.notInclude(messages, "Supervise workflow acme-workflow");
+    }
+  }
+});
+
+it("grades supervised workflow yield, inspect authority and concurrent answer correlation", () => {
+  const cases = workflowCases();
+  const sample = (...calls: Array<{ tool: string; input?: unknown }>): SampleRun => ({
+    calls: calls.map((call, step) => ({ step, input: {}, ...call })),
+    text: "",
+    stopReason: "end_turn",
+  });
+  const manager = cases.find((c) => c.id === "WF-MANAGER")!;
+  const unfrozen = cases.find((c) => c.id === "WF-UNFROZEN-PLAN")!;
+  const initialPlan = (criteria: unknown[]) =>
+    sample(
+      { tool: "omid_team_read" },
+      { tool: "orchestrator_capabilities" },
+      { tool: "omid_assignment_start", input: { roleId: "planner", generation: 3, criteria } },
+    );
+  assert.isNotEmpty(failed(unfrozen.expect, initialPlan([])));
+  assert.deepEqual(
+    failed(unfrozen.expect, initialPlan([{ id: "draft", text: "Reject empty names" }])),
+    [],
+  );
+  const staged = cases.find((c) => c.id === "WF-STAGE-CRITERIA")!;
+  const builderStart = {
+    tool: "omid_assignment_start",
+    input: {
+      roleId: "builder",
+      generation: 3,
+      criteria: [{ id: "AC-1", text: "Empty names produce a validation error." }],
+    },
+  };
+  assert.deepEqual(
+    failed(
+      staged.expect,
+      sample({ tool: "omid_team_read" }, { tool: "orchestrator_capabilities" }, builderStart),
+    ),
+    [],
+  );
+  assert.isNotEmpty(
+    failed(
+      staged.expect,
+      sample(
+        { tool: "omid_team_read" },
+        { tool: "orchestrator_capabilities" },
+        {
+          ...builderStart,
+          input: {
+            ...builderStart.input,
+            criteria: [...builderStart.input.criteria, { id: "AC-REVIEW" }],
+          },
+        },
+      ),
+    ),
+  );
+  const start = { tool: "omid_assignment_start", input: { roleId: "planner", generation: 3 } };
+  const managerRead = [{ tool: "omid_team_read" }, { tool: "orchestrator_capabilities" }];
+  assert.deepEqual(failed(manager.expect, sample(...managerRead, start)), []);
+  assert.include(
+    failed(manager.expect, sample(...managerRead, start, { tool: "task_status" })),
+    "endsTurnAfter omid_assignment_start",
+  );
+  const answer = cases.find((c) => c.id === "WF-CORRELATED-ANSWER")!;
+  const send = (kind: string, replyTo: string) =>
+    sample(
+      { tool: "omid_team_read" },
+      {
+        tool: "omid_team_message",
+        input: { kind, replyTo, toThreadId: "00000000-0000-4000-8000-000000000003" },
+      },
+    );
+  assert.deepEqual(failed(answer.expect, send("answer", "question-contract")), []);
+  assert.isNotEmpty(failed(answer.expect, send("update", "question-contract")));
+  assert.isNotEmpty(failed(answer.expect, send("answer", "question-layout")));
+  const reviewer = cases.find((c) => c.id === "WF-REVIEWER")!;
+  const result = {
+    tool: "omid_assignment_result",
+    input: {
+      artifact: {
+        kind: "review",
+        outcome: "needs_changes",
+        reviewedHead: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      },
+    },
+  };
+  assert.deepEqual(failed(reviewer.expect, sample(result)), []);
+  assert.include(failed(reviewer.expect, sample({ tool: "Edit" }, result)), "notCalls Edit");
+  assert.include(
+    failed(
+      reviewer.expect,
+      sample({ tool: "Bash", input: { command: "git commit -am fix" } }, result),
+    ),
+    "shellMustNot /\\bgit\\s+(?:commit|push|rebase|merge)\\b/",
+  );
+});
 
 it("grades Codex shell and subagent calls with the shared rules", () => {
   const calls = [

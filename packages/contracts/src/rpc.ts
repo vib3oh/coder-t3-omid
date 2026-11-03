@@ -48,6 +48,8 @@ import {
   RoadmapReadInput,
   RoadmapSaveInput,
 } from "./roadmap.ts";
+import * as AgentWorkflows from "./forkAgentWorkflows.ts";
+import * as AgentWorkflowViews from "./forkAgentWorkflowViews.ts";
 import * as Rpc from "effect/rpc/Rpc";
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import * as RpcMiddleware from "effect/rpc/RpcMiddleware";
@@ -424,6 +426,18 @@ export const WS_METHODS = {
   projectsListIgnoredFiles: "projects.listIgnoredFiles",
   roadmapRead: "omid.roadmap.read",
   roadmapSave: "omid.roadmap.save",
+  agentRolesRead: "omid.agents.roles.read",
+  agentRoleSave: "omid.agents.roles.save",
+  agentSkillsRead: "omid.agents.skills.read",
+  agentRolePreview: "omid.agents.roles.preview",
+  agentWorkflowSettings: "omid.agents.settings",
+  agentWorkflowList: "omid.agents.list",
+  agentWorkflowRead: "omid.agents.read",
+  agentWorkflowContent: "omid.agents.content",
+  agentWorkflowStart: "omid.agents.start",
+  agentWorkflowControl: "omid.agents.control",
+  agentAssignmentControl: "omid.agents.assignment.control",
+  agentTeamMessage: "omid.agents.message",
   projectsReadFile: "projects.readFile",
   projectsSearchContents: "projects.searchContents",
   projectsSearchEntries: "projects.searchEntries",
@@ -2136,6 +2150,66 @@ export const WsRpcGroup = RpcGroup.make(
     payload: RoadmapSaveInput,
     success: RoadmapBoard,
     error: Schema.Union([RoadmapError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentRolesRead, {
+    payload: AgentWorkflows.AgentRolesReadInput,
+    success: AgentWorkflows.AgentRolesReadResult,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentRoleSave, {
+    payload: AgentWorkflows.AgentRoleSaveInput,
+    success: AgentWorkflows.AgentRolesReadResult,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentSkillsRead, {
+    payload: AgentWorkflows.AgentRolesReadInput,
+    success: AgentWorkflowViews.AgentSkillsReadResult,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentRolePreview, {
+    payload: AgentWorkflowViews.AgentRolePreviewInput,
+    success: AgentWorkflowViews.AgentRolePreviewResult,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentWorkflowSettings, {
+    payload: AgentWorkflows.AgentWorkflowSettingsInput,
+    success: AgentWorkflows.AgentRolesReadResult,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentWorkflowList, {
+    payload: AgentWorkflows.AgentWorkflowListInput,
+    success: AgentWorkflows.AgentWorkflowListResult,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentWorkflowRead, {
+    payload: AgentWorkflowViews.AgentWorkflowReadPageInput,
+    success: AgentWorkflowViews.AgentWorkflowView,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentWorkflowContent, {
+    payload: AgentWorkflowViews.AgentWorkflowContentInput,
+    success: AgentWorkflowViews.AgentWorkflowContentResult,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentWorkflowStart, {
+    payload: AgentWorkflows.AgentWorkflowStartInput,
+    success: AgentWorkflowViews.AgentWorkflowView,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentWorkflowControl, {
+    payload: AgentWorkflows.AgentWorkflowControlInput,
+    success: AgentWorkflowViews.AgentWorkflowView,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentAssignmentControl, {
+    payload: AgentWorkflows.AgentAssignmentControlInput,
+    success: AgentWorkflowViews.AgentWorkflowView,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.agentTeamMessage, {
+    payload: AgentWorkflows.AgentTeamMessageInput,
+    success: AgentWorkflowViews.AgentWorkflowView,
+    error: Schema.Union([AgentWorkflows.AgentWorkflowError, EnvironmentAuthorizationError]),
   }),
   WsProjectsReadFileRpc,
   WsProjectsSearchContentsRpc,

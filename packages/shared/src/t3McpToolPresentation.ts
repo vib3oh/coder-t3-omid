@@ -68,7 +68,17 @@ export type T3McpToolSummaryAction =
   | "browser"
   | "device"
   | "html-preview"
-  | "html-render";
+  | "html-render"
+  | "agent-roles"
+  | "team-read"
+  | "team-content"
+  | "team-message"
+  | "team-ack"
+  | "team-control"
+  | "assignment-start"
+  | "assignment-snapshot"
+  | "assignment-checks"
+  | "assignment-result";
 
 export interface T3McpToolDefinition {
   readonly displayName: string;
@@ -96,6 +106,34 @@ const T3_MCP_SERVER_ALIASES = new Set([
 ]);
 
 const T3_MCP_TOOLS: Readonly<Record<string, T3McpToolDefinition>> = {
+  omid_agent_roles: tool(["Read", "Reading", "Read", "project agent roles"], "agent-roles"),
+  omid_team_read: tool(["Read", "Reading", "Read", "workflow status"], "team-read"),
+  omid_team_content: tool(["Read", "Reading", "Read", "workflow evidence"], "team-content"),
+  omid_team_message: tool(["Send", "Sending", "Sent", "an agent message"], "team-message"),
+  omid_team_ack: tool(
+    ["Acknowledge", "Acknowledging", "Acknowledged", "an agent message"],
+    "team-ack",
+  ),
+  omid_team_control: tool(
+    ["Control", "Controlling", "Controlled", "a supervised workflow"],
+    "team-control",
+  ),
+  omid_assignment_start: tool(
+    ["Start", "Starting", "Started", "a role assignment"],
+    "assignment-start",
+  ),
+  omid_assignment_snapshot: tool(
+    ["Pin", "Pinning", "Pinned", "an assignment checkpoint"],
+    "assignment-snapshot",
+  ),
+  omid_assignment_checks: tool(
+    ["Read", "Reading", "Read", "assignment check evidence"],
+    "assignment-checks",
+  ),
+  omid_assignment_result: tool(
+    ["Submit", "Submitting", "Submitted", "assignment evidence"],
+    "assignment-result",
+  ),
   link_pull_request: tool(
     ["Link", "Linking", "Linked", "a pull request"],
     "link-pr",

@@ -11,6 +11,7 @@
 - [Project settings](./user/project-settings.md)
 - [Project roadmaps](./user/roadmap.md)
 - [Project changelogs](./user/changelog.md)
+- [Supervised agent workflows](./user/agent-workflows.md)
 - [Appearance and themes](./user/appearance.md)
 - [Keyboard shortcuts](./user/keybindings.md)
 - [SnapShots](./user/snap-shot.md)
@@ -69,3 +70,8 @@ source alone does not explain. Most code changes do not need an internal documen
 - [Observability](./operations/observability.md)
 - [Relay observability](./operations/relay-observability.md)
 - [Mobile app store screenshots](./operations/mobile-app-store-screenshots.md)
+
+### Fork guidance and proposals
+
+- [AI instructions for custom fork features and upstream updates](./fork/ai-instructions.md)
+- [Agent orchestration and combined skill audit](./fork/agent-orchestration/README.md) (research, accepted design and implementation constraints)

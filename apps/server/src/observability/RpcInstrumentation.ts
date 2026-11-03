@@ -224,6 +224,18 @@ const RPC_AGGREGATES = {
   [WS_METHODS.subscribeAuthAccess]: "auth",
   [WS_METHODS.roadmapRead]: "roadmap",
   [WS_METHODS.roadmapSave]: "roadmap",
+  [WS_METHODS.agentRolesRead]: "agent-workflows",
+  [WS_METHODS.agentRoleSave]: "agent-workflows",
+  [WS_METHODS.agentSkillsRead]: "agent-workflows",
+  [WS_METHODS.agentRolePreview]: "agent-workflows",
+  [WS_METHODS.agentWorkflowSettings]: "agent-workflows",
+  [WS_METHODS.agentWorkflowList]: "agent-workflows",
+  [WS_METHODS.agentWorkflowRead]: "agent-workflows",
+  [WS_METHODS.agentWorkflowContent]: "agent-workflows",
+  [WS_METHODS.agentWorkflowStart]: "agent-workflows",
+  [WS_METHODS.agentWorkflowControl]: "agent-workflows",
+  [WS_METHODS.agentAssignmentControl]: "agent-workflows",
+  [WS_METHODS.agentTeamMessage]: "agent-workflows",
 } as const satisfies Readonly<Record<WsRpcMethod, string>>;
 
 const RPC_SPAN_PREFIX = "ws.rpc";

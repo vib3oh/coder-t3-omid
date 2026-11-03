@@ -19,6 +19,52 @@ pnpm mcp-tool-use --model claude-opus-5-5 --out runs/opus
 - Cost: the existing non-device suite costs about $9 on Sonnet and $17 on Opus. The 16 device cases at 3 samples each cost about $5.70–5.90 on Opus and $2.90–3.40 on Sonnet (main's text–#25661), including the Haiku shell simulator; dry runs cost $0. Results record token costs for the agent and shell simulator. Codex proxy charges are outside that total; only its shell simulator is priced here, about $0.60–0.70 for the device cases.
 - A rate limit or overload (429, 529 or another 5xx) is retried with backoff for up to about 4 minutes. A sample that still fails gets an `error` in `results.jsonl`, is left out of every pass rate, and is listed in the summary; the tokens it spent still count toward the cost.
 
+### Native subscription runs
+
+For local evals using an existing ChatGPT or Claude subscription login:
+
+```sh
+pnpm mcp-tool-use:native --model gpt-6.1-sol --case WF-ORDINARY-CONTROL --samples 1 --out runs/native-check
+pnpm mcp-tool-use:native --model claude-sonnet-5-5 --out runs/native-claude
+```
+
+The native backend runs the installed, unmodified `codex exec` or `claude -p`
+binary. Authenticate with `codex login` or `claude auth login` first. The runner
+checks the login method, removes inherited API keys and endpoint overrides for
+its child processes, and never reads, copies or exports subscription tokens.
+It does not modify personal provider configuration. Usage counts against the
+subscription plan; results make no API-price estimate.
+
+This backend uses the current T3 instructions, tool schemas, case data and
+`gradeSample`. Each sample has an empty temporary working directory and a
+loopback MCP server exposing authored fixtures. Built-in execution tools,
+personal MCP servers, hooks, skills and plugins are disabled for the run. Shell
+calls use explicit case mocks or read-only listing/reads of the case world's files;
+Read returns only files in that world.
+The file map is complete: absent files inside the virtual workspace return an
+ENOENT error; outside paths are never read. `git show` reads only explicitly
+authored revisions. Chained commands stop after a fixture error.
+Missing fixtures, invalid tool inputs, provider errors and unexpected native
+tools fail the sample. Nothing in a model-authored shell command executes on
+the host. Claude's `--bare` mode is deliberately unused because it disables
+subscription authentication.
+
+`setup.exactShellMocks` maps an entire command string, including a snapshot
+wrapper, to authored output. Unlisted compound syntax remains rejected; these
+literal fixtures do not interpret or execute shell code.
+
+The default cases are the eight supervised-workflow cases. Native runs currently
+support top-level cases without prior turns, device worlds or composer context;
+unsupported setups fail before invoking a model. `--cases`, repeated `--case`,
+`--model`, `--effort`, `--samples` (default 2), `--out` and `--dry-run` are
+supported. Samples run serially and use bounded process and tool budgets. A
+dry-run needs no login. Reports include source HEAD, dirty state, CLI version,
+model and backend; any failed or errored sample produces a nonzero exit.
+
+Native results exercise the real installed provider harness with fixture tools.
+They are separate from the API capture-replay results above and do not establish
+a full API-suite pass. Do not combine their pass rates or baselines.
+
 ## Add a case
 
 Cases are JSON lines in `cases/`, one file per area. The case schema in `run.ts` (`McpToolUseCase`) documents every field.
@@ -107,6 +153,12 @@ Raw-route checks inspect possible literal invocations; managed capture and recor
 Commands built at run time, external script files and full shell/interpreter semantics (including complex quoting, dynamic control flow and exception handling) are outside the bounded parser. Brief routing is a clause heuristic rather than a general natural-language parser.
 
 This API replay measures routing and recovery decisions. Screenshots return product text and metadata without rendered image blocks, and Codex code cells have no `image` helper, so a cell that calls it fails with `image is not defined`. The shell remains simulated, children are not executed, and `priorTurns` is synthetic context rather than native resume or compaction. It does not test launcher execution, binding, pruning, actual device state, transport failures or resource cleanup, and it models agent-device's session check rather than running it. DEL-02 checks managed recording start/stop and the final filename; it does not inspect video bytes, required flow, transforms, codec or size. Screenshots and final text do not establish delivered artifacts or honesty. Keep local real-harness results separate; their scores and costs are not API-replay results. Offline validation costs $0. Record fresh per-model baseline and candidate costs before using device-case scores as release evidence.
+
+## Supervised workflow cases
+
+`cases/agent-workflows.ndjson` covers supervised manager assignment and yielding, initial Planner criteria before a spec is frozen, stage-scoped criteria that avoid a Builder/review dependency cycle, snapshot check execution supplied to Reviewer, an independent Reviewer refusing peer-requested repairs, exact answer correlation across concurrent questions, blocking-question yielding, and ordinary single-agent work. Its authored Acme state loads the current role compiler and `managerInstructions`/`assignmentInstructions` from source; the tool schemas come from `AgentWorkflowToolkit`. `setup.workflowRole` selects that fixture without copying model-facing instructions into case data.
+
+Run these cases with `pnpm mcp-tool-use --cases mcp-tool-use/cases/agent-workflows.ndjson --samples 1 --out runs/agent-workflows`. Results measure model routing against simulated tools, not native task execution, filesystem restrictions, checkpoint verification or delivered work. The Reviewer guard checks explicit edit tools and bounded shell patterns; it is not a shell sandbox.
 
 ## Threads vs tasks cases
 

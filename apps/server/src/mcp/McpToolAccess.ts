@@ -21,6 +21,7 @@ import {
   type DispatchModeRefusal,
 } from "../orchestration-v2/DispatchModeLimit.ts";
 import * as PeerForwarding from "../peer/PeerForwarding.ts";
+import { makeAgentWorkflowDispatchGuard } from "../fork/agents/AgentWorkflowDispatchGuard.ts";
 import { assertNotLinked, assertSameLink, callerLinkOrigin } from "./linkOrigin.ts";
 import * as McpInvocationContext from "./McpInvocationContext.ts";
 import { resolveInteractionMode, resolveRuntimeMode } from "./delegatedTaskModes.ts";
@@ -382,6 +383,18 @@ const routed = Effect.fn("McpToolAccess.routed")(function* <Tools extends Record
 ) {
   // Optional so toolkits that never leave this environment build without it.
   const forwarding = yield* Effect.serviceOption(PeerForwarding.PeerForwarding);
+  const workflowDispatchGuard = yield* makeAgentWorkflowDispatchGuard;
+  const guardWorkflow = Effect.fn("McpToolAccess.guardWorkflowDispatch")(function* () {
+    const scope = yield* McpInvocationContext.McpInvocationContext;
+    return yield* workflowDispatchGuard(
+      scope,
+      Effect.gen(function* () {
+        const context = yield* loadCaller();
+        if (!context.caller) return yield* unavailable();
+        return context.caller.projectId;
+      }),
+    );
+  });
   const handlers: Record<string, unknown> = { ...checked };
   for (const [name, declaration] of Object.entries<Declaration<unknown>>(declarations)) {
     const tool = toolkit.tools[name];
@@ -398,6 +411,13 @@ const routed = Effect.fn("McpToolAccess.routed")(function* <Tools extends Record
       Effect.gen(function* () {
         const scope = yield* McpInvocationContext.McpInvocationContext;
         const target = PeerForwarding.remoteTarget(scope, environmentId);
+        if (
+          name === "t3_thread_launch" ||
+          name === "schedule_task" ||
+          name === "run_scheduled_task_now" ||
+          (name === "t3_thread_send" && target !== undefined)
+        )
+          yield* guardWorkflow();
         if (target === undefined) return yield* here(params);
         if (scope.linkedEnvironments === false) return yield* PeerForwarding.linkedEnvironmentsOff;
         yield* (remote as RemoteCheck<typeof params>)(params);

@@ -1,0 +1,48 @@
+{
+  "reaVersion": "6.8.0",
+  "nodeVersion": "26.12.1",
+  "mode": "static inert JavaScript; target not executed",
+  "focused": {
+    "status": "completed-with-partial-graph",
+    "evidenceId": "ev_0b506bac63f29ca8841baafcd210a229fc3c7f3fd9577a17ede156df85777bc5",
+    "statistics": {
+      "relevant_files": 10,
+      "nested_asar_containers": 0,
+      "text_bytes_read": 100408,
+      "invalid_utf8_files": 0,
+      "parsed_javascript_files": 2,
+      "skipped_javascript_files": 0,
+      "visited_ast_nodes": 10094,
+      "findings": 111,
+      "modules": 0,
+      "parse_failures": 0
+    },
+    "semanticNodeLimit": 4000,
+    "applicationCoverage": "partial",
+    "originalBundleLocalPath": "/tmp/hypercoder-analysis/rea-evidence.json.gz"
+  },
+  "mainBundle": {
+    "status": "partial-timeout",
+    "exitCode": 1,
+    "code": "provider_timeout",
+    "message": "JavaScript source analysis reached its 60000ms per-source server/provider deadline (analysis_timeout_ms), not the MCP client deadline.",
+    "deadlineMs": 60000,
+    "source": "main-G1ilvf_H.js",
+    "partialEvidenceId": "ev_2ede27981652089c4e48aba534b6079fe24678fd6f115bc60affd253349c2fb8",
+    "rawOutputLocalPath": "/tmp/hypercoder-analysis/rea-main-summary.json"
+  },
+  "renderer": {
+    "method": "direct static reading",
+    "completedReaGraphCoverage": false
+  },
+  "limitations": [
+    "No live behavior, private backend or app database was exercised.",
+    "Direct bundle reading supplied findings beyond REA selected graph.",
+    "Timeout and capped coverage do not prove feature absence."
+  ],
+  "_publication": {
+    "sourceFileSha256": "cf97a524ee04c0def86955cb7a0bc951081252c4c425344dfcafa02d9312ea6d",
+    "normalization": "Investigation-local absolute path prefix replaced with /tmp/hypercoder-analysis; embedded REA evidence ids refer to the original unmodified results.",
+    "localArtifactsIncluded": false
+  }
+}

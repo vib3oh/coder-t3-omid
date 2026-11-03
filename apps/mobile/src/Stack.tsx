@@ -66,6 +66,7 @@ import { GitConfirmSheet } from "./features/threads/git/GitConfirmSheet";
 import { GitOverviewSheet } from "./features/threads/git/GitOverviewSheet";
 import { ThreadPullRequestsSheet } from "./features/threads/ThreadPullRequestsSheet";
 import { ThreadAgentsSheet } from "./features/threads/ThreadAgentsSheet";
+import { AgentWorkflowsScreen } from "./features/agent-workflows/AgentWorkflowsScreen";
 import { ThreadBackgroundWorkSheet } from "./features/threads/ThreadBackgroundWorkSheet";
 import { ThreadQueueSheet } from "./features/threads/ThreadQueueControl";
 import {
@@ -910,6 +911,11 @@ const RootStackConfig = createWorkspaceStackNavigator({
         sheetAllowedDetents: formSheetDetents(0.5, 0.9),
         sheetGrabberVisible: true,
       },
+    }),
+    AgentWorkflows: createNativeStackScreen({
+      screen: AgentWorkflowsScreen,
+      linking: "agent-workflows",
+      options: { title: "Agent workflows" },
     }),
     GitOverview: createNativeStackScreen({
       screen: GitOverviewSheet,

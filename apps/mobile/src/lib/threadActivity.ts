@@ -3,6 +3,7 @@ import type {
   ThreadPendingUserInput,
 } from "@t3tools/client-runtime/state/thread-requests";
 import { turnItemIsWorkspacePreparation } from "@t3tools/client-runtime/state/turn-item-presentation";
+import { teamMessageToolIsRepresented } from "@t3tools/client-runtime/t3ToolSummary";
 import type { ThreadCheckpointSummary } from "@t3tools/client-runtime/state/thread-checkpoints";
 import { formatSubagentDisplayTitle } from "@t3tools/client-runtime/state/subagent-display";
 import { isLiveSubagentTurnItem } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -1984,6 +1985,22 @@ export function buildThreadFeed(
     readonly cache?: ThreadFeedCache;
   },
 ): ThreadFeedEntry[] {
+  const peerMessageIds = new Set<string>();
+  for (const { item } of visibleTurnItems) {
+    if (
+      item.type === "user_message" &&
+      item.createdBy === "agent" &&
+      item.creationSource !== "server" &&
+      item.senderThreadId
+    )
+      peerMessageIds.add(item.messageId);
+  }
+  if (peerMessageIds.size > 0) {
+    const retained = visibleTurnItems.filter(
+      ({ item }) => !teamMessageToolIsRepresented(item, peerMessageIds),
+    );
+    if (retained.length !== visibleTurnItems.length) visibleTurnItems = retained;
+  }
   const anchoredMessages = options?.anchoredMessages ?? [];
   const attemptByRootNodeId = new Map(
     (options?.attempts ?? []).map((attempt) => [attempt.rootNodeId, attempt] as const),

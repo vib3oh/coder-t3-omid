@@ -9,7 +9,10 @@ draft PR; publishing does not authorize review, marking ready or merging.
 This checkout extends `pingdotgg/t3code`; `origin` is `vib3oh/coder-t3-omid` and
 `upstream` is the original repository. Read [fork maintenance](docs/fork/maintenance.md)
 and [the roadmap contract](docs/fork/roadmap.md) before changing the extension.
-Keep feature code in the dedicated `roadmap` modules. Keep upstream edits small;
+For all custom features and upstream updates, also read and follow the
+[fork AI instructions](docs/fork/ai-instructions.md). Keep detailed fork policy
+there and preserve the upstream guidance below.
+Keep roadmap feature code in the dedicated `roadmap` modules. Keep upstream edits small;
 record new integration points in `fork.json`. Preserve upstream history, license,
 checks and supported providers. Do not install builds over the running T3 app or
 use its live data directory. `CLAUDE.md` must remain a relative symlink to this file.

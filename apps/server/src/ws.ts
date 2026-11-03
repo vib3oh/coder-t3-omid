@@ -218,6 +218,7 @@ import * as ReviewService from "./review/ReviewService.ts";
 import * as ProjectEnrichmentService from "./project/ProjectEnrichmentService.ts";
 import * as ProjectService from "./project/ProjectService.ts";
 import * as RoadmapService from "./roadmap/RoadmapService.ts";
+import * as AgentWorkflows from "./fork/agents/AgentWorkflowRuntimeService.ts";
 import { threadWorkspaceRoot } from "./project/threadWorkspaceRoot.ts";
 import * as ManagedProjectFolders from "./project/ManagedProjectFolders.ts";
 import * as ScratchThreadPromotion from "./project/ScratchThreadPromotion.ts";
@@ -1289,6 +1290,7 @@ export const layerWsRpc = (
     Effect.gen(function* () {
       const currentSessionId = currentSession.sessionId;
       const roadmap = yield* RoadmapService.RoadmapService;
+      const agentWorkflows = yield* AgentWorkflows.AgentWorkflowRuntimeService;
       const sql = yield* SqlClient.SqlClient;
       const threadManagement = yield* ThreadManagementService.ThreadManagementService;
       const intakeContext = yield* Effect.context<
@@ -2874,6 +2876,18 @@ export const layerWsRpc = (
           ),
         [WS_METHODS.roadmapRead]: (input) => roadmap.readView(input),
         [WS_METHODS.roadmapSave]: (input) => roadmap.save(input),
+        [WS_METHODS.agentRolesRead]: (input) => agentWorkflows.roles(input),
+        [WS_METHODS.agentRoleSave]: (input) => agentWorkflows.saveRole(input),
+        [WS_METHODS.agentSkillsRead]: () => agentWorkflows.skills(),
+        [WS_METHODS.agentRolePreview]: (input) => agentWorkflows.previewRole(input),
+        [WS_METHODS.agentWorkflowSettings]: (input) => agentWorkflows.settings(input),
+        [WS_METHODS.agentWorkflowList]: (input) => agentWorkflows.list(input),
+        [WS_METHODS.agentWorkflowRead]: (input) => agentWorkflows.read(input),
+        [WS_METHODS.agentWorkflowContent]: (input) => agentWorkflows.content(input),
+        [WS_METHODS.agentWorkflowStart]: (input) => agentWorkflows.start(input),
+        [WS_METHODS.agentWorkflowControl]: (input) => agentWorkflows.control(input),
+        [WS_METHODS.agentAssignmentControl]: (input) => agentWorkflows.controlAssignment(input),
+        [WS_METHODS.agentTeamMessage]: (input) => agentWorkflows.message(input),
         [WS_METHODS.projectsReadFile]: (input) =>
           workspaceFileSystem.readFile(input).pipe(
             Effect.mapError(

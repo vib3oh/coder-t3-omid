@@ -1,4 +1,9 @@
 import { pipe } from "effect/Function";
+import {
+  optionalServerBuiltinSkillPackage,
+  registerCodexBuiltinSkillRoots,
+  type BuiltinSkillPackage,
+} from "../fork/skills/BuiltinSkillService.ts";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -484,6 +489,7 @@ const codexProcessEnvironment = Effect.fn("codexProcessEnvironment")(function* (
 });
 
 export const withCodexAppServerClient = Effect.fn("withCodexAppServerClient")(function* (input: {
+  readonly builtinSkillPackage?: BuiltinSkillPackage;
   readonly binaryPath: string;
   readonly homePath?: string | undefined;
   readonly launchArgs?: string | undefined;
@@ -522,6 +528,12 @@ export const withCodexAppServerClient = Effect.fn("withCodexAppServerClient")(fu
   );
   const initialize = yield* client.request("initialize", buildCodexInitializeParams());
   yield* client.notify("initialized", undefined);
+  if (input.builtinSkillPackage) {
+    yield* registerCodexBuiltinSkillRoots(
+      (params) => client.request("skills/extraRoots/set", params),
+      input.builtinSkillPackage,
+    );
+  }
   return { client, initialize };
 });
 
@@ -534,7 +546,11 @@ const probeCodexAppServerProvider = Effect.fn("probeCodexAppServerProvider")(fun
   readonly skipNativeUsage?: boolean;
 }) {
   const spawnedAtMs = DateTime.toEpochMillis(yield* DateTime.now);
-  const { client, initialize } = yield* withCodexAppServerClient(input);
+  const builtinSkillPackage = yield* optionalServerBuiltinSkillPackage();
+  const { client, initialize } = yield* withCodexAppServerClient({
+    ...input,
+    ...(builtinSkillPackage ? { builtinSkillPackage } : {}),
+  });
 
   const versionMatch = initialize.userAgent.match(/\/([^\s]+)/);
   const version = versionMatch ? versionMatch[1] : undefined;
@@ -651,7 +667,11 @@ export const probeCodexSkillsForCwd = Effect.fn("probeCodexSkillsForCwd")(functi
   readonly cwd: string;
   readonly environment?: NodeJS.ProcessEnv;
 }) {
-  const { client } = yield* withCodexAppServerClient(input);
+  const builtinSkillPackage = yield* optionalServerBuiltinSkillPackage();
+  const { client } = yield* withCodexAppServerClient({
+    ...input,
+    ...(builtinSkillPackage ? { builtinSkillPackage } : {}),
+  });
   const skillsResponse = yield* client.request("skills/list", { cwds: [input.cwd] });
   return parseCodexSkillsListResponse(skillsResponse, input.cwd);
 });

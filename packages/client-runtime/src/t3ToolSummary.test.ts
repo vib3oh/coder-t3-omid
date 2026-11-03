@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { summarizeT3ToolCalls, type T3ToolSummaryCall } from "./t3ToolSummary.ts";
+import {
+  summarizeT3ToolCalls,
+  teamMessageToolIsRepresented,
+  type T3ToolSummaryCall,
+} from "./t3ToolSummary.ts";
 
 function completed(input: unknown, output?: unknown): T3ToolSummaryCall {
   return { input, output, outcome: "completed" };
@@ -96,5 +100,61 @@ describe("summarizeT3ToolCalls", () => {
       label: "Waited on 1 thread",
       failedCount: 0,
     });
+  });
+
+  it("keeps role summaries and delivery facts without mistaking submission for acceptance", () => {
+    const communication = {
+      id: "message",
+      nativeMessageId: "native-message",
+      senderName: "Builder",
+      recipientName: "Planner",
+      summary: "Web checks passed; native checks are pending",
+      kind: "update",
+      delivery: "queued",
+    };
+    const output = { content: [{ type: "text", text: JSON.stringify({ communication }) }] };
+    expect(
+      summarizeT3ToolCalls("team-message", [completed({ summary: "Different input" }, output)]),
+    ).toEqual({
+      label:
+        "Builder → Planner: Web checks passed; native checks are pending · Queued for next turn",
+      failedCount: 0,
+    });
+    expect(
+      summarizeT3ToolCalls("team-message", [
+        completed({}, { communication: { ...communication, delivery: "failed" } }),
+      ]),
+    ).toMatchObject({
+      label: "Builder → Planner: Web checks passed; native checks are pending · Delivery failed",
+      failedCount: 1,
+    });
+    expect(
+      summarizeT3ToolCalls("assignment-result", [
+        completed({ artifact: { summary: "Implementation ready for review" } }, {}),
+      ]).label,
+    ).toBe("Submitted assignment evidence: Implementation ready for review");
+    expect(
+      summarizeT3ToolCalls("assignment-start", [
+        completed({ objective: "Fix the failing check\nwithout changing scope" }, {}),
+      ]).label,
+    ).toBe("Started 1 role assignment: Fix the failing check without changing scope");
+    const item = {
+      type: "dynamic_tool",
+      status: "completed",
+      toolName: "t3-code.omid_team_message",
+      output,
+    };
+    expect(teamMessageToolIsRepresented(item, new Set(["native-message"]))).toBe(true);
+    expect(teamMessageToolIsRepresented(item, new Set(["different-message"]))).toBe(false);
+    for (const changed of [
+      { status: "running" },
+      { status: "failed" },
+      { toolName: "other.omid_team_message" },
+      { output: { isError: true, structuredContent: { communication } } },
+      { output: { communication: { ...communication, delivery: "failed" } } },
+    ])
+      expect(
+        teamMessageToolIsRepresented({ ...item, ...changed }, new Set(["native-message"])),
+      ).toBe(false);
   });
 });

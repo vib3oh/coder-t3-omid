@@ -45,6 +45,50 @@ interface CompactToolOutput {
   threads?: Array<{ threadId?: string; status?: "rolled_back" }>;
   linkedCount?: number;
   unlinkedCount?: number;
+  communication?: TeamCommunicationReceipt;
+}
+
+export interface TeamCommunicationReceipt {
+  readonly id: string;
+  readonly nativeMessageId: string;
+  readonly senderName: string;
+  readonly recipientName: string;
+  readonly summary: string;
+  readonly kind: "update" | "question" | "answer" | "handoff" | "result";
+  readonly delivery: "persisted" | "queued" | "submitted" | "acknowledged" | "failed";
+}
+
+export function readTeamCommunicationReceipt(value: unknown): TeamCommunicationReceipt | undefined {
+  if (!Predicate.isObject(value)) return undefined;
+  const id = boundedId(value.id);
+  const nativeMessageId = boundedId(value.nativeMessageId);
+  const senderName = boundedId(value.senderName);
+  const recipientName = boundedId(value.recipientName);
+  const summary =
+    typeof value.summary === "string" && value.summary.length <= 2_000
+      ? value.summary.trim().replace(/\s+/g, " ")
+      : undefined;
+  const kind = value.kind;
+  const delivery = value.delivery;
+  if (
+    !id ||
+    !nativeMessageId ||
+    !senderName ||
+    !recipientName ||
+    !summary ||
+    (kind !== "update" &&
+      kind !== "question" &&
+      kind !== "answer" &&
+      kind !== "handoff" &&
+      kind !== "result") ||
+    (delivery !== "persisted" &&
+      delivery !== "queued" &&
+      delivery !== "submitted" &&
+      delivery !== "acknowledged" &&
+      delivery !== "failed")
+  )
+    return undefined;
+  return { id, nativeMessageId, senderName, recipientName, summary, kind, delivery };
 }
 
 function readResult(value: unknown, budget: ResultReadBudget, depth = 0): ResultEnvelope {
@@ -125,6 +169,8 @@ export function compactDynamicToolOutput(value: unknown): CompactToolOutput | un
       if (id !== undefined) output[key] = id;
     }
     if (data.status === "rolled_back") output.status = "rolled_back";
+    const communication = readTeamCommunicationReceipt(data.communication);
+    if (communication) output.communication = communication;
     for (const key of ["linkedCount", "unlinkedCount"] as const) {
       const count = data[key];
       if (typeof count === "number" && Number.isSafeInteger(count)) output[key] = count;
@@ -169,6 +215,7 @@ export function compactDynamicToolOutput(value: unknown): CompactToolOutput | un
   }
   const oversized = () => encoder.encode(JSON.stringify(output)).byteLength > MAX_METADATA_BYTES;
   if (oversized()) {
+    delete output.communication;
     delete output.threads;
     delete output.threadId;
     delete output.status;

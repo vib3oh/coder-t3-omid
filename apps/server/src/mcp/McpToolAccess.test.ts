@@ -7,6 +7,7 @@ import {
   ProviderInteractionMode,
   RuntimeMode,
   ThreadId,
+  type AgentWorkflowProject,
 } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -22,6 +23,7 @@ import * as McpHttpServer from "./McpHttpServer.ts";
 import * as McpInvocationContext from "./McpInvocationContext.ts";
 import * as McpToolAccess from "./McpToolAccess.ts";
 import { liveThreadShell } from "./McpToolAccess.testkit.ts";
+import * as AgentWorkflowStore from "../fork/agents/AgentWorkflowStore.ts";
 
 const supervisedThreadId = ThreadId.make("thread:supervised");
 const planThreadId = ThreadId.make("thread:plan");
@@ -370,6 +372,10 @@ const linkedProbe = {
   }),
 };
 const LinkedProbeToolkit = Toolkit.make(
+  Tool.make("t3_thread_launch", linkedProbe),
+  Tool.make("t3_thread_send", linkedProbe),
+  Tool.make("schedule_task", linkedProbe),
+  Tool.make("run_scheduled_task_now", linkedProbe),
   Tool.make("reads", linkedProbe),
   Tool.make("writes", linkedProbe),
   Tool.make("writes_with_capability", linkedProbe),
@@ -384,6 +390,10 @@ const ranHere = <P extends object>(params: P) =>
 const linkedProbeServer = McpHttpServer.toolkitRegistration(
   LinkedProbeToolkit,
   McpToolAccess.toLayer(LinkedProbeToolkit, {
+    t3_thread_launch: McpToolAccess.startsThreads((input) => input, ranHere, "stamped"),
+    t3_thread_send: McpToolAccess.writesThreads((input) => [input.threadId], ranHere),
+    schedule_task: McpToolAccess.startsThreads((input) => input, ranHere, "stamped"),
+    run_scheduled_task_now: McpToolAccess.writesEnvironment(ranHere),
     reads: McpToolAccess.reads(ranHere),
     writes: McpToolAccess.writes(ranHere),
     writes_with_capability: McpToolAccess.writesWithCapability(ranHere),
@@ -404,6 +414,39 @@ const linkedProbeServer = McpHttpServer.toolkitRegistration(
       call: (_scope, tool, environmentId) =>
         Effect.succeed({ ran: `${tool.name} in ${environmentId}` } as never),
     }),
+  ),
+);
+
+it.effect.each([
+  ["t3_thread_launch", {}],
+  ["t3_thread_launch", { environmentId: box }],
+  ["t3_thread_send", { environmentId: box }],
+  ["schedule_task", {}],
+  ["schedule_task", { environmentId: box }],
+  ["run_scheduled_task_now", {}],
+  ["run_scheduled_task_now", { environmentId: box }],
+] as const)("blocks workflow %s before local launch or remote forwarding (%o)", ([tool, input]) =>
+  call(tool, fullAccess, input).pipe(
+    Effect.map((outcome) => expect(outcome).toBe("capability_denied")),
+    Effect.provide(
+      linkedProbeServer.pipe(
+        Layer.provide(
+          Layer.mock(AgentWorkflowStore.AgentWorkflowStore)({
+            read: () =>
+              Effect.succeed({
+                workflows: [
+                  {
+                    id: "workflow",
+                    status: "running",
+                    managerThreadId: fullAccessThreadId,
+                    participants: [],
+                  },
+                ],
+              } as unknown as AgentWorkflowProject),
+          }),
+        ),
+      ),
+    ),
   ),
 );
 

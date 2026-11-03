@@ -1,4 +1,8 @@
-import type { T3McpToolSummaryAction } from "@t3tools/shared/t3McpToolPresentation";
+import {
+  resolveT3McpToolId,
+  type T3McpToolSummaryAction,
+} from "@t3tools/shared/t3McpToolPresentation";
+import { compactDynamicToolOutput, readTeamCommunicationReceipt } from "@t3tools/shared/toolOutput";
 
 export interface T3ToolSummaryCall {
   readonly input: unknown;
@@ -65,7 +69,38 @@ function readInput(value: unknown): Record<string, unknown> | undefined {
 
 /** MCP errors can be returned as data even when the provider completed the tool call. */
 export function t3ToolResultIndicatesFailure(output: unknown): boolean {
-  return readResult(output).failed;
+  const result = readResult(output);
+  return (
+    result.failed || readTeamCommunicationReceipt(result.data?.communication)?.delivery === "failed"
+  );
+}
+
+export function teamMessageToolIsRepresented(
+  item: {
+    readonly type: string;
+    readonly status: string;
+    readonly toolName?: string | null;
+    readonly output?: unknown;
+  },
+  peerMessageIds: ReadonlySet<string>,
+): boolean {
+  if (
+    item.type !== "dynamic_tool" ||
+    item.status !== "completed" ||
+    resolveT3McpToolId(item.toolName) !== "omid_team_message"
+  )
+    return false;
+  const output = compactDynamicToolOutput(item.output);
+  return (
+    output?.isError !== true &&
+    output?.communication !== undefined &&
+    output.communication.delivery !== "failed" &&
+    peerMessageIds.has(output.communication.nativeMessageId)
+  );
+}
+
+function oneLine(value: unknown) {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, 200) : "";
 }
 
 function countEntities(ids: ReadonlyArray<string | undefined>): number {
@@ -104,10 +139,13 @@ export function summarizeT3ToolCalls(
 ): { label: string; failedCount: number } {
   const results = calls.map((call) => {
     const result = readResult(call.output);
+    const communication = readTeamCommunicationReceipt(result.data?.communication);
     return {
       input: readInput(call.input),
       output: result.data,
-      outcome: result.failed ? ("failed" as const) : call.outcome,
+      communication,
+      outcome:
+        result.failed || communication?.delivery === "failed" ? ("failed" as const) : call.outcome,
     };
   });
   const completed = results.filter((call) => call.outcome === "completed");
@@ -129,6 +167,83 @@ export function summarizeT3ToolCalls(
   );
   let label: string;
   switch (action) {
+    case "team-message": {
+      const call = selected[0];
+      const receipt = call?.communication;
+      if (selected.length === 1 && receipt) {
+        const status =
+          call.outcome === "failed"
+            ? "Delivery failed"
+            : receipt.delivery === "queued"
+              ? "Queued for next turn"
+              : receipt.delivery === "acknowledged"
+                ? "Received"
+                : receipt.delivery === "submitted"
+                  ? "Sent"
+                  : "Saved";
+        label = `${receipt.senderName} → ${receipt.recipientName}: ${receipt.summary} · ${status}`;
+      } else if (selected.length === 1 && oneLine(call?.input?.summary)) {
+        label = `${completed.length ? "Recorded agent message" : "Tried to send agent message"}: ${oneLine(call?.input?.summary)}`;
+      } else {
+        label = phrase(
+          "Recorded",
+          "send",
+          quantity(
+            countEntities(selected.map((entry) => entry.communication?.id)),
+            "agent message",
+          ),
+        );
+      }
+      break;
+    }
+    case "agent-roles":
+      label = phrase("Read", "read", "project agent roles");
+      break;
+    case "team-read":
+      label = phrase("Read", "read", "workflow status");
+      break;
+    case "team-content":
+      label = phrase("Read", "read", "workflow evidence");
+      break;
+    case "team-ack":
+      label = phrase("Acknowledged", "acknowledge", "message receipt");
+      break;
+    case "team-control": {
+      const action = selected.length === 1 ? selected[0]?.input?.action : undefined;
+      const operation =
+        action === "pause"
+          ? "pause"
+          : action === "resume"
+            ? "resume"
+            : action === "cancel"
+              ? "cancellation"
+              : action === "retry"
+                ? "retry"
+                : "control";
+      label = phrase("Requested", "request", `workflow ${operation}`);
+      break;
+    }
+    case "assignment-start": {
+      const objective = selected.length === 1 ? oneLine(selected[0]?.input?.objective) : "";
+      label = phrase(
+        "Started",
+        "start",
+        `${quantity(selected.length, "role assignment")}${objective ? `: ${objective}` : ""}`,
+      );
+      break;
+    }
+    case "assignment-snapshot":
+      label = phrase("Pinned", "pin", "an assignment checkpoint");
+      break;
+    case "assignment-checks":
+      label = phrase("Read", "read", "canonical check evidence");
+      break;
+    case "assignment-result": {
+      const summary =
+        selected.length === 1 ? oneLine(asRecord(selected[0]?.input?.artifact)?.summary) : "";
+      label = phrase("Submitted", "submit", `assignment evidence${summary ? `: ${summary}` : ""}`);
+      break;
+    }
     case "thread-send": {
       const messages = countEntities(selected.map((call) => id(call.output?.messageId)));
       const targetsKnown = threadIds.every((value) => value !== undefined);

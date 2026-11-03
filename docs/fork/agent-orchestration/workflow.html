@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #0a0a0a;
+        --foreground: #ededed;
+        --muted-foreground: #a3a3a3;
+        --card: #141414;
+        --secondary: #262626;
+        --border: #303030;
+        --primary: #82aaff;
+        --primary-foreground: #10131a;
+        --accent: #1b2b48;
+        --ring: #82aaff;
+        --warning: #f0b45b;
+        --warning-surface: #332710;
+        --destructive: #ff8e91;
+        --destructive-surface: #351c22;
+        --code-background: #101010;
+        --radius: 8px;
+        --font-sans: system-ui, sans-serif;
+        --font-mono: ui-monospace, monospace;
+      }
+
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font: 14px var(--font-sans, system-ui);
+        color: var(--foreground);
+      }
+      p {
+        line-height: 1.55;
+        margin: 0 0 12px;
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 22px 1fr 22px 1fr;
+        align-items: stretch;
+        gap: 4px;
+        margin-bottom: 14px;
+      }
+      .role {
+        font: inherit;
+        text-align: left;
+        color: var(--foreground);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius, 10px);
+        padding: 15px;
+        cursor: pointer;
+      }
+      .role[aria-pressed="true"] {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px var(--primary);
+      }
+      .role b {
+        display: block;
+        font-size: 16px;
+        margin-bottom: 6px;
+      }
+      .role span {
+        color: var(--muted-foreground);
+        font-size: 12px;
+        line-height: 1.45;
+        display: block;
+      }
+      .arrow {
+        align-self: center;
+        text-align: center;
+        color: var(--muted-foreground);
+      }
+      .detail {
+        border: 1px solid var(--border);
+        border-radius: var(--radius, 10px);
+        padding: 16px;
+        background: var(--card);
+      }
+      h3 {
+        margin: 0 0 12px;
+        font-size: 15px;
+      }
+      .rows {
+        display: grid;
+        grid-template-columns: 95px 1fr;
+        gap: 9px 12px;
+        line-height: 1.5;
+      }
+      .label {
+        color: var(--muted-foreground);
+      }
+      .note {
+        font-size: 12px;
+        color: var(--muted-foreground);
+        margin-top: 12px;
+      }
+      .question {
+        margin-top: 14px;
+        padding: 14px;
+        background: var(--secondary);
+        border-radius: var(--radius, 10px);
+        line-height: 1.5;
+      }
+      .question b {
+        font-size: 12px;
+        display: block;
+        color: var(--primary);
+        margin-bottom: 4px;
+      }
+      .gate {
+        margin-top: 14px;
+        font-size: 13px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      @media (max-width: 470px) {
+        .flow {
+          grid-template-columns: 1fr;
+        }
+        .arrow {
+          transform: rotate(90deg);
+          line-height: 17px;
+        }
+        .role {
+          padding: 12px;
+        }
+        .rows {
+          grid-template-columns: 70px 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p>One supervised workflow. Select a role to see its contract.</p>
+    <div class="flow">
+      <button class="role" data-role="planner" aria-pressed="true">
+        <b>Planner</b><span>Spec, scope and assignments</span>
+      </button>
+      <div class="arrow" aria-hidden="true">→</div>
+      <button class="role" data-role="builder" aria-pressed="false">
+        <b>Builder</b><span>Implementation and evidence</span>
+      </button>
+      <div class="arrow" aria-hidden="true">→</div>
+      <button class="role" data-role="reviewer" aria-pressed="false">
+        <b>Reviewer</b><span>Independent revision check</span>
+      </button>
+    </div>
+    <section class="detail" aria-live="polite">
+      <h3 id="name"></h3>
+      <div class="rows">
+        <span class="label">Receives</span><span id="input"></span
+        ><span class="label">Produces</span><span id="output"></span><span class="label">Needs</span
+        ><span id="needs"></span>
+      </div>
+      <div class="gate" id="gate"></div>
+    </section>
+    <div class="question">
+      <b>Targeted peer question · q-17</b>Builder → Planner: “Does the accepted spec require offline
+      use?”<br />Planner → Builder, replyTo q-17: “Only cached viewing. Offline edits are outside
+      scope.”
+      <div class="note">
+        The server records sender, recipient and question ID. A progress update cannot answer q-17.
+      </div>
+    </div>
+    <p class="note">
+      Each assignment uses an existing T3 thread/task. The server checks handoffs; the manager
+      steers the work. Findings return to the builder, then a fresh review checks the new revision.
+    </p>
+    <script>
+      const roles = {
+        planner: {
+          name: "Planner · owns the assignment contract",
+          input: "User objective, project context, constraints and known decisions.",
+          output: "A versioned spec, acceptance criteria, dependencies and named assignments.",
+          needs:
+            "Roadmap/spec tools, relevant code context and authority to resolve questions within scope.",
+          gate: "Handoff: builder receives the accepted spec revision. User-only decisions remain pending.",
+        },
+        builder: {
+          name: "Builder · owns one implementation",
+          input: "Accepted spec, base commit, bounded write responsibility and checks.",
+          output: "A commit or checkpoint, check results, evidence and remaining risks.",
+          needs: "An isolated checkout, build/test tools, loaded skills and a manager address.",
+          gate: "Handoff: server checks the artifact and revision before starting independent review.",
+        },
+        reviewer: {
+          name: "Reviewer · owns verified findings",
+          input: "Exact base/head diff, acceptance criteria and implementation evidence.",
+          output: "Verified findings tied to code, or a no-findings result with stated limits.",
+          needs: "Fresh review context, repository guidance and appropriate inspection tools.",
+          gate: "Handoff: findings go back to the builder. New code requires a fresh review at its new revision.",
+        },
+      };
+      function select(key) {
+        const r = roles[key];
+        for (const id of ["name", "input", "output", "needs", "gate"])
+          document.getElementById(id).textContent = r[id];
+        document
+          .querySelectorAll(".role")
+          .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.role === key)));
+      }
+      document
+        .querySelectorAll(".role")
+        .forEach((b) => b.addEventListener("click", () => select(b.dataset.role)));
+      select("planner");
+    </script>
+  </body>
+</html>

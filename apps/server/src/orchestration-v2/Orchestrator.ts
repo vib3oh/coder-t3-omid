@@ -7891,14 +7891,23 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     if (!startsAttempt) return;
     const child = yield* projectionStore.getThread(command.threadId);
     const parentThreadId = child.lineage.parentThreadId;
+    if (child.lineage.relationshipToParent !== "subagent" || parentThreadId === null) return;
     if (
-      child.lineage.relationshipToParent !== "subagent" ||
-      parentThreadId === null ||
-      (command.notification === undefined &&
-        command.createdBy !== "user" &&
-        command.senderThreadId !== parentThreadId)
-    )
-      return;
+      command.notification === undefined &&
+      command.createdBy !== "user" &&
+      command.senderThreadId !== parentThreadId
+    ) {
+      if (command.senderThreadId === undefined) return;
+      const sender = yield* projectionStore
+        .getThread(command.senderThreadId)
+        .pipe(Effect.catchTags({ ProjectionStoreThreadNotFoundError: () => Effect.succeed(null) }));
+      if (
+        sender === null ||
+        sender.lineage.relationshipToParent !== "subagent" ||
+        sender.lineage.parentThreadId !== parentThreadId
+      )
+        return;
+    }
     const run =
       pending
         .flatMap((event) =>

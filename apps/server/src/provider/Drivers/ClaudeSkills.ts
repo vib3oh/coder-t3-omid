@@ -12,9 +12,9 @@ import { parse as parseYamlDocument } from "yaml";
 
 import { expandHomePath } from "@t3tools/provider-core/server/pathExpansion";
 
-type ClaudeSkillScope = "user" | "project";
+type ClaudeSkillScope = "user" | "project" | "system";
 
-type ClaudeSkillRoot = {
+export type ClaudeSkillRoot = {
   readonly directory: string;
   readonly scope: ClaudeSkillScope;
   readonly prefix?: string;
@@ -489,6 +489,7 @@ export const discoverClaudeSkills = Effect.fn("discoverClaudeSkills")(function* 
   config: Pick<ClaudeSettings, "homePath"> & Partial<Pick<ClaudeSettings, "launchArgs">>,
   cwd?: string,
   environment?: NodeJS.ProcessEnv,
+  additionalPluginRoots: ReadonlyArray<ClaudeSkillRoot> = [],
 ): Effect.fn.Return<ReadonlyArray<ServerProviderSkill>, never, FileSystem.FileSystem | Path.Path> {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -514,6 +515,7 @@ export const discoverClaudeSkills = Effect.fn("discoverClaudeSkills")(function* 
       enabledPlugins,
       environment ?? process.env,
     )),
+    ...additionalPluginRoots,
   ];
 
   const skillsByName = new Map<string, ServerProviderSkill>();
