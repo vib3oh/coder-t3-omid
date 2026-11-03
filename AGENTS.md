@@ -22,6 +22,13 @@ T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provid
 
 You can think of T3 Code as an open source "bring-your-own-subscription" alternative to apps like Claude Desktop, Codex App, Cursor Glass and Conductor.
 
+## Working on Omid's fork
+
+For work on `vib3oh/coder-t3-omid`, read and follow the
+[fork AI instructions](docs/fork/ai-instructions.md) before making changes or
+integrating upstream updates. Keep fork-specific policy in that file and preserve
+the upstream guidance below. `CLAUDE.md` imports this file.
+
 ## What makes T3 Code special?
 
 We have over 500,000 users who love T3 Code. It's important we maintain the things they love as we continue to iterate on the product. Here's a brief list of the things we can never compromise on.

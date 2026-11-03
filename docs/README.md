@@ -70,6 +70,7 @@ source alone does not explain. Most code changes do not need an internal documen
 - [Relay observability](./operations/relay-observability.md)
 - [Mobile app store screenshots](./operations/mobile-app-store-screenshots.md)
 
-### Fork proposals
+### Fork guidance and proposals
 
+- [AI instructions for custom fork features and upstream updates](./fork/ai-instructions.md)
 - [Agent orchestration and combined skill audit](./fork/agent-orchestration/README.md) (draft design; no runtime implementation)
