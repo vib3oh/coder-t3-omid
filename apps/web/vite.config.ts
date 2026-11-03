@@ -139,6 +139,8 @@ const browserTestProject = {
       commands: {
         dragPointer: async ({ page, frame }, source: string, target: string) => {
           const content = await frame();
+          await content.locator(source).scrollIntoViewIfNeeded();
+          await content.locator(source).click({ trial: true });
           const from = await content.locator(source).boundingBox();
           const to = await content.locator(target).boundingBox();
           if (!from || !to) throw new Error("Drag source or target is not visible.");

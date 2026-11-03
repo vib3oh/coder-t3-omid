@@ -86,7 +86,7 @@ export function roadmapDropAction(
   return {
     type: "plan",
     lane: target,
-    archiveThread: Boolean(thread && !thread.archivedAt && !card.completed),
+    archiveThread: Boolean(thread && !thread.archivedAt),
   } as const;
 }
 

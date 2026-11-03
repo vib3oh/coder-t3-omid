@@ -46,6 +46,12 @@ describe("roadmap lifecycle", () => {
       lane: "upNext",
       archiveThread: true,
     });
+    expect(
+      roadmapDropAction({ ...card, completed: true }, "backlog", {
+        archivedAt: null,
+        pullRequests: [],
+      }),
+    ).toEqual({ type: "plan", lane: "backlog", archiveThread: true });
     expect(roadmapDropAction(card, "done", null)).toEqual({ type: "complete" });
     expect(
       roadmapDropAction(card, "building", {

@@ -430,3 +430,48 @@ it("resumes archived linked work and prevents read-only users from dragging", as
   );
   expect(state.launch).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["Up Next", null, "upNext"],
+  ["Parked", true, "backlog"],
+] as const)(
+  "reopens completed work in %s and guards its pending transition",
+  async (target, draft, lane) => {
+    setup();
+    await page.viewport(1800, 900);
+    state.board = {
+      version: 1,
+      revision: 0,
+      cards: [
+        { ...idea("reopen", "Reopen idea"), threadId: ThreadId.make("finished"), completed: true },
+      ],
+    };
+    state.linkedThreads = [linkedThread("finished", draft)];
+    let finishArchive!: () => void;
+    const archived = new Promise<void>((resolve) => {
+      finishArchive = resolve;
+    });
+    state.archive.mockImplementation(async () => {
+      await archived;
+      state.linkedThreads = [
+        { ...linkedThread("finished", draft), archivedAt: "2026-11-02T12:00:00Z" },
+      ];
+      return AsyncResult.success({});
+    });
+    await using screen = await render(<RoadmapPage />, { router: "/roadmap" });
+    await drag("Reopen idea", target);
+    await vi.waitFor(() => expect(state.archive).toHaveBeenCalledTimes(1));
+    await expect
+      .element(screen.getByRole("button", { name: "Add idea", exact: true }))
+      .toBeDisabled();
+    finishArchive();
+    await expect
+      .element(
+        screen
+          .getByRole("region", { name: target, exact: true })
+          .getByRole("button", { name: "Reopen idea", exact: true }),
+      )
+      .toBeVisible();
+    expect(state.board.cards[0]).toMatchObject({ completed: false, lane });
+  },
+);

@@ -3,7 +3,7 @@
 Verified on 2026-11-02 against the initial upstream commit in `fork.json`.
 
 `vp run check:changed` passed formatting, lint, both unused-code checks, GraphQL
-generation validation, typechecking of the 39 affected packages, 95 tests in
+generation validation, typechecking of the 39 affected packages, 97 tests in
 ten files, and React Compiler coverage for ten changed client modules. The
 complete upstream test and release suites were not run.
 
@@ -18,7 +18,8 @@ background refresh, conflict feedback, reloading without losing the draft,
 preserving concurrent metadata when saving the rebased draft, and closing a
 read-only drawer. They also verify review-section visibility, checklist/spec
 edits, real pointer drags that route to thread launch or review, reserved-thread
-launch retry, worktree defaults, and archived-thread resume. Transport calls are
+launch retry, worktree defaults, archived-thread resume, and reopening manually
+completed work into planning or Parked while guarding pending transitions. Transport calls are
 mocked in these Chromium tests; no paid provider is launched. Screenshots and a
 short drag recording are attached to the PR rather than committed.
 
@@ -30,11 +31,13 @@ Persistence tests include optional spec/checklist fields on legacy boards and
 duplicate criterion-id rejection; merge tests cover independent checkbox/text
 edits and concurrent criterion additions.
 
-The production web build (`vp build` from `apps/web`) passed. It emitted the
+The production web build (`T3CODE_WEB_SOURCEMAP=0 vp build` from `apps/web`) passed. It emitted the
 upstream large-chunk warning. An isolated dev server also started successfully
 with `--home-dir <checkout>/.t3 --no-seed`, including database migrations and
 WebSocket service construction. No full paired-client, native desktop packaging,
-native mobile, or live HyperCoder cloud flow was exercised.
+native mobile, or live HyperCoder cloud flow was exercised in the initial pass.
+Additional source-bound integrated ship evidence and the owner's explicit CI
+exception are recorded on the PR; the exception does not claim that CI passed.
 
 REA’s completed CLI analysis, bounded coverage and the partial ASAR analysis are
 documented in [the investigation](hypercoder-investigation.md). Full local REA

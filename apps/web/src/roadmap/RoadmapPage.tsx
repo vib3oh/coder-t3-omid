@@ -102,7 +102,8 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
   const [saved, setSaved] = useState<RoadmapBoard | null>(null);
   const [saving, setSaving] = useState(false);
   const savePending = useRef(false);
-  const transitioning = useRef(false);
+  const transitionPending = useRef(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -112,7 +113,7 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
   const fetched = view?.board ?? null;
   const board = saved && (!fetched || saved.revision > fetched.revision) ? saved : fetched;
   const work = useRoadmapWork(project, save);
-  const busy = saving || work.working;
+  const busy = saving || work.working || transitioning;
   const threadsById = new Map(
     [...threads, ...(view?.linkedThreads ?? [])].map((thread) => [thread.id, thread]),
   );
@@ -140,7 +141,7 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
   }
 
   async function drop(id: string, column: RoadmapColumn, beforeId?: string) {
-    if (!board || busy || !canSave || showArchived || transitioning.current) return;
+    if (!board || busy || !canSave || showArchived || transitionPending.current) return;
     const card = board.cards.find((row) => row.id === id);
     if (!card || card.archived) return;
     const thread = threadFor(card);
@@ -154,7 +155,8 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
       setError(action.message);
       return;
     }
-    transitioning.current = true;
+    transitionPending.current = true;
+    setTransitioning(true);
     setError(null);
     setNotice(null);
     if (action.type === "work") {
@@ -182,7 +184,18 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
         });
         if (archived._tag === "Failure") setError(commandError(archived));
         else if (action.type === "plan")
-          await save(moveRoadmapCard(board.cards, id, action.lane, beforeId));
+          await save(
+            moveRoadmapCard(
+              board.cards.map((row) => (row.id === id ? { ...row, completed: false } : row)),
+              id,
+              action.lane,
+              beforeId,
+            ),
+          );
+        else if (card.completed)
+          await save(
+            board.cards.map((row) => (row.id === id ? { ...row, completed: false } : row)),
+          );
       }
     } else if (action.type === "plan") {
       await save(
@@ -196,7 +209,8 @@ function ProjectBoard({ project }: { project: EnvironmentProject }) {
     } else if (action.type === "complete") {
       await save(board.cards.map((row) => (row.id === id ? { ...row, completed: true } : row)));
     }
-    transitioning.current = false;
+    transitionPending.current = false;
+    setTransitioning(false);
     void reload(target);
   }
 
