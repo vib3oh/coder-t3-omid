@@ -74,6 +74,9 @@ const layerDesktopUpdates = Layer.succeed(DesktopUpdates.DesktopUpdates, {
 
 const layerDesktopWindow = (selectedAction: Deferred.Deferred<string>) =>
   Layer.succeed(DesktopWindow.DesktopWindow, {
+    openChangelog: () => Effect.die("unexpected openChangelog"),
+    pinChangelog: () => Effect.die("unexpected pinChangelog"),
+    returnChangelog: () => Effect.die("unexpected returnChangelog"),
     createMain: Effect.die("unexpected createMain"),
     ensureMain: Effect.die("unexpected ensureMain"),
     revealOrCreateMain: Effect.die("unexpected revealOrCreateMain"),

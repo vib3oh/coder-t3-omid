@@ -89,6 +89,9 @@ function layerDesktopWindow(
   } = {},
 ) {
   return Layer.succeed(DesktopWindow.DesktopWindow, {
+    openChangelog: () => Effect.die("unexpected openChangelog"),
+    pinChangelog: () => Effect.die("unexpected pinChangelog"),
+    returnChangelog: () => Effect.die("unexpected returnChangelog"),
     createMain: Effect.die("unexpected window creation"),
     ensureMain: Effect.die("unexpected window creation"),
     revealOrCreateMain: Effect.die("unexpected window creation"),

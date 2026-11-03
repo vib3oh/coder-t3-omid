@@ -35,6 +35,54 @@
         "apps/web/test/browserSetup.ts",
         "apps/web/vite.config.ts"
       ]
+    },
+    "changelog": {
+      "ownedPaths": [
+        "packages/contracts/src/changelog.ts",
+        "packages/shared/src/projectChangelog.ts",
+        "packages/shared/src/projectChangelog.test.ts",
+        "apps/server/src/roadmap/ChangelogService.ts",
+        "apps/server/src/roadmap/ChangelogService.test.ts",
+        "apps/server/src/roadmap/ChangelogHttp.ts",
+        "apps/web/src/roadmap/ChangelogPage.tsx",
+        "apps/web/src/roadmap/changelogState.ts",
+        "apps/web/src/routes/_chat.changelog.tsx",
+        "apps/desktop/src/roadmap/ChangelogWindows.ts",
+        "apps/desktop/src/roadmap/ChangelogWindows.test.ts",
+        "apps/desktop/src/ipc/methods/changelog.ts",
+        "apps/web/src/roadmap/ChangelogWindow.tsx"
+      ],
+      "integrationPaths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/rpc.ts",
+        "packages/contracts/src/clientRpcPermissions.ts",
+        "packages/shared/package.json",
+        "apps/server/src/auth/RpcAuthorization.ts",
+        "apps/server/src/observability/RpcInstrumentation.ts",
+        "apps/server/src/server.ts",
+        "apps/server/src/ws.ts",
+        "apps/web/src/components/sidebar/SidebarChrome.tsx",
+        "apps/web/src/components/sidebar/mainAppLocation.ts",
+        "apps/web/src/components/CommandPalette.tsx",
+        "apps/web/src/routeTree.gen.ts",
+        "packages/contracts/src/ipc.ts",
+        "apps/desktop/src/window/DesktopWindow.ts",
+        "apps/desktop/src/ipc/DesktopIpcHandlers.ts",
+        "apps/desktop/src/ipc/channels.ts",
+        "apps/desktop/src/preload.ts",
+        "apps/web/src/routes/__root.tsx",
+        "docs/README.md",
+        "docs/fork/README.md"
+      ],
+      "verificationPaths": [
+        "packages/client-runtime/src/state/commandPermissions.test.ts",
+        "apps/server/src/ws.test.ts",
+        "apps/desktop/src/app/DesktopLifecycle.test.ts",
+        "apps/desktop/src/backend/DesktopBackendPool.test.ts",
+        "apps/desktop/src/window/DesktopApplicationMenu.test.ts"
+      ]
     }
   }
 }

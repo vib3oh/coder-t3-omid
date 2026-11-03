@@ -1,4 +1,11 @@
 import {
+  ChangelogReadInput,
+  ChangelogView,
+  ChangelogShareInput,
+  ChangelogShareResult,
+  ChangelogError,
+} from "./changelog.ts";
+import {
   OrchestrationV2SearchThreadError,
   OrchestrationV2SearchThreadInput,
   OrchestrationV2SearchThreadResult,
@@ -561,6 +568,8 @@ export const WS_METHODS = {
   cloudGetRelayClientStatus: "cloud.getRelayClientStatus",
   cloudInstallRelayClient: "cloud.installRelayClient",
 
+  changelogRead: "omid.changelog.read",
+  changelogShare: "omid.changelog.share",
   pullRequestsList: "pullRequests.list",
   pullRequestsListStats: "pullRequests.listStats",
   pullRequestsFilterOptions: "pullRequests.filterOptions",
@@ -1007,6 +1016,17 @@ const PullRequestRpcError = Schema.Union([
   PullRequestOperationError,
   EnvironmentAuthorizationError,
 ]);
+
+const WsChangelogReadRpc = Rpc.make(WS_METHODS.changelogRead, {
+  payload: ChangelogReadInput,
+  success: ChangelogView,
+  error: Schema.Union([ChangelogError, EnvironmentAuthorizationError]),
+});
+const WsChangelogShareRpc = Rpc.make(WS_METHODS.changelogShare, {
+  payload: ChangelogShareInput,
+  success: ChangelogShareResult,
+  error: Schema.Union([ChangelogError, EnvironmentAuthorizationError]),
+});
 
 const WsPullRequestsListRpc = Rpc.make(WS_METHODS.pullRequestsList, {
   payload: PullRequestListInput,
@@ -1989,6 +2009,8 @@ export class RpcScopeAuthorization extends RpcMiddleware.Service<RpcScopeAuthori
 ) {}
 
 export const WsRpcGroup = RpcGroup.make(
+  WsChangelogReadRpc,
+  WsChangelogShareRpc,
   WsGuestShareCreateRpc,
   WsServerProbeRpc,
   WsServerGetConfigRpc,

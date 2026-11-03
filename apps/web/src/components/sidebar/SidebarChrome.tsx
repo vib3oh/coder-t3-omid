@@ -2,6 +2,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   ChartNoAxesColumnIcon,
+  ListChecksIcon,
   SettingsIcon,
   KanbanIcon,
 } from "lucide-react";
@@ -284,6 +285,14 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               onClick={handlePullRequestsClick}
             />
           ) : null}
+          <SidebarUtilityItem
+            icon={<ListChecksIcon />}
+            label="Changelog"
+            onClick={() => {
+              closeMobileSidebar();
+              void navigate({ to: "/changelog" });
+            }}
+          />
           <SidebarUtilityItem
             icon={<ChartNoAxesColumnIcon />}
             label="Usage"

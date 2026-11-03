@@ -5,6 +5,8 @@ server that owns the project, so the board works across browsers and remote
 connections without a GitHub repository or a separate cloud account.
 
 - [Use the roadmap](../user/roadmap.md)
+- [Use the changelog](../user/changelog.md)
+- [Changelog boundary](changelog.md)
 - [Architecture and product contract](roadmap.md)
 - [Maintain the fork and take upstream updates](maintenance.md)
 - [HyperCoder investigation and REA evidence](hypercoder-investigation.md)

@@ -1023,6 +1023,11 @@ export const SystemSettingsPaneSchema = Schema.Literals(["full-disk-access"]);
 export type SystemSettingsPane = typeof SystemSettingsPaneSchema.Type;
 
 export interface DesktopBridge {
+  openChangelogWindow?: (project?: string) => Promise<boolean>;
+  getChangelogWindowPinned?: () => Promise<boolean>;
+  setChangelogWindowPinned?: (pinned: boolean) => Promise<boolean>;
+  returnChangelogToApp?: (project?: string) => Promise<boolean>;
+  onChangelogReturned?: (listener: (project: string | undefined) => void) => () => void;
   getAppBranding: () => DesktopAppBranding | null;
   getRelayTelemetryEnabled: () => boolean;
   getPathForFile: (file: File) => string;

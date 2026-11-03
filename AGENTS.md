@@ -1,3 +1,9 @@
+# Fork workflow
+
+Always use the `vibe-*` skills for work in this project, including worktree setup,
+implementation, review, publishing and shipping. Use `vibe-publish` to open a
+draft PR; publishing does not authorize review, marking ready or merging.
+
 # Omid’s T3 roadmap fork
 
 This checkout extends `pingdotgg/t3code`; `origin` is `vib3oh/coder-t3-omid` and

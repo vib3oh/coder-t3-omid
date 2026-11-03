@@ -124,3 +124,8 @@ export const RECEIVE_PROVIDER_AUTH_CALLBACK_CHANNEL = "desktop:receive-provider-
 export const CANCEL_PROVIDER_AUTH_CALLBACK_CHANNEL = "desktop:cancel-provider-auth-callback";
 export const TAKE_LEGACY_LOCAL_STORAGE_CHANNEL = "desktop:take-legacy-local-storage";
 export const COMPLETE_LEGACY_LOCAL_STORAGE_CHANNEL = "desktop:complete-legacy-local-storage";
+
+export const OPEN_CHANGELOG_WINDOW_CHANNEL = "desktop:changelog-open";
+export const PIN_CHANGELOG_WINDOW_CHANNEL = "desktop:changelog-pin";
+export const RETURN_CHANGELOG_WINDOW_CHANNEL = "desktop:changelog-return";
+export const CHANGELOG_RETURN_CHANNEL = "desktop:changelog-returned";
