@@ -2,6 +2,56 @@ import { roadmapColumn } from "@t3tools/shared/roadmapLifecycle";
 export { roadmapColumn } from "@t3tools/shared/roadmapLifecycle";
 import type { RoadmapCard } from "@t3tools/contracts";
 
+export function roadmapSyncDiagnostics(text: string) {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return { type: "invalid" } as const;
+  }
+  const remaining = [value];
+  while (remaining.length) {
+    const item = remaining.pop();
+    if (!item || typeof item !== "object") continue;
+    for (const [key, child] of Object.entries(item)) {
+      if (/token|secret|password|authorization|credential/i.test(key))
+        return { type: "credentials" } as const;
+      if (child && typeof child === "object") remaining.push(child);
+    }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return { type: "invalid" } as const;
+  if (
+    !("source" in value) ||
+    typeof value.source !== "string" ||
+    !value.source.trim() ||
+    !("backend" in value) ||
+    typeof value.backend !== "string" ||
+    !value.backend.trim() ||
+    !("projectId" in value) ||
+    typeof value.projectId !== "string" ||
+    !value.projectId.trim() ||
+    !("instanceId" in value) ||
+    typeof value.instanceId !== "string" ||
+    !value.instanceId.trim()
+  )
+    return { type: "invalid" } as const;
+  const binding = {
+    contextPath: value.source.trim(),
+    backend: value.backend.trim(),
+    projectId: value.projectId.trim(),
+    instanceId: value.instanceId.trim(),
+  };
+  if (
+    binding.backend.length > 253 ||
+    [binding.contextPath, binding.projectId, binding.instanceId].some(
+      (field) => field.length > 2000,
+    )
+  )
+    return { type: "invalid" } as const;
+  return { type: "valid", binding } as const;
+}
+
 export const ROADMAP_COLUMNS = [
   ["backlog", "Backlog", "Ideas worth keeping"],
   ["upNext", "Up Next", "Prioritized and ready to start"],
@@ -21,6 +71,13 @@ interface RoadmapThread {
 
 export type RoadmapColumn = ReturnType<typeof roadmapColumn>;
 
+export function roadmapReadOnlyReason(card: RoadmapCard) {
+  if (!card.sync) return null;
+  if (card.sync.readOnly || ["conflict", "unsupported", "failed"].includes(card.sync.status))
+    return card.sync.reason ?? "Resolve this card’s Hypercoder sync status before changing it.";
+  return null;
+}
+
 function pullRequests(thread: RoadmapThread | null | undefined) {
   return (
     thread?.pullRequests
@@ -34,6 +91,8 @@ export function roadmapDropAction(
   target: RoadmapColumn,
   thread?: RoadmapThread | null,
 ) {
+  const reason = roadmapReadOnlyReason(card);
+  if (reason) return { type: "blocked", message: reason } as const;
   const snapshots = pullRequests(thread);
   const open = snapshots.filter((pr) => pr.state === "open");
   if (
@@ -150,11 +209,27 @@ export function moveRoadmapCard(
   beforeId?: string,
 ) {
   const card = cards.find((candidate) => candidate.id === id);
-  if (!card || id === beforeId) return cards;
+  if (!card || !roadmapOrderGuard(cards)(id, beforeId)) return cards;
   const next = cards.filter((candidate) => candidate.id !== id);
   const before = beforeId ? next.findIndex((candidate) => candidate.id === beforeId) : -1;
   next.splice(before < 0 ? next.length : before, 0, { ...card, lane });
   return next;
+}
+
+export function roadmapOrderGuard(cards: ReadonlyArray<RoadmapCard>) {
+  const positions = new Map(cards.map((card, index) => [card.id, index]));
+  const locksBefore = [0];
+  for (const card of cards)
+    locksBefore.push(
+      locksBefore[locksBefore.length - 1]! + Number(Boolean(roadmapReadOnlyReason(card))),
+    );
+  return (id: string, beforeId?: string) => {
+    const from = positions.get(id);
+    if (from === undefined || id === beforeId || roadmapReadOnlyReason(cards[from]!)) return false;
+    const before = beforeId ? positions.get(beforeId) : undefined;
+    const to = before === undefined ? cards.length - 1 : before - Number(before > from);
+    return locksBefore[Math.max(from, to) + 1] === locksBefore[Math.min(from, to)];
+  };
 }
 
 export function mergeRoadmapEdit(
@@ -172,6 +247,7 @@ export function mergeRoadmapEdit(
     threadId: draft.threadId === original.threadId ? latest.threadId : draft.threadId,
     completed: draft.completed === original.completed ? latest.completed : draft.completed,
     archived: draft.archived === original.archived ? latest.archived : draft.archived,
+    ...(latest.sync ? { sync: latest.sync } : {}),
     specPath: draft.specPath === original.specPath ? latest.specPath : draft.specPath,
     ...(original.acceptanceCriteria || draft.acceptanceCriteria || latest.acceptanceCriteria
       ? { acceptanceCriteria: mergeCriteria(original, draft, latest) }

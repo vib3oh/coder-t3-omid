@@ -49,6 +49,7 @@ import {
   RoadmapSaveInput,
 } from "./roadmap.ts";
 import * as AgentWorkflows from "./forkAgentWorkflows.ts";
+import * as RoadmapSync from "./roadmapSync.ts";
 import * as AgentWorkflowViews from "./forkAgentWorkflowViews.ts";
 import * as ProjectNavigation from "./forkProjectNavigation.ts";
 import * as Rpc from "effect/rpc/Rpc";
@@ -428,6 +429,12 @@ export const WS_METHODS = {
   projectNavigationRead: "omid.navigation.projectRead",
   roadmapRead: "omid.roadmap.read",
   roadmapSave: "omid.roadmap.save",
+  roadmapSyncRead: "omid.roadmap.sync.read",
+  roadmapSyncConnect: "omid.roadmap.sync.connect",
+  roadmapSyncRun: "omid.roadmap.sync.run",
+  roadmapSyncDetail: "omid.roadmap.sync.detail",
+  roadmapSyncResolve: "omid.roadmap.sync.resolve",
+  roadmapSyncDisconnect: "omid.roadmap.sync.disconnect",
   agentRolesRead: "omid.agents.roles.read",
   agentRoleSave: "omid.agents.roles.save",
   agentSkillsRead: "omid.agents.skills.read",
@@ -2157,6 +2164,36 @@ export const WsRpcGroup = RpcGroup.make(
     payload: RoadmapSaveInput,
     success: RoadmapBoard,
     error: Schema.Union([RoadmapError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.roadmapSyncRead, {
+    payload: RoadmapSync.RoadmapSyncReadInput,
+    success: RoadmapSync.RoadmapSyncStatus,
+    error: Schema.Union([RoadmapSync.RoadmapSyncError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.roadmapSyncConnect, {
+    payload: RoadmapSync.RoadmapSyncConnectInput,
+    success: RoadmapSync.RoadmapSyncStatus,
+    error: Schema.Union([RoadmapSync.RoadmapSyncError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.roadmapSyncRun, {
+    payload: RoadmapSync.RoadmapSyncRunInput,
+    success: RoadmapSync.RoadmapSyncStatus,
+    error: Schema.Union([RoadmapSync.RoadmapSyncError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.roadmapSyncDetail, {
+    payload: RoadmapSync.RoadmapSyncDetailInput,
+    success: RoadmapSync.RoadmapSyncDetail,
+    error: Schema.Union([RoadmapSync.RoadmapSyncError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.roadmapSyncResolve, {
+    payload: RoadmapSync.RoadmapSyncResolveInput,
+    success: RoadmapSync.RoadmapSyncStatus,
+    error: Schema.Union([RoadmapSync.RoadmapSyncError, EnvironmentAuthorizationError]),
+  }),
+  Rpc.make(WS_METHODS.roadmapSyncDisconnect, {
+    payload: RoadmapSync.RoadmapSyncDisconnectInput,
+    success: RoadmapSync.RoadmapSyncStatus,
+    error: Schema.Union([RoadmapSync.RoadmapSyncError, EnvironmentAuthorizationError]),
   }),
   Rpc.make(WS_METHODS.agentRolesRead, {
     payload: AgentWorkflows.AgentRolesReadInput,

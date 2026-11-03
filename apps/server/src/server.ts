@@ -117,6 +117,8 @@ import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as RoadmapService from "./roadmap/RoadmapService.ts";
 import * as ProjectNavigationService from "./fork/navigation/ProjectNavigationService.ts";
+import * as RoadmapSyncService from "./roadmap/sync/RoadmapSyncService.ts";
+import * as HyperCoderRoadmap from "./roadmap/sync/HyperCoderRoadmap.ts";
 import * as AgentWorkflowRuntimeService from "./fork/agents/AgentWorkflowRuntimeService.ts";
 import * as AgentWorkflowService from "./fork/agents/AgentWorkflowService.ts";
 import * as AgentWorkflowStore from "./fork/agents/AgentWorkflowStore.ts";
@@ -516,8 +518,17 @@ const layerWorkspaceFileSystem = WorkspaceFileSystem.layer.pipe(
   Layer.provide(layerKnownWorkspaces),
 );
 
+const layerRoadmap = RoadmapService.layer.pipe(Layer.provide(ProjectionStoreV2.layer));
+
+const layerRoadmapSync = RoadmapSyncService.layer.pipe(
+  Layer.provide(layerRoadmap),
+  Layer.provide(ProjectStore.layer),
+  Layer.provide(HyperCoderRoadmap.layer.pipe(Layer.provide(ProcessRunner.layer))),
+);
+
 const layerWorkspace = Layer.mergeAll(
-  RoadmapService.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
+  layerRoadmap,
+  layerRoadmapSync,
   WorkspacePaths.layer,
   layerWorkspaceEntries,
   layerWorkspaceFileSystem,

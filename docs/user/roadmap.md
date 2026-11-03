@@ -41,3 +41,28 @@ about every five seconds. A stale save is rejected. Reload inside the card edito
 review the latest saved card before saving again. Fields you did not edit retain
 their latest values. Keep the browser connected
 to edit. Boards on separate servers are independent.
+
+## Sync with Hypercoder
+
+Connect a project to its Hypercoder board through **Sync with Hypercoder**. Keep
+Hypercoder running and signed in on the project's T3 environment. Run
+`hc roadmap context` in that project's Hypercoder terminal and use its diagnostics
+to select the connection. Use the command's output; the context file itself
+contains credentials. A context from another machine must be used on that machine's
+T3 environment.
+
+Sync is manual. It compares both boards with the last confirmed synchronization,
+keeps stable card identities, and combines compatible edits. Review the result
+for cards that need attention. Conflicts, unsupported fields and uncertain writes
+stay visible and read-only, with their original content available for comparison.
+Choose a version deliberately when resolving a conflict; refresh if either board
+has changed again. A retry preserves confirmed results.
+
+Outgoing changes require a source that can safely check its revision before
+writing. If the connection cannot provide that capability, T3 explains the
+limitation and retains affected cards read-only. Source workspace activity and
+T3 thread/PR activity remain separately attributed. Sync does not publish spec
+files, run agents or push Git changes.
+
+Disconnect keeps retained cards and returns them to native T3 ownership. It does
+not delete or modify the Hypercoder board.

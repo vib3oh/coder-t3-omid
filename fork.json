@@ -13,7 +13,8 @@
         "packages/contracts/src/roadmap.ts",
         "apps/server/src/roadmap/",
         "apps/web/src/roadmap/",
-        "apps/web/src/routes/_chat.roadmap.tsx"
+        "apps/web/src/routes/_chat.roadmap.tsx",
+        "packages/contracts/src/roadmapSync.ts"
       ],
       "integrationPaths": [
         "packages/contracts/src/index.ts",
@@ -26,14 +27,23 @@
         "apps/web/src/components/sidebar/mainAppLocation.ts",
         "apps/web/src/routeTree.gen.ts",
         "apps/server/src/observability/RpcInstrumentation.ts",
-        "packages/client-runtime/src/operations/commands.ts"
+        "packages/client-runtime/src/operations/commands.ts",
+        "packages/client-runtime/src/state/runtime.ts"
       ],
       "verificationPaths": [
         "packages/client-runtime/src/state/commandPermissions.test.ts",
         "packages/client-runtime/src/operations/commands.test.ts",
         "apps/server/src/ws.test.ts",
         "apps/web/test/browserSetup.ts",
-        "apps/web/vite.config.ts"
+        "apps/web/vite.config.ts",
+        "apps/server/src/auth/RpcAuthorization.test.ts",
+        "packages/client-runtime/src/state/runtime.test.ts"
+      ],
+      "constraints": [
+        "Optional Hypercoder synchronization uses the existing project/environment RPC and permission boundary; native T3 owns thread and PR activity.",
+        "External context selection requires access-management permission; credential bytes remain in the Hypercoder-owned context file on the destination environment.",
+        "Unsupported conditional writes and unresolved card outcomes remain read-only. A pre-read fingerprint is not an atomic upstream revision guard.",
+        "Composed environment commands install the same destination permission guard as direct RPC commands, including first-message thread launches."
       ]
     },
     "changelog": {

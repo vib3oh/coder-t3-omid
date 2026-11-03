@@ -6,6 +6,7 @@ import {
   type RoadmapView,
 } from "@t3tools/contracts";
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
+import * as NodeUtil from "node:util";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -27,6 +28,7 @@ export class RoadmapService extends Context.Service<
       readonly projectId: ProjectId;
     }) => Effect.Effect<RoadmapBoard, RoadmapError>;
     readonly save: (input: RoadmapSaveInput) => Effect.Effect<RoadmapBoard, RoadmapError>;
+    readonly applySync: (input: RoadmapSaveInput) => Effect.Effect<RoadmapBoard, RoadmapError>;
     readonly readView: (input: {
       readonly projectId: ProjectId;
     }) => Effect.Effect<RoadmapView, RoadmapError>;
@@ -63,13 +65,40 @@ const make = Effect.gen(function* () {
     );
   });
 
-  const save = Effect.fn("RoadmapService.save")((input: RoadmapSaveInput) =>
+  const write = Effect.fn("RoadmapService.write")((input: RoadmapSaveInput, trusted: boolean) =>
     lock.withLock(
       input.projectId,
       Effect.gen(function* () {
         const current = yield* read(input);
         if (current.revision !== input.expectedRevision)
           return yield* new RoadmapError({ reason: "conflict" });
+        if (!trusted) {
+          const existing = new Map(current.cards.map((card) => [card.id, card]));
+          const surviving = new Set(input.cards.map((card) => card.id));
+          if (current.cards.some((card) => card.sync && !surviving.has(card.id)))
+            return yield* new RoadmapError({ reason: "invalid" });
+          let segment = 0;
+          const segments = new Map(
+            current.cards.map((card) => {
+              if (!card.sync?.readOnly) return [card.id, segment] as const;
+              segment += 2;
+              return [card.id, segment - 1] as const;
+            }),
+          );
+          let lastSegment = 0;
+          for (const card of input.cards) {
+            const previous = existing.get(card.id);
+            if (!NodeUtil.isDeepStrictEqual(card.sync, previous?.sync))
+              return yield* new RoadmapError({ reason: "invalid" });
+            if (previous?.sync?.readOnly && !NodeUtil.isDeepStrictEqual(card, previous))
+              return yield* new RoadmapError({ reason: "invalid" });
+            const nextSegment = segments.get(card.id);
+            if (nextSegment !== undefined) {
+              if (nextSegment < lastSegment) return yield* new RoadmapError({ reason: "invalid" });
+              lastSegment = nextSegment;
+            }
+          }
+        }
         if (
           new Set(input.cards.map((card) => card.id)).size !== input.cards.length ||
           input.cards.some((card) => {
@@ -93,6 +122,10 @@ const make = Effect.gen(function* () {
         return next;
       }).pipe(Effect.uninterruptible),
     ),
+  );
+  const save = Effect.fn("RoadmapService.save")((input: RoadmapSaveInput) => write(input, false));
+  const applySync = Effect.fn("RoadmapService.applySync")((input: RoadmapSaveInput) =>
+    write(input, true),
   );
   const readView = Effect.fn("RoadmapService.readView")(function* (input: {
     readonly projectId: ProjectId;
@@ -128,7 +161,7 @@ const make = Effect.gen(function* () {
       ),
     };
   });
-  return RoadmapService.of({ read, save, readView });
+  return RoadmapService.of({ read, save, applySync, readView });
 });
 
 export const layer = Layer.effect(RoadmapService, make);

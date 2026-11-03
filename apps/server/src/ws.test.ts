@@ -127,6 +127,7 @@ import * as ProjectEnrichment from "./project/ProjectEnrichmentService.ts";
 import * as ProjectService from "./project/ProjectService.ts";
 import * as RoadmapService from "./roadmap/RoadmapService.ts";
 import * as ProjectNavigationService from "./fork/navigation/ProjectNavigationService.ts";
+import * as RoadmapSyncService from "./roadmap/sync/RoadmapSyncService.ts";
 import * as AgentWorkflowRuntimeService from "./fork/agents/AgentWorkflowRuntimeService.ts";
 import {
   layerWsRpc,
@@ -571,6 +572,7 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(ProjectService.ProjectService)({}),
   Layer.mock(RoadmapService.RoadmapService)({}),
   Layer.mock(ProjectNavigationService.ProjectNavigationService)({}),
+  Layer.mock(RoadmapSyncService.RoadmapSyncService)({}),
   Layer.mock(AgentWorkflowRuntimeService.AgentWorkflowRuntimeService)({}),
   Layer.mock(ProjectSetupScriptRunner.ProjectSetupScriptRunner)({}),
   Layer.mock(ProjectStore.ProjectStoreV2)({}),

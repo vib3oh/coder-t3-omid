@@ -25,6 +25,8 @@ import {
   moveRoadmapCard,
   roadmapColumn,
   roadmapDropAction,
+  roadmapReadOnlyReason,
+  roadmapOrderGuard,
   ROADMAP_COLUMNS,
   type RoadmapColumn,
 } from "./roadmap.logic";
@@ -33,6 +35,7 @@ import { CardDrawer } from "./CardDrawer";
 import { RoadmapDrag, RoadmapDragCard, RoadmapDropZone } from "./RoadmapDrag";
 import { useRoadmapWork } from "./useRoadmapWork";
 import { roadmapRead, roadmapSave } from "./roadmapState";
+import { RoadmapSyncControl } from "./RoadmapSync";
 
 const SELECT = "rounded-md border border-input bg-background px-2 py-1.5 text-sm";
 
@@ -123,6 +126,7 @@ function ProjectBoard({
   );
   const [saved, setSaved] = useState<RoadmapBoard | null>(null);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const savePending = useRef(false);
   const transitionPending = useRef(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -163,7 +167,7 @@ function ProjectBoard({
       });
   };
   const work = useRoadmapWork(project, save);
-  const busy = saving || work.working || transitioning;
+  const busy = saving || work.working || transitioning || syncing;
   const threadsById = new Map(
     [...threads, ...(view?.linkedThreads ?? [])].map((thread) => [thread.id, thread]),
   );
@@ -194,15 +198,31 @@ function ProjectBoard({
     if (!board || busy || !canSave || showArchived || transitionPending.current) return;
     const card = board.cards.find((row) => row.id === id);
     if (!card || card.archived) return;
+    const reason = roadmapReadOnlyReason(card);
+    if (reason) {
+      setError(reason);
+      return;
+    }
     const thread = threadFor(card);
     const current = roadmapColumn(card, thread);
     if (current === column) {
-      await save(moveRoadmapCard(board.cards, id, card.lane, beforeId));
+      const moved = moveRoadmapCard(board.cards, id, card.lane, beforeId);
+      if (moved !== board.cards) await save(moved);
+      else if (!roadmapOrderGuard(board.cards)(id, beforeId))
+        setError(
+          "This move would reorder a read-only Hypercoder card. Resolve its sync status or disconnect first.",
+        );
       return;
     }
     const action = roadmapDropAction(card, column, thread);
     if (action.type === "blocked") {
       setError(action.message);
+      return;
+    }
+    if (action.type === "plan" && !roadmapOrderGuard(board.cards)(id, beforeId)) {
+      setError(
+        "This move would reorder a read-only Hypercoder card. Resolve its sync status or disconnect first.",
+      );
       return;
     }
     transitionPending.current = true;
@@ -283,8 +303,11 @@ function ProjectBoard({
       `${card.title} ${card.summary}`.toLowerCase().includes(query.toLowerCase()),
   );
   const disabled = busy || !canSave || showArchived;
-  const patch = (card: RoadmapCard) =>
-    save(board.cards.map((row) => (row.id === card.id ? card : row)));
+  const canReorder = roadmapOrderGuard(board.cards);
+  const patch = (card: RoadmapCard) => {
+    if (roadmapReadOnlyReason(card)) return;
+    return save(board.cards.map((row) => (row.id === card.id ? card : row)));
+  };
 
   function renderCards(column: RoadmapColumn, rows: ReadonlyArray<RoadmapCard>) {
     return rows.map((card, index) => (
@@ -292,7 +315,7 @@ function ProjectBoard({
         key={card.id}
         card={card}
         column={column}
-        disabled={disabled}
+        disabled={disabled || Boolean(roadmapReadOnlyReason(card))}
         onOpen={() => {
           setError(null);
           setEditing({ card, board: board! });
@@ -312,20 +335,34 @@ function ProjectBoard({
             {card.summary}
           </p>
         ) : null}
+        {card.sync ? (
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <p>
+              Hypercoder · {card.sync.status}
+              {card.sync.remoteColumn ? ` · source: ${card.sync.remoteColumn}` : ""}
+            </p>
+            {roadmapReadOnlyReason(card) ? <p>Read only: {roadmapReadOnlyReason(card)}</p> : null}
+          </div>
+        ) : null}
         {card.acceptanceCriteria?.length ? (
           <p className="text-xs text-muted-foreground">
             {card.acceptanceCriteria.filter((row) => row.checked).length}/
             {card.acceptanceCriteria.length} criteria complete
           </p>
         ) : null}
-        <CardThread card={card} thread={threadFor(card)} project={project} />
+        <CardThread
+          card={card}
+          thread={threadFor(card)}
+          project={project}
+          disabled={busy || !canSave || Boolean(roadmapReadOnlyReason(card))}
+        />
         <div className="flex flex-wrap items-center gap-1">
           {(column === "backlog" || column === "upNext") && !showArchived ? (
             <>
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={disabled}
+                disabled={disabled || !canReorder(card.id)}
                 onClick={() => void drop(card.id, column === "backlog" ? "upNext" : "backlog")}
               >
                 {column === "backlog" ? "Prioritize" : "Backlog"}
@@ -334,7 +371,7 @@ function ProjectBoard({
                 variant="ghost"
                 size="icon-sm"
                 aria-label={`Move ${card.title} up`}
-                disabled={disabled || index === 0}
+                disabled={disabled || index === 0 || !canReorder(card.id, rows[index - 1]?.id)}
                 onClick={() => void drop(card.id, column, rows[index - 1]?.id)}
               >
                 <ArrowUpIcon className="size-3" />
@@ -343,7 +380,9 @@ function ProjectBoard({
                 variant="ghost"
                 size="icon-sm"
                 aria-label={`Move ${card.title} down`}
-                disabled={disabled || index === rows.length - 1}
+                disabled={
+                  disabled || index === rows.length - 1 || !canReorder(card.id, rows[index + 2]?.id)
+                }
                 onClick={() =>
                   void save(moveRoadmapCard(board!.cards, card.id, card.lane, rows[index + 2]?.id))
                 }
@@ -355,7 +394,7 @@ function ProjectBoard({
           <Button
             variant="ghost"
             size="sm"
-            disabled={busy || !canSave}
+            disabled={busy || !canSave || Boolean(roadmapReadOnlyReason(card))}
             onClick={() => void patch({ ...card, archived: !card.archived })}
           >
             {card.archived ? "Restore" : "Archive"}
@@ -395,6 +434,7 @@ function ProjectBoard({
           <RefreshCwIcon className="size-3.5" />
           Reload
         </Button>
+        <RoadmapSyncControl project={project} disabled={busy} onBusyChange={setSyncing} />
         <div className="ml-auto">
           <Button
             size="sm"
@@ -425,6 +465,12 @@ function ProjectBoard({
       {!canSave ? (
         <p className="text-sm text-muted-foreground">
           Read only. Roadmap edits require permission to operate this environment.
+        </p>
+      ) : null}
+      {board.cards.some((card) => Boolean(roadmapReadOnlyReason(card))) ? (
+        <p className="text-xs text-muted-foreground">
+          Moves that would reorder read-only Hypercoder cards are disabled. Other cards remain
+          editable.
         </p>
       ) : null}
       {error && !editing ? (
@@ -519,6 +565,10 @@ function ProjectBoard({
           card={editing.card}
           latest={editing.board.cards.find((row) => row.id === editing.card.id)}
           error={error}
+          readOnlyReason={roadmapReadOnlyReason(
+            board.cards.find((row) => row.id === editing.card.id) ?? editing.card,
+          )}
+          syncMetadata={board.cards.find((row) => row.id === editing.card.id)?.sync}
           threads={[...threadsById.values()]}
           disabled={busy || !canSave}
           busy={busy}
@@ -544,6 +594,13 @@ function ProjectBoard({
             }
           }}
           onSave={async (draft, mode) => {
+            const reason = roadmapReadOnlyReason(
+              board.cards.find((row) => row.id === draft.id) ?? draft,
+            );
+            if (reason) {
+              setError(reason);
+              return;
+            }
             if (mode) {
               const action = roadmapDropAction(
                 draft,
@@ -594,10 +651,12 @@ function CardThread({
   card,
   thread,
   project,
+  disabled,
 }: {
   card: RoadmapCard;
   thread: RoadmapLinkedThread | undefined;
   project: EnvironmentProject;
+  disabled: boolean;
 }) {
   const navigate = useNavigate();
   const newThread = useNewThreadHandler();
@@ -620,6 +679,7 @@ function CardThread({
     <Button
       variant="outline"
       size="sm"
+      disabled={disabled}
       onClick={() =>
         void newThread(
           { environmentId: project.environmentId, projectId: project.id },
