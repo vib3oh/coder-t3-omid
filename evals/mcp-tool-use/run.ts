@@ -603,6 +603,7 @@ export const buildBase = (
 };
 
 type Base = ReturnType<typeof buildBase> & {
+  readonly nativeEffort?: string;
   readonly codex?: typeof ResponsesRequest.Type;
   /** What T3's SubagentStart hooks give a native subagent. */
   readonly subagentContext?: string;
@@ -1258,10 +1259,15 @@ const capabilities = ({ base }: Sample, value: unknown) =>
     ? {
         ...value,
         inheritedModel: base.model,
-        ...(base.codex
+        ...(isCodex(base.model)
           ? {
               inheritedProviderInstanceId: "codex",
-              inheritedOptions: [{ id: "reasoningEffort", value: base.codex.reasoning.effort }],
+              inheritedOptions: [
+                {
+                  id: "reasoningEffort",
+                  value: base.codex?.reasoning.effort ?? base.nativeEffort ?? "high",
+                },
+              ],
             }
           : {}),
       }
@@ -1381,6 +1387,7 @@ type Config = {
   readonly effort: string;
   readonly maxSteps: number;
   readonly shellModel: PricedModel;
+  readonly fixtureOnly?: boolean;
 };
 
 /**
@@ -1400,6 +1407,23 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
 ) {
   const command = call.tool === "Bash" && isRecord(call.input) ? call.input.command : undefined;
   let output = typeof command === "string" ? cannedOutput(sample, command) : undefined;
+  if (output === undefined && config.fixtureOnly && typeof command === "string") {
+    const parts = command.split(/\s*&&\s*/).map((part) => part.trim());
+    const outputs = parts.map((part) => mockOutput(sample, part));
+    if (outputs.every((part) => part !== undefined)) output = outputs.filter(Boolean).join("\n");
+  }
+  if (output === undefined && config.fixtureOnly) {
+    if (call.tool === "Read" && isRecord(call.input)) {
+      const file = valueText(call.input.file_path ?? call.input.path);
+      const relative = file.startsWith(`${sample.base.environment.cwd}/`)
+        ? file.slice(sample.base.environment.cwd.length + 1)
+        : file;
+      const files = sample.testCase.setup.world?.files;
+      const content = isRecord(files) ? (files[file] ?? files[relative]) : undefined;
+      output = typeof content === "string" ? content : undefined;
+    }
+    if (output === undefined) throw new Error(`Missing native eval fixture: ${callText(call)}`);
+  }
   if (output === undefined) {
     const body = shellRequest(sample, call, config.shellModel);
     const response = yield* callModel(
@@ -1416,6 +1440,112 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
   for (const url of createdPullRequests(entry)) sample.linked.add(url);
   return output;
 });
+
+/** Native harnesses supply their own prompts; only app-owned text and authored case data enter. */
+export const nativeFixture = (testCase: McpToolUseCase, model: Model, effort = "high") => {
+  if (
+    testCase.setup.role !== "top" ||
+    testCase.setup.priorTurns?.length ||
+    testCase.setup.world?.devices?.length ||
+    testCase.setup.sideChat ||
+    testCase.promptContext
+  ) {
+    throw new Error(
+      "Native evals currently support top-level cases without prior turns, devices or composer context.",
+    );
+  }
+  const t3 = visibleT3Tools({ links: testCase.setup.linkedEnvironments === true });
+  const nativeTools: ApiTool[] = [
+    {
+      name: "Read",
+      description: "Read a file from the fixture workspace.",
+      input_schema: {
+        type: "object",
+        properties: { file_path: { type: "string" } },
+        required: ["file_path"],
+      },
+    },
+    {
+      name: "Bash",
+      description: "Run a fixture-backed shell command. No host commands execute.",
+      input_schema: {
+        type: "object",
+        properties: { command: { type: "string" } },
+        required: ["command"],
+      },
+    },
+    ...["Edit", "Write", "Agent"].map((name) => ({
+      name,
+      description: `Fixture ${name} tool.`,
+      input_schema: { type: "object", additionalProperties: true },
+    })),
+  ];
+  const base: Base = {
+    model,
+    nativeEffort: effort,
+    system: [],
+    reminders: [],
+    gitStatusAt: 0,
+    environment: { cwd: "/home/user/acme/app", platform: "linux", date: "2026-01-01" },
+    nativeTools,
+    t3,
+    deferred: t3,
+  };
+  const sample = makeSample(testCase, base);
+  sample.tools.push(...t3);
+  const config: Config = {
+    apiKey: "",
+    model,
+    effort,
+    maxSteps: 10,
+    shellModel: "claude-haiku-5-5",
+    fixtureOnly: true,
+  };
+  const instructions = isCodex(model)
+    ? Object.entries(
+        buildCodexAdditionalContext(
+          { model, reasoningEffort: effort },
+          { browser: true, device: false },
+        ),
+      )
+        .map(([key, entry]) => `<${key}>${entry.value}</${key}>`)
+        .join("\n")
+    : t3SystemAppend(model, false);
+  return {
+    instructions,
+    prompt: buildMessages(sample)
+      .flatMap((message) => message.content.map((block) => valueText(block.text)))
+      .join("\n\n"),
+    tools: [...t3, ...nativeTools].map((tool) => ({
+      name: isT3Name(tool.name) ? normalizeToolName(tool.name) : tool.name,
+      description: valueText(tool.description),
+      inputSchema: tool.input_schema,
+    })),
+    call: async (name: string, input: unknown) => {
+      const source = t3.find((tool) => normalizeToolName(tool.name) === name);
+      if (!source && !nativeTools.some((tool) => tool.name === name))
+        throw new Error(`Unknown native eval tool: ${name}`);
+      if (source) {
+        const decode = t3InputDecoders.get(name)!;
+        if (Option.isNone(decode(input)))
+          throw new Error(`Invalid native eval tool input: ${name}`);
+      }
+      const normalized = normalizeToolInput(source?.name ?? name, input);
+      const result = await Effect.runPromise(
+        answerToolCall(sample, config, {
+          type: "tool_use",
+          id: "native-call",
+          name: source?.name ?? name,
+          input: normalized,
+        }).pipe(Effect.provide(FetchHttpClient.layer)),
+      );
+      return {
+        content: [{ type: "text" as const, text: valueText(result.content) }],
+        isError: result.is_error === true,
+      };
+    },
+  };
+};
 
 /** The result for one tool call. */
 const answerToolCall = Effect.fn("evaluateMcpToolUse.answerToolCall")(function* (

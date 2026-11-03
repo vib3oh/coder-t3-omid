@@ -19,6 +19,44 @@ pnpm mcp-tool-use --model claude-opus-5-5 --out runs/opus
 - Cost: the existing non-device suite costs about $9 on Sonnet and $17 on Opus. The 16 device cases at 3 samples each cost about $5.70–5.90 on Opus and $2.90–3.40 on Sonnet (main's text–#25661), including the Haiku shell simulator; dry runs cost $0. Results record token costs for the agent and shell simulator. Codex proxy charges are outside that total; only its shell simulator is priced here, about $0.60–0.70 for the device cases.
 - A rate limit or overload (429, 529 or another 5xx) is retried with backoff for up to about 4 minutes. A sample that still fails gets an `error` in `results.jsonl`, is left out of every pass rate, and is listed in the summary; the tokens it spent still count toward the cost.
 
+### Native subscription runs
+
+For local evals using an existing ChatGPT or Claude subscription login:
+
+```sh
+pnpm mcp-tool-use:native --model gpt-6.1-sol --case WF-ORDINARY-CONTROL --samples 1 --out runs/native-check
+pnpm mcp-tool-use:native --model claude-sonnet-5-5 --out runs/native-claude
+```
+
+The native backend runs the installed, unmodified `codex exec` or `claude -p`
+binary. Authenticate with `codex login` or `claude auth login` first. The runner
+checks the login method, removes inherited API keys and endpoint overrides for
+its child processes, and never reads, copies or exports subscription tokens.
+It does not modify personal provider configuration. Usage counts against the
+subscription plan; results make no API-price estimate.
+
+This backend uses the current T3 instructions, tool schemas, case data and
+`gradeSample`. Each sample has an empty temporary working directory and a
+loopback MCP server exposing authored fixtures. Built-in execution tools,
+personal MCP servers, hooks, skills and plugins are disabled for the run. Shell
+calls require an explicit case mock; Read returns only files in the case world.
+Missing fixtures, invalid tool inputs, provider errors and unexpected native
+tools fail the sample. Nothing in a model-authored shell command executes on
+the host. Claude's `--bare` mode is deliberately unused because it disables
+subscription authentication.
+
+The default cases are the five supervised-workflow cases. Native runs currently
+support top-level cases without prior turns, device worlds or composer context;
+unsupported setups fail before invoking a model. `--cases`, repeated `--case`,
+`--model`, `--effort`, `--samples` (default 2), `--out` and `--dry-run` are
+supported. Samples run serially and use bounded process and tool budgets. A
+dry-run needs no login. Reports include source HEAD, dirty state, CLI version,
+model and backend; any failed or errored sample produces a nonzero exit.
+
+Native results exercise the real installed provider harness with fixture tools.
+They are separate from the API capture-replay results above and do not establish
+a full API-suite pass. Do not combine their pass rates or baselines.
+
 ## Add a case
 
 Cases are JSON lines in `cases/`, one file per area. The case schema in `run.ts` (`McpToolUseCase`) documents every field.

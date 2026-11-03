@@ -97,6 +97,8 @@
         "packages/contracts/src/forkAgentWorkflowViews.ts",
         "apps/web/src/routes/_chat.agent-workflows.tsx",
         "evals/mcp-tool-use/agent-workflow-fixture.ts",
+        "evals/mcp-tool-use/native.ts",
+        "evals/mcp-tool-use/native-cli.ts",
         "evals/mcp-tool-use/cases/agent-workflows.ndjson"
       ],
       "integrationPaths": [
@@ -131,6 +133,7 @@
         "apps/web/src/routeTree.gen.ts",
         "evals/mcp-tool-use/README.md",
         "evals/mcp-tool-use/run.ts",
+        "evals/package.json",
         "packages/client-runtime/package.json",
         "packages/client-runtime/src/t3ToolSummary.ts",
         "packages/client-runtime/src/work-log/presentation.ts",
@@ -160,6 +163,7 @@
         "apps/server/src/provider/Drivers/ClaudeSkills.test.ts",
         "apps/server/src/ws.test.ts",
         "evals/mcp-tool-use/run.test.ts",
+        "evals/mcp-tool-use/native-cli.test.ts",
         "packages/client-runtime/src/fork/agents/communication.test.ts",
         "packages/client-runtime/src/fork/agents/limits.test.ts",
         "packages/client-runtime/src/state/commandPermissions.test.ts",
