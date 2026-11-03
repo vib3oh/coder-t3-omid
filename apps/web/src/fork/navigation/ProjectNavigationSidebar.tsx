@@ -126,6 +126,11 @@ export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: Sidebar
         selectedKey,
     ) ?? selectedGroup?.memberProjects[0];
   const connected = useConnectedEnvironmentIds();
+  const projectOptions =
+    selectedGroup?.memberProjects.map((project) => ({
+      value: scopedProjectKey({ environmentId: project.environmentId, projectId: project.id }),
+      label: `${project.title} · ${project.environmentLabel ?? project.environmentId}${connected.includes(project.environmentId) ? "" : " · Offline"}`,
+    })) ?? [];
   const snoozeClock = useSnoozeWakeClock(threads);
   const snoozeNow = new Date(snoozeClock).toISOString();
   const sidebarVisible = useSidebarVisibility();
@@ -287,6 +292,7 @@ export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: Sidebar
               <header className="space-y-3 px-3 pb-3 pt-2">
                 <h2 className="truncate text-base font-semibold">{selectedGroup.displayName}</h2>
                 <Select
+                  items={projectOptions}
                   value={scopedProjectKey({
                     environmentId: selectedProject.environmentId,
                     projectId: selectedProject.id,
@@ -306,16 +312,9 @@ export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: Sidebar
                     <SelectValue />
                   </SelectTrigger>
                   <SelectPopup>
-                    {selectedGroup.memberProjects.map((project) => (
-                      <SelectItem
-                        key={project.physicalProjectKey}
-                        value={scopedProjectKey({
-                          environmentId: project.environmentId,
-                          projectId: project.id,
-                        })}
-                      >
-                        {project.environmentLabel ?? project.environmentId}
-                        {connected.includes(project.environmentId) ? "" : " · Offline"}
+                    {projectOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectPopup>
