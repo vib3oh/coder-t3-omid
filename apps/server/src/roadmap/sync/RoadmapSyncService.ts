@@ -57,10 +57,11 @@ const Entry = Schema.Struct({
   pendingImport: Schema.optional(Schema.Boolean),
 });
 type Entry = typeof Entry.Type;
-const RankUpdate = Schema.Struct({
+const LocalCommitUpdate = Schema.Struct({
   cardId: Entry.fields.cardId,
   localRankBaseline: SnapshotSchema.fields.rank,
-  baselineRank: Schema.optional(SnapshotSchema.fields.rank),
+  baseline: Schema.NullOr(SnapshotSchema),
+  accepted: Schema.Boolean,
 });
 const State = Schema.Struct({
   version: Schema.Literal(1),
@@ -68,7 +69,7 @@ const State = Schema.Struct({
   pendingLocalCommit: Schema.optional(
     Schema.Struct({
       id: Text,
-      ranks: Schema.Array(RankUpdate).check(Schema.isMaxLength(10_000)),
+      updates: Schema.Array(LocalCommitUpdate).check(Schema.isMaxLength(10_000)),
     }),
   ),
   status: RoadmapSyncStatus,
@@ -260,21 +261,20 @@ const make = Effect.gen(function* () {
       ),
   );
 
-  const applyRanks = (
+  const applyCommitUpdates = (
     entries: ReadonlyArray<Entry>,
-    ranks: ReadonlyArray<typeof RankUpdate.Type>,
+    changes: ReadonlyArray<typeof LocalCommitUpdate.Type>,
   ) => {
-    const updates = new Map(ranks.map((rank) => [rank.cardId, rank]));
+    const updates = new Map(changes.map((update) => [update.cardId, update]));
     return entries.map((entry) => {
       const update = updates.get(entry.cardId);
       return update
         ? {
             ...entry,
             localRankBaseline: update.localRankBaseline,
-            baseline:
-              entry.baseline && update.baselineRank !== undefined
-                ? { ...entry.baseline, rank: update.baselineRank }
-                : entry.baseline,
+            baseline: update.baseline,
+            journal: update.accepted ? null : entry.journal,
+            pendingImport: update.accepted ? false : entry.pendingImport,
           }
         : entry;
     });
@@ -297,7 +297,7 @@ const make = Effect.gen(function* () {
         ...state,
         entries:
           receipt === state.pendingLocalCommit.id
-            ? applyRanks(state.entries, state.pendingLocalCommit.ranks)
+            ? applyCommitUpdates(state.entries, state.pendingLocalCommit.updates)
             : state.entries,
         pendingLocalCommit: undefined,
       };
@@ -650,7 +650,7 @@ const make = Effect.gen(function* () {
         })
         .map((card, rank) => [card.id, rank]),
     );
-    const rankUpdates: Array<typeof RankUpdate.Type> = [];
+    const commitUpdates: Array<typeof LocalCommitUpdate.Type> = [];
     for (const [cardId, entry] of entries) {
       const rank = plannedRanks.get(cardId);
       if (rank === undefined) continue;
@@ -667,17 +667,24 @@ const make = Effect.gen(function* () {
         previousBaseline === undefined
           ? rank
           : rank - (previousRank - previousBaseline);
-      rankUpdates.push({
+      const record = cards.get(cardId)!;
+      const accepted = acceptedIds.has(cardId);
+      const adoptedRank = adoptedRanks.get(cardId);
+      const baselineRank = adoptedRank ?? (agreed ? rank : undefined);
+      commitUpdates.push({
         cardId,
         localRankBaseline,
-        baselineRank: acceptedIds.has(cardId)
-          ? cards.get(cardId)!.rank
-          : (adoptedRanks.get(cardId) ?? (agreed && entry.baseline ? rank : undefined)),
+        baseline: accepted
+          ? snapshot(record.card, record.rank)
+          : entry.baseline && baselineRank !== undefined
+            ? { ...entry.baseline, rank: baselineRank }
+            : entry.baseline,
+        accepted,
       });
     }
     state = {
       ...state,
-      pendingLocalCommit: { id: runId, ranks: rankUpdates },
+      pendingLocalCommit: { id: runId, updates: commitUpdates },
       status: { ...state.status, rows, counts: counts(rows) },
     };
     yield* checkpoint();
@@ -705,27 +712,9 @@ const make = Effect.gen(function* () {
       yield* checkpoint();
       return state.status;
     }
-    for (const entry of applyRanks([...entries.values()], rankUpdates))
+    for (const entry of applyCommitUpdates([...entries.values()], commitUpdates))
       entries.set(entry.cardId, entry);
     state = { ...state, pendingLocalCommit: undefined };
-    for (const row of rows) {
-      if (resolution && row.cardId !== resolution.cardId) continue;
-      const entry = entries.get(row.cardId);
-      const record = cards.get(row.cardId);
-      if (!["pulled", "pushed", "unchanged"].includes(row.status)) {
-        const rank = adoptedRanks.get(row.cardId);
-        if (entry?.baseline && rank !== undefined)
-          entries.set(row.cardId, { ...entry, baseline: { ...entry.baseline, rank } });
-        continue;
-      }
-      if (entry && record)
-        entries.set(row.cardId, {
-          ...entry,
-          baseline: snapshot(record.card, record.rank),
-          journal: null,
-          pendingImport: false,
-        });
-    }
     state = {
       ...state,
       status: {

@@ -572,7 +572,16 @@ describe("RoadmapSyncService", () => {
           expectedRevision: original.revision,
           cards: [original.cards[1]!, original.cards[0]!, original.cards[2]!],
         });
-        port.setCards(["x", "a", "b", "c"].map((id, rank) => remoteCard(id, { rank })));
+        port.setCards(
+          ["x", "a", "b", "c"].map((id, rank) =>
+            remoteCard(id, {
+              rank,
+              ...(id === "a"
+                ? { fields: { ...snapshot(card, 0).fields, summary: "Source update" } }
+                : {}),
+            }),
+          ),
+        );
         let replacements = 0;
         const faulting = yield* RoadmapSyncService.RoadmapSyncService.pipe(
           Effect.provide(Layer.fresh(RoadmapSyncService.layer)),
@@ -594,13 +603,24 @@ describe("RoadmapSyncService", () => {
         expect(first).not.toHaveProperty("syncCommitId");
         const receipt = yield* roadmap.readSyncCommit({ projectId });
         expect(receipt).not.toBeNull();
-        yield* roadmap.save({ projectId, expectedRevision: first.revision, cards: first.cards });
+        yield* roadmap.save({
+          projectId,
+          expectedRevision: first.revision,
+          cards: first.cards.map((card) =>
+            card.sync?.externalId === "a" ? { ...card, summary: "New local draft" } : card,
+          ),
+        });
         expect(yield* roadmap.readSyncCommit({ projectId })).toBe(receipt);
         const current = yield* sync.read({ projectId });
         const recovered = yield* sync.run({ projectId, expectedRevision: current.revision });
-        for (const id of ["x", "a", "c"])
+        for (const id of ["x", "c"])
           expect(recovered.rows.find((row) => row.externalId === id)?.status).toBe("unchanged");
         expect(recovered.rows.find((row) => row.externalId === "b")?.status).toBe("conflict");
+        expect(recovered.rows.find((row) => row.externalId === "a")?.status).toBe("unsupported");
+        expect(
+          (yield* roadmap.read({ projectId })).cards.find((card) => card.sync?.externalId === "a")
+            ?.summary,
+        ).toBe("New local draft");
         expect((yield* roadmap.read({ projectId })).cards.map((card) => card.id)).toEqual(
           first.cards.map((card) => card.id),
         );
