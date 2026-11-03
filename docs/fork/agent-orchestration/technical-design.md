@@ -38,6 +38,10 @@ text. This keeps later review requirements from becoming prerequisites for
 Builder acceptance. The final Reviewer must take and satisfy every workflow
 criterion; stage scoping never removes one from the workflow or its final gate.
 
+The snapshot response and Reviewer brief use the same check-command compiler.
+Reviewer receives each exact execution string for the accepted implementation;
+it does not need to reconstruct the verification protocol or create a snapshot.
+
 Client mutations use `createEnvironmentRpcCommand` and destination permission
 atoms. The server checks read/operate scopes. MCP additionally requires an
 orchestration-capable credential and an authenticated participant; the caller

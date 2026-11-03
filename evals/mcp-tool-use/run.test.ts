@@ -43,7 +43,11 @@ const workflowCases = () =>
 it("builds supervised workflow evals from the actual role compiler and runtime instructions", () => {
   const base = buildBase(template, { model: "claude-sonnet-5-5", keepUserInstructions: false });
   const cases = workflowCases();
-  assert.equal(cases.length, 7);
+  assert.equal(cases.length, 8);
+  const wrapper = cases.find((testCase) => testCase.id === "WF-REVIEW-CHECK-WRAPPER")?.expect
+    .calls?.[0]?.args?.command;
+  if (typeof wrapper !== "string") throw new Error("Missing Reviewer execution expectation");
+  assert.include(agentWorkflowFixture("reviewer").instructions, wrapper);
   assert.includeMembers(
     base.deferred.map((tool) => normalizeToolName(tool.name)),
     ["omid_team_read", "omid_assignment_start", "omid_assignment_result", "omid_team_message"],

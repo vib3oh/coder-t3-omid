@@ -1,4 +1,6 @@
 import type { AgentAssignment, AgentWorkflow } from "@t3tools/contracts";
+import { latestImplementation } from "./WorkflowRules.ts";
+import { workflowCheckInstructions } from "./checkCommands.ts";
 
 export function managerInstructions(workflow: AgentWorkflow) {
   return [
@@ -31,6 +33,11 @@ export function assignmentInstructions(
   assignment: AgentAssignment,
   roleBrief: string,
 ) {
+  const implementation = latestImplementation(workflow);
+  const checkpoint =
+    assignment.role.role.kind === "reviewer"
+      ? workflow.assignments.find((row) => row.id === implementation?.assignmentId)?.checkpoint
+      : assignment.checkpoint;
   return [
     roleBrief,
     `Workflow ${workflow.id}; project ${workflow.projectId}; assignment ${assignment.id}; generation ${assignment.generation}. Manager thread ${workflow.managerThreadId}.`,
@@ -41,6 +48,7 @@ export function assignmentInstructions(
     "Submit your structured deliverable with omid_assignment_result when the assigned responsibility is ready for acceptance. Include evidence, limitations, failures and skipped checks. A result is not accepted merely because you say it passed.",
     "A coordination-only turn does not finish the assignment. When asked only to answer a teammate, send a handoff or await a reply, send the needed omid_team_message and end the turn without omid_assignment_result. Leave the responsibility active; do not submit a blocked implementation merely because this turn includes no implementation work.",
     `Frozen required checks: ${JSON.stringify(assignment.requiredChecks)}. These cannot be removed by changing result prose or required flags.`,
+    checkpoint ? workflowCheckInstructions(checkpoint, assignment.requiredChecks) : "",
     "Builders/Debuggers: capture an application-owned hidden checkpoint with omid_assignment_snapshot after edits, without creating a user branch commit unless authorized. Stage only newly created files owned by this assignment so Git can bind the snapshot; preserve unrelated files. It returns a pinned ref/SHA and the required check wrapper. Execute checks through your normal approved shell tool, wrapping them exactly as instructed so the native command records both revision markers. Read omid_assignment_checks to discover canonical command_execution turn-item ids. In checks[].command report the original inner command; in checks[].evidence report its canonical id; use the pinned SHA as revision. Never report the wrapped command as the declared command. If the provider does not expose such a record, report a blocked result instead of asserting verification.",
     "Reviewers: inspect the latest accepted implementation's exact snapshot in the shared checkout, run applicable checks using that snapshot ref, return findings and criterion evidence. Do not edit, commit, push, rebase, mark ready or merge. A new head invalidates the previous review.",
     "Planner/Designer: return concrete content and criterion coverage. Ambiguities reserved for the user remain pending. Role output kind and snapshot are immutable for this assignment.",

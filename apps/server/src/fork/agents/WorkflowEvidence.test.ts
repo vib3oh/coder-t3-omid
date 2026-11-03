@@ -14,11 +14,8 @@ import {
 } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 
-import {
-  verifyWorkflowEvidence,
-  workflowCheckCommand,
-  type WorkflowEvidencePorts,
-} from "./WorkflowEvidence.ts";
+import { verifyWorkflowEvidence, type WorkflowEvidencePorts } from "./WorkflowEvidence.ts";
+import { workflowCheckCommand } from "./checkCommands.ts";
 
 const base = "a".repeat(40);
 const head = "b".repeat(40);

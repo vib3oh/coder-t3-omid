@@ -55,6 +55,7 @@ import { workflowSummary } from "./WorkflowRules.ts";
 import { assignmentInstructions, managerInstructions } from "./runtimeInstructions.ts";
 import { workflowView } from "./workflowView.ts";
 import { withWorkflowDispatchPermit } from "./AgentWorkflowDispatchGuard.ts";
+import { workflowCheckInstructions } from "./checkCommands.ts";
 
 type Failure = AgentWorkflowError;
 type Core = AgentWorkflowService.AgentWorkflowService["Service"];
@@ -1200,7 +1201,7 @@ const make = Effect.gen(function* () {
     return {
       ref,
       commitSha,
-      checkInstructions: `Run each check in this workspace through your normal approved shell tool using: ${WorkflowEvidence.workflowCheckCommand(ref, "<command>")}\nIn checks[].command report the original inner command, not the wrapper. Use this SHA as revision and the canonical command_execution turn-item id as evidence; omid_assignment_checks lists those ids.`,
+      checkInstructions: workflowCheckInstructions({ ref, commitSha }, assignment.requiredChecks),
     };
   });
 

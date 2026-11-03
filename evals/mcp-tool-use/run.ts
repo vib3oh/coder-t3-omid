@@ -273,6 +273,7 @@ export const McpToolUseCase = Schema.Struct({
     shellMocks: Schema.optional(
       Schema.Array(Schema.Struct({ match: Schema.String, output: Schema.String })),
     ),
+    exactShellMocks: Schema.optional(Schema.Record(Schema.String, Schema.String)),
     /** The thread is a side chat's first turn: T3 puts the parent's digest ahead of `prompt`. */
     sideChat: Schema.optional(
       Schema.Struct({ parentThreadId: Schema.String, digest: Schema.Array(Schema.String) }),
@@ -1407,13 +1408,20 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
   call: Omit<ShellEntry, "output">,
 ) {
   const command = call.tool === "Bash" && isRecord(call.input) ? call.input.command : undefined;
+  const exactMocks = sample.testCase.setup.exactShellMocks;
+  const exactOutput =
+    typeof command === "string" && exactMocks && Object.hasOwn(exactMocks, command)
+      ? exactMocks[command]
+      : undefined;
   if (
     config.fixtureOnly &&
+    exactOutput === undefined &&
     typeof command === "string" &&
     command.split(/\s*&&\s*/).some((part) => /[;&|`$<>\n]/.test(part))
   )
     throw new Error("Unsupported native fixture shell operator");
-  let output = typeof command === "string" ? cannedOutput(sample, command) : undefined;
+  let output =
+    exactOutput ?? (typeof command === "string" ? cannedOutput(sample, command) : undefined);
   if (output === undefined && config.fixtureOnly && typeof command === "string") {
     const parts = command.split(/\s*&&\s*/).map((part) => part.trim());
     const outputs: Array<string | undefined> = [];

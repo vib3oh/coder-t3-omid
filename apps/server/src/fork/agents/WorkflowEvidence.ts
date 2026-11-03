@@ -18,6 +18,7 @@ import * as ThreadManagement from "../../orchestration-v2/ThreadManagementServic
 import * as Git from "../../vcs/GitVcsDriver.ts";
 import { skillContentHash } from "../skills/catalog.ts";
 import { latestImplementation } from "./WorkflowRules.ts";
+import { workflowCheckCommand } from "./checkCommands.ts";
 
 type CanonicalCommand = Extract<OrchestrationV2TurnItem, { readonly type: "command_execution" }>;
 export type WorkflowEvidenceCommand = Pick<
@@ -60,13 +61,6 @@ export interface WorkflowEvidencePorts {
     cwd: string,
     commitSha: string,
   ) => Effect.Effect<boolean, AgentWorkflowError>;
-}
-
-const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
-
-export function workflowCheckCommand(snapshotRef: string, command: string): string {
-  const revision = quote(`${snapshotRef}^{commit}`);
-  return `git rev-parse --verify ${revision} && (\n${command}\n) && printf '\\n' && git rev-parse --verify ${revision} && git diff --quiet ${quote(snapshotRef)} --`;
 }
 
 const commandInput = Schema.decodeUnknownOption(

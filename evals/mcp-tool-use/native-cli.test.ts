@@ -235,6 +235,16 @@ it("grades yield and order by native tool attempts even when HTTP receipts arriv
 });
 
 it("uses source workflow context and fixture data, and fails closed on unmodelled host work", async () => {
+  const wrapperCase = cases().find(({ id }) => id === "WF-REVIEW-CHECK-WRAPPER")!;
+  const execution = Object.keys(wrapperCase.setup.exactShellMocks!)[0]!;
+  const exact = nativeFixture(wrapperCase, "gpt-6.1-sol");
+  assert.include(JSON.stringify(await exact.call("Bash", { command: execution })), "Tests passed");
+  await expect(exact.call("Bash", { command: "toString" })).rejects.toThrow(
+    /Missing native eval fixture/,
+  );
+  await expect(exact.call("Bash", { command: `${execution} && git push` })).rejects.toThrow(
+    /Unsupported native fixture shell operator/,
+  );
   const reviewer = cases().find(({ id }) => id === "WF-REVIEWER")!;
   const fixture = nativeFixture(reviewer, "claude-sonnet-5-5");
   assert.include(fixture.prompt, agentWorkflowFixture("reviewer").instructions);
