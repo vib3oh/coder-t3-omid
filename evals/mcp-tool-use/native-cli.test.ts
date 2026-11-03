@@ -140,6 +140,8 @@ it("isolates both CLIs from user tools without disabling subscription authentica
     "features.shell_tool=false",
     "features.plugins=false",
     "features.apps=false",
+    "skills.include_instructions=false",
+    "skills.bundled.enabled=false",
     'mcp_servers.t3-code.url="http://fixture"',
   ]);
   const claude = nativeArguments(
@@ -203,6 +205,14 @@ it("uses source workflow context and fixture data, and fails closed on unmodelle
       }),
     ),
     "b".repeat(40),
+  );
+  assert.include(
+    JSON.stringify(
+      await fixture.call("Bash", {
+        command: "rg --files -g AGENTS.md -g '.vibe/**' -g 'package.json' -g '*name*'",
+      }),
+    ),
+    "src/name.ts",
   );
   await expect(fixture.call("Read", { file_path: "/etc/passwd" })).rejects.toThrow(
     /Missing native eval fixture/,

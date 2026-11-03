@@ -94,6 +94,8 @@ export const nativeArguments = (
           forced_login_method: "chatgpt",
           model_reasoning_effort: effort,
           project_doc_max_bytes: 0,
+          "skills.include_instructions": false,
+          "skills.bundled.enabled": false,
           web_search: "disabled",
           suppress_unstable_features_warning: true,
           "features.skip_host_skill_discovery": true,
