@@ -22,6 +22,7 @@ export type NativeFixture = {
     isError: boolean;
   }>;
 };
+
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -290,7 +291,11 @@ export async function runNativeCli(
   effort: string,
   fixture: NativeFixture,
   maxSteps: number,
-  options: { signal?: AbortSignal; executable?: string } = {},
+  options: {
+    signal?: AbortSignal;
+    executable?: string;
+    onFailure?: (calls: SampleRun["calls"]) => void;
+  } = {},
 ): Promise<SampleRun> {
   const cwd = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "t3-native-eval-"));
   const calls: Array<SampleRun["calls"][number]> = [];
@@ -344,7 +349,7 @@ export async function runNativeCli(
         const run = queue.then(async () => {
           if (failure) throw failure;
           if (calls.length >= maxSteps * 8) throw new Error("Native eval tool budget exceeded");
-          const call = { step: calls.length, tool: name, input };
+          const call = { step: calls.length, tool: name, input, failed: true };
           calls.push(call);
           const value = await fixture.call(name, input);
           Object.assign(call, {
@@ -476,6 +481,9 @@ export async function runNativeCli(
       finalText: text,
       stopReason: "end_turn",
     };
+  } catch (error) {
+    options.onFailure?.(calls);
+    throw error;
   } finally {
     if (deadline) clearTimeout(deadline);
     if (exited) {

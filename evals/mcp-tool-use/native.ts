@@ -5,7 +5,7 @@ import * as NodeFSP from "node:fs/promises";
 import * as NodePath from "node:path";
 import * as NodeUtil from "node:util";
 import * as Schema from "effect/Schema";
-import { gradeSample, McpToolUseCase, nativeFixture } from "./run.ts";
+import { gradeSample, McpToolUseCase, nativeFixture, type SampleRun } from "./run.ts";
 import { assertSubscriptionLogin, runNativeCli } from "./native-cli.ts";
 
 const positive = (value: string, flag: string) => {
@@ -93,6 +93,7 @@ async function main() {
         id: testCase.id,
         sample,
       };
+      let failedCalls: SampleRun["calls"] | undefined;
       try {
         const run = await runNativeCli(
           provider,
@@ -100,7 +101,12 @@ async function main() {
           values.effort,
           nativeFixture(testCase, typedModel, values.effort),
           testCase.maxSteps ?? 10,
-          { signal: controller.signal },
+          {
+            signal: controller.signal,
+            onFailure: (calls) => {
+              failedCalls = calls;
+            },
+          },
         );
         const checks = gradeSample(testCase.expect, run);
         rows.push({ ...identity, ...run, pass: checks.every((check) => check.pass), checks });
@@ -108,6 +114,7 @@ async function main() {
         rows.push({
           ...identity,
           pass: false,
+          ...(failedCalls === undefined ? {} : { calls: failedCalls }),
           error: error instanceof Error ? error.message : "Native eval failed",
         });
       }
