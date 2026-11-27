@@ -4,27 +4,128 @@
   "cards": [
     {
       "id": "agent-followup-fork-ci",
-      "title": "Publish fork-owned CI checks",
-      "summary": "PR #2 has no published checks. Preserve upstream workflows and check names while configuring fork-owned execution for this public repository; the private self-hosted runner policy does not enroll this fork. Source: PR #2 local QA at 0626934371; docs/fork/maintenance.md. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "title": "P0 · Establish delivery intake and fork-owned CI",
+      "summary": "2026-11-27 audit: GitHub Issues is disabled and merged PRs #2/#5 have no published checks; #4 has one historical local-ci status. Stock vibe-deliver description intake tries to create an issue. Actions is enabled but the API reports zero workflow runs. Inherited CI uses upstream Blacksmith runners. Establish a usable GitHub-native intake and check gate before attempting the upstream integration. This public fork is outside the private-runner enrollment policy.",
       "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
       "acceptanceCriteria": [
         {
-          "id": "fork-ci-1",
-          "text": "Inventory required checks and fork-accessible runner/release dependencies without weakening upstream tests.",
+          "id": "agent-followup-fork-ci-1",
+          "text": "Choose and document owner-authorized issue enablement or supported existing card/PR-discussion intake; prove a card can enter attended vibe-deliver without a disabled-Issues failure. Preserve GitHub-native mode and separate shipping authority.",
           "checked": false
         },
         {
-          "id": "fork-ci-2",
-          "text": "Run the applicable CI jobs on a PR and publish native checks bound to the tested head.",
+          "id": "agent-followup-fork-ci-2",
+          "text": "Inventory required checks and configure fork-accessible runners, permissions and dependencies while preserving upstream tests, check names, same-repository guards and intentionally disabled release jobs. Do not enroll this public fork in the private runner policy.",
           "checked": false
         },
         {
-          "id": "fork-ci-3",
-          "text": "Document public-fork runner ownership and ensure private credentials and upstream release services are not assumed.",
+          "id": "agent-followup-fork-ci-3",
+          "text": "Publish native checks for a representative fork PR at its exact head, prove failures block delivery and success satisfies the required gate; retain logs and runner ownership documentation.",
           "checked": false
         }
       ],
       "type": "chore",
+      "effort": "M",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "fork-followup-upstream-convergence",
+      "title": "P0 · Decide which fork workflow and sidebar code upstream replaces",
+      "summary": "Audit baseline: fork e889a9b0c6, upstream 8f8f4501e8 (5376 upstream-only commits since shared 9bcf75335f). Upstream now includes durable workflows (#38882), web/mobile workflow UI (#38884), typed agent results (#38874), project folders and delegation fixes. A merge simulation reports 53 conflicted paths. Design the integration before resolving these mechanically.",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-followup-upstream-convergence-1",
+          "text": "Pin the chosen upstream commit/release and map every affected fork.json hook to the incoming service, contract and client implementation. Include upstream multi-repository project identity and runtime/tool/provider API changes.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-upstream-convergence-2",
+          "text": "Demonstrate which upstream workflow primitives can preserve frozen roles, skill readiness, independent review, revision-bound evidence, limits and correlated messages. Record explicit retain/adapt/remove decisions; do not claim complete parity from the upstream feature name.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-upstream-convergence-3",
+          "text": "Approve a staged integration and rollback contract preserving existing boards, workflow history, conversations, source ownership, permissions and CLAUDE.md -> AGENTS.md. Keep the project rail only where it adds behavior beyond native navigation; no second executor.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-upstream-convergence-4",
+          "text": "Store the approved delivery contract in the owning GitHub intake/PR discussion. Implementation follows in fork-followup-upstream-sync, after agent-followup-fork-ci establishes its gates.",
+          "checked": false
+        }
+      ],
+      "type": "spike",
+      "effort": "M",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false,
+      "specPath": "https://github.com/pingdotgg/t3code/commit/8f8f4501e8"
+    },
+    {
+      "id": "fork-followup-upstream-sync",
+      "title": "P0 · Integrate upstream and retire superseded fork machinery",
+      "summary": "Depends on agent-followup-fork-ci and fork-followup-upstream-convergence. Merge the pinned upstream history into the maintained fork in isolation. Preserve roadmap/changelog behavior and unique supervised-role/evidence UX while adopting equivalent native workflow/delegation/navigation behavior. Do not install over the running official T3 app.",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-followup-upstream-sync-1",
+          "text": "Merge the approved pinned upstream revision with history intact and resolve actual conflicts in contracts/RPC/auth, provider adapters, delegation, skill packaging, mobile routes and sidebar. Refresh dependencies and generated route/code artifacts with upstream tooling. Make main track origin/main rather than upstream/main so ordinary pulls target the maintained fork; keep upstream updates explicit.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-upstream-sync-2",
+          "text": "Implement the approved workflow migration/adapters and remove only demonstrably superseded fork code, hooks and tests. Retain existing history through compatible reads or an explicit migration/rollback path. Verify feature-disabled native behavior.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-upstream-sync-3",
+          "text": "Preserve roadmap/changelog links, lifecycle derivation, guarded Hypercoder import and project/environment scoping, including newer multi-repository projects and remote/relay/tunnel paths.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-upstream-sync-4",
+          "text": "Update fork.json and affected guidance; run focused integration tests, model-facing evals where text changes, changed-file checks and final-source real-client proof. Publish real CI before merge.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-upstream-sync-5",
+          "text": "Measure the resulting agent catalog/context against the integrated baseline and apply the existing growth policy for any new increase. The former standalone historical +9088-byte approval card is superseded by this current-head gate.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "XL",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false,
+      "specPath": "https://github.com/pingdotgg/t3code/commit/8f8f4501e8"
+    },
+    {
+      "id": "fork-followup-empty-worktree-status",
+      "title": "P1 · Stop labeling empty worktrees as Building",
+      "summary": "2026-11-27 audit reproduction: the real sidebar places the new audit checkout under Building although it has no thread, card or workflow. navigationWorktrees also returns stage=building for an inventoried checkout with threads=[], cards=[] and workflows=[]. The unconditional fallback in navigationView.ts is the cause. This is a status-derivation defect; it does not prove an agent is running.",
+      "acceptanceCriteria": [
+        {
+          "id": "empty-worktree-status-1",
+          "text": "Extend the existing navigationView test with an inventoried checkout containing no thread/card/workflow; make it fail on the current Building fallback before fixing the derivation.",
+          "checked": false
+        },
+        {
+          "id": "empty-worktree-status-2",
+          "text": "Represent idle/no execution evidence truthfully across the contract and web/native adapters. Do not infer Building, Done or intentional parking solely from a directory existing. Preserve active/review/merged work precedence and source-unavailable distinctions.",
+          "checked": false
+        },
+        {
+          "id": "empty-worktree-status-3",
+          "text": "Verify the real project rail shows the empty checkout in the intended neutral state, while a linked active agent still shows Building; capture the final source and rerun focused navigation checks. Reconcile with the approved upstream navigation model.",
+          "checked": false
+        }
+      ],
+      "type": "bug",
       "effort": "M",
       "lane": "upNext",
       "threadId": null,
@@ -33,23 +134,91 @@
     },
     {
       "id": "agent-followup-hermetic-ci",
-      "title": "Complete package and server CI in a reproducible environment",
-      "summary": "The package sweep failed on Mac filesystem/socket/tar/path differences. The cached server sweep failed on machine-global Git URL rewriting; two direct full-server attempts were interrupted. Focused diagnostic passes do not establish a full pass. Source: PR #2 local QA at f0f304ebdf2. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "title": "P1 · Close reproducible package, server and browser regressions",
+      "summary": "Consolidates agent-followup-web-regressions. PR #2 broad package/web runs had failures and server coverage was incomplete. The 2026-11-27 audit passed 134 focused tests in 17 files; the browser component run initially could not launch its pinned Chromium. Reproduce historical failures against the chosen upstream baseline before applying old fixes.",
       "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
       "acceptanceCriteria": [
         {
-          "id": "hermetic-ci-1",
-          "text": "Provide a documented Linux ARM64 or equivalent supported CI environment with required system tools and case-sensitive paths.",
+          "id": "agent-followup-hermetic-ci-1",
+          "text": "Use the fork-owned CI environment with case-sensitive paths and required socket/archive/browser tools. Isolate Git configuration in test subprocesses without changing personal settings; install the repository-pinned browser.",
           "checked": false
         },
         {
-          "id": "hermetic-ci-2",
-          "text": "Isolate test Git configuration and preserve that isolation through cached-test subprocesses without changing personal Git settings.",
+          "id": "agent-followup-hermetic-ci-2",
+          "text": "Reproduce the historical FilePreviewPanel EPUB/output-budget, fileEditorDismissal selection and GuestPage follow-end-scroll failures against matching baseline and integrated source. Retire cases demonstrably fixed upstream; fix remaining regressions at the lowest responsible layer.",
           "checked": false
         },
         {
-          "id": "hermetic-ci-3",
-          "text": "Complete the full applicable package and server suites, retain original failures, and distinguish environment failures from product regressions.",
+          "id": "agent-followup-hermetic-ci-3",
+          "text": "Complete applicable package/server/web suites in CI, preserving failure diagnostics and separating setup errors from product failures. Do not run repository-wide checks locally without the owner requesting them; do not add retries, sleeps, weakened assertions or unreasoned skips.",
+          "checked": false
+        },
+        {
+          "id": "agent-followup-hermetic-ci-4",
+          "text": "Retain exact-head checks and a final report covering roadmap persistence/conflicts, sync receipts, workflow acceptance/cancellation and navigation permissions; a focused pass alone does not close this card.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "L",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "agent-followup-native-eval",
+      "title": "P1 · Resolve the Claude native reviewer fixture failure",
+      "summary": "PR #2 native fixture evidence remains Codex 16/16 and Claude 15/16; one reviewer sample failed with Unsupported native fixture shell operator. No 2026-11-27 paid-model rerun was performed. Re-evaluate this fixture against the integrated workflow path rather than polishing an executor scheduled for removal.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "agent-followup-native-eval-1",
+          "text": "Preserve and diagnose the exact failing tool attempt without exposing credentials or executing fixture commands on the host.",
+          "checked": false
+        },
+        {
+          "id": "agent-followup-native-eval-2",
+          "text": "Represent legitimate command behavior in the bounded deterministic fixture, or return an actionable refusal and evaluate recovery. Add a regression that fails for the diagnosed cause.",
+          "checked": false
+        },
+        {
+          "id": "agent-followup-native-eval-3",
+          "text": "Run the eight workflow cases on both native providers against the final integrated source, retaining all attempts; count infrastructure errors as failures and record model/harness/revision.",
+          "checked": false
+        }
+      ],
+      "type": "bug",
+      "effort": "S",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "agent-followup-client-proof",
+      "title": "P1 · Prove autonomous supervised agents on the final source",
+      "summary": "The earlier Luna planner/build/review run required corrective handoffs; no autonomous final-head pass is recorded. On 2026-11-27 the authenticated workflow page and five role presets load without console errors, but workflows are disabled in the inspected dev project and no new paid workflow was started. Native navigation proof is tracked separately.",
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
+      "acceptanceCriteria": [
+        {
+          "id": "agent-followup-client-proof-1",
+          "text": "After upstream integration, complete Planner -> Builder -> independent Reviewer on one bounded fixture without corrective human protocol handoffs. Verify frozen role/skill inputs and evidence pinned to the actual reviewed revision.",
+          "checked": false
+        },
+        {
+          "id": "agent-followup-client-proof-2",
+          "text": "Exercise findings -> builder repair -> fresh review, an unanswered question, provider approval, pause/resume/cancel/retry, limits, restart recovery and stale-result rejection through native owning services.",
+          "checked": false
+        },
+        {
+          "id": "agent-followup-client-proof-3",
+          "text": "Verify web and Electron interaction plus iOS/Android monitoring and lifecycle controls using the supported Browser/Device tools. Use Replay for provider-independent paths and cheapest real supported models only where native behavior is required.",
+          "checked": false
+        },
+        {
+          "id": "agent-followup-client-proof-4",
+          "text": "Publish inspected final-source evidence and transcripts; keep unsupported provider skill packaging explicit and preserve ordinary behavior with new starts disabled. Never infer PR approval, roadmap completion or merge permission from workflow acceptance.",
           "checked": false
         }
       ],
@@ -61,9 +230,156 @@
       "archived": false
     },
     {
+      "id": "fork-followup-sidebar-proof",
+      "title": "P1 · Verify project sidebar behavior, performance and native surfaces",
+      "summary": "PR #4 shipped with web proof and explicit native QA waivers. The 2026-11-27 audit verifies opt-in project rail, worktree metadata and role navigation in the current web client; it does not establish native or large-fixture performance. Revalidate against upstream sidebar and multi-repository project changes after integration.",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-followup-sidebar-proof-1",
+          "text": "Verify opt-in/opt-out, Settings/command-palette/keybinding entry points, route reveal, back/forward, composer draft retention and scoped roadmap/workflow/changelog links on final source.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-sidebar-proof-2",
+          "text": "Exercise identical project/branch names on different environments, disconnected destinations, archived/older children, missing/preparing worktrees, stale cursors and unavailable sources; preserve truthful attention and lifecycle counts.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-sidebar-proof-3",
+          "text": "Measure the declared 20-project/50-worktree/500-thread fixture and 150-worktree paging case: no transcript loads on selection, at most one unchanged selected-project metadata request per five seconds, no token-stream request fan-out, and the documented 128 KiB typical page target.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-sidebar-proof-4",
+          "text": "Capture web and Electron at wide/narrow sizes and native iOS/Android interactions, including remote/relay/tunnel paths and rollback to the existing sidebar. Historical waivers do not count as current passes.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "M",
+      "lane": "upNext",
+      "threadId": null,
+      "completed": false,
+      "archived": false,
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/4"
+    },
+    {
+      "id": "fork-followup-release-isolation",
+      "title": "P2 · Give distributable fork builds a separate identity and updater",
+      "summary": "Source development is safe in isolated .t3 state, but docs/fork/maintenance.md records upstream packaging identity and update defaults. This is a distribution prerequisite, not permission to replace the installed T3 application.",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-followup-release-isolation-1",
+          "text": "Configure a distinct product/application name, bundle identifiers, URL schemes and userdata directory for each distributed fork surface.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-release-isolation-2",
+          "text": "Use fork-owned update/release destinations or explicitly disable upstream auto-updates; ensure artifacts cannot silently update back to official T3 or overwrite it.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-release-isolation-3",
+          "text": "Build and smoke-test artifacts against isolated data, verify official and fork installations coexist and document rollback. Install only into a separately authorized fork destination.",
+          "checked": false
+        }
+      ],
+      "type": "chore",
+      "effort": "M",
+      "lane": "backlog",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "fork-followup-roadmap-agent-api",
+      "title": "P2 · Expose guarded roadmap operations to agents",
+      "summary": "The board uses typed omid.roadmap read/save services but has no dedicated roadmap MCP/CLI tools. Agents currently cannot maintain it through the native T3 tool catalog. Add the smallest service-backed interface after the upstream MCP/toolkit integration settles.",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-followup-roadmap-agent-api-1",
+          "text": "Expose bounded roadmap read/edit/archive/reopen operations through the native tool/service architecture using stable card ids, destination-environment permissions and expected revisions.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-roadmap-agent-api-2",
+          "text": "Preserve linked-thread/PR-derived lifecycle and external sync ownership/locks. Report stale edits clearly; no direct userdata writes, duplicate executor or false completion stamps.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-roadmap-agent-api-3",
+          "text": "Extend permission and concurrent-save tests at the owning layer; add the required model-facing eval cases and measure context growth before publishing.",
+          "checked": false
+        }
+      ],
+      "type": "feature",
+      "effort": "M",
+      "lane": "backlog",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "fork-followup-native-planning",
+      "title": "P3 · Add native mobile Roadmap and Changelog task flows",
+      "summary": "The native navigation adapter can monitor work but dedicated Roadmap/Changelog pages remain absent; the current design exposes that limitation. Keep as a separate feature after workflow/navigation stabilization rather than claiming desktop/web parity.",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-followup-native-planning-1",
+          "text": "Provide native planning/history flows or an explicit authenticated web handoff accepted in the feature spec, preserving environment/project selection without embedding credentials.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-native-planning-2",
+          "text": "Reuse roadmap/changelog contracts, permissions, concurrent-edit and disclosure rules; do not duplicate lifecycle or server execution logic.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-native-planning-3",
+          "text": "Verify iOS and Android through Device tools with populated/empty/error/read-only states, linked work and route return. Unsupported capabilities remain explicit.",
+          "checked": false
+        }
+      ],
+      "type": "feature",
+      "effort": "L",
+      "lane": "backlog",
+      "threadId": null,
+      "completed": false,
+      "archived": false
+    },
+    {
+      "id": "fork-followup-hypercoder-conditional-write",
+      "title": "P3 · Verify Hypercoder conditional writes before enabling outbound sync",
+      "summary": "PR #5 deliberately ships signed-in native import/read-only comparisons. Its CLI has no verified conditional revision guard; native two-way writes and write/retry round trips remain unverified. There is no evidence to remove the read-only safeguard.",
+      "acceptanceCriteria": [
+        {
+          "id": "fork-followup-hypercoder-conditional-write-1",
+          "text": "Verify an actual source-side conditional revision/compare-and-set capability with authoritative CLI/API evidence. A local hash followed by an unconditional write is insufficient.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-hypercoder-conditional-write-2",
+          "text": "If unavailable, retain read-only native sync and record the external capability blocker. Do not fabricate two-way parity or silently choose last-write-wins.",
+          "checked": false
+        },
+        {
+          "id": "fork-followup-hypercoder-conditional-write-3",
+          "text": "Only after the capability exists, test authorized create/update/reorder, revision conflicts, interrupted local commit, confirmed receipts and uncertain create recovery without blind replay; preserve disconnect and ownership controls.",
+          "checked": false
+        }
+      ],
+      "type": "spike",
+      "effort": "M",
+      "lane": "backlog",
+      "threadId": null,
+      "completed": false,
+      "archived": false,
+      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/5"
+    },
+    {
       "id": "agent-followup-web-regressions",
       "title": "Resolve remaining browser-suite failures",
-      "summary": "Full web sweep: 503/509 files and 5445/5450 tests passed, with five test failures and two import-suite errors. Focused import diagnostics passed; four failures remained across FilePreviewPanel, fileEditorDismissal and GuestPage. Source files are unchanged from main, but a baseline comparison is still needed. Source: PR #2 local QA at f0f304ebdf2. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "summary": "2026-11-27: superseded as a separate work item by agent-followup-hermetic-ci, which retains baseline comparison, exact historical failures and full CI acceptance. Archived for traceability; no pass is claimed. Historical record: Full web sweep: 503/509 files and 5445/5450 tests passed, with five test failures and two import-suite errors. Focused import diagnostics passed; four failures remained across FilePreviewPanel, fileEditorDismissal and GuestPage. Source files are unchanged from main, but a baseline comparison is still needed. Source: PR #2 local QA at f0f304ebdf2. Deferred by the owner's request to ship PR #2 with these known gaps.",
       "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
       "acceptanceCriteria": [
         {
@@ -84,73 +400,15 @@
       ],
       "type": "bug",
       "effort": "M",
-      "lane": "upNext",
+      "lane": "backlog",
       "threadId": null,
       "completed": false,
-      "archived": false
-    },
-    {
-      "id": "agent-followup-client-proof",
-      "title": "Finish native and final-source workflow QA",
-      "summary": "Web QA covered 23 captures on 52fe82b393. The real Luna workflow completed on b54202e6 with corrective handoffs; autonomous completion after the fixes remains unverified. No native Electron interaction or mobile-device pass was completed. iOS inventory was empty and Android SDK unavailable. Source: PR #2 QA evidence comment. Deferred by the owner's request to ship PR #2 with these known gaps.",
-      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
-      "acceptanceCriteria": [
-        {
-          "id": "client-proof-1",
-          "text": "Provision an available device through the supported Device workflow and test mobile monitoring, evidence, questions and lifecycle controls on iOS and Android.",
-          "checked": false
-        },
-        {
-          "id": "client-proof-2",
-          "text": "Run an integrated Electron client pass and a fresh Planner \u2192 Builder \u2192 independent Reviewer fixture on the final source without corrective human protocol handoffs.",
-          "checked": false
-        },
-        {
-          "id": "client-proof-3",
-          "text": "Capture authenticated empty, populated, error, message, lifecycle and narrow states with an exact-source manifest, inspect them visually, and publish the complete evidence bundle.",
-          "checked": false
-        }
-      ],
-      "type": "chore",
-      "effort": "M",
-      "lane": "upNext",
-      "threadId": null,
-      "completed": false,
-      "archived": false
-    },
-    {
-      "id": "agent-followup-native-eval",
-      "title": "Diagnose the remaining Claude native-eval fixture error",
-      "summary": "Final native evals on clean 0626934371: Codex 16/16; Claude 15/16. One WF-REVIEWER sample failed with Unsupported native fixture shell operator. This is a failed sample, not a model-behavior pass. Source: PR #2 validation. Deferred by the owner's request to ship PR #2 with these known gaps.",
-      "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
-      "acceptanceCriteria": [
-        {
-          "id": "native-eval-1",
-          "text": "Preserve the failing tool attempt and identify the exact unsupported command without exposing subscription credentials or running it on the host.",
-          "checked": false
-        },
-        {
-          "id": "native-eval-2",
-          "text": "If the command is legitimate, represent its behavior through a bounded deterministic fixture; otherwise return an actionable refusal and evaluate model recovery.",
-          "checked": false
-        },
-        {
-          "id": "native-eval-3",
-          "text": "Add a failing regression for the diagnosed cause and rerun the eight workflow cases on both native providers, retaining all attempts and counting infrastructure errors as failures.",
-          "checked": false
-        }
-      ],
-      "type": "bug",
-      "effort": "S",
-      "lane": "upNext",
-      "threadId": null,
-      "completed": false,
-      "archived": false
+      "archived": true
     },
     {
       "id": "agent-followup-context-budget",
       "title": "Resolve the agent context budget increase",
-      "summary": "The ten workflow tools increase the measured MCP catalog from 47538 to 56626 bytes (+9088). The inherited Agent Context Budget workflow requires explicit maintainer approval for growth. No approval label or green check was fabricated for PR #2. Source: apps/server/src/provider/agentContextBudget.json and .github/workflows/agent-context-budget.yml. Deferred by the owner's request to ship PR #2 with these known gaps.",
+      "summary": "2026-11-27: superseded by fork-followup-upstream-sync. The 56626-byte catalog is already the current main baseline and its focused measurement test passes; do not invent a retroactive open-PR approval blocker. Any integration growth still follows the existing measured budget/eval/approval policy. No historical CI success or approval is claimed. Historical record: The ten workflow tools increase the measured MCP catalog from 47538 to 56626 bytes (+9088). The inherited Agent Context Budget workflow requires explicit maintainer approval for growth. No approval label or green check was fabricated for PR #2. Source: apps/server/src/provider/agentContextBudget.json and .github/workflows/agent-context-budget.yml. Deferred by the owner's request to ship PR #2 with these known gaps.",
       "specPath": "https://github.com/vib3oh/coder-t3-omid/pull/2",
       "acceptanceCriteria": [
         {
@@ -171,10 +429,10 @@
       ],
       "type": "chore",
       "effort": "S",
-      "lane": "upNext",
+      "lane": "backlog",
       "threadId": null,
       "completed": false,
-      "archived": false
+      "archived": true
     }
   ]
 }

@@ -334,10 +334,22 @@ it("awaits its owned CLI exit before removing fixture resources on cancellation"
     await NodeFSP.writeFile(
       binary,
       `#!/usr/bin/env node
-import { writeFileSync } from 'node:fs';
-process.on('SIGTERM', () => { writeFileSync(${JSON.stringify(marker)}, JSON.stringify({cwd:process.cwd()})); process.exit(0); });
-const option=process.argv.find(value=>value.startsWith('mcp_servers.t3-code.url='));
-await fetch(JSON.parse(option.slice(option.indexOf('=')+1)), {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'finish',arguments:{}}})});
+import { once } from 'node:events';
+import { existsSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
+process.on('SIGTERM', () => {
+  const cwd = process.cwd();
+  writeFileSync(${JSON.stringify(marker)}, JSON.stringify({ cwd, cwdExists: existsSync(cwd) }));
+  process.exit(0);
+});
+const keepAlive = createServer().listen(0, '127.0.0.1');
+await once(keepAlive, 'listening');
+const option = process.argv.find(value => value.startsWith('mcp_servers.t3-code.url='));
+await fetch(JSON.parse(option.slice(option.indexOf('=') + 1)), {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'finish', arguments: {} } }),
+});
 `,
       { mode: 0o755 },
     );
@@ -359,7 +371,10 @@ await fetch(JSON.parse(option.slice(option.indexOf('=')+1)), {method:'POST', hea
         { executable: binary, signal: controller.signal },
       ),
     ).rejects.toThrow(/cancelled/);
-    const receipt: { cwd: string } = JSON.parse(await NodeFSP.readFile(marker, "utf8"));
+    const receipt: { cwd: string; cwdExists: boolean } = JSON.parse(
+      await NodeFSP.readFile(marker, "utf8"),
+    );
+    assert.isTrue(receipt.cwdExists);
     assert.isFalse(NodeFS.existsSync(receipt.cwd));
   } finally {
     await NodeFSP.rm(directory, { recursive: true, force: true });

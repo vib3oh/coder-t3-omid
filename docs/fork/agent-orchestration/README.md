@@ -6,10 +6,13 @@ workflow with targeted peer messages and readable, expandable communication.
 The runtime now adds supervised assignments, bundled procedures and readable
 communications over native T3 services. Release verification is recorded on the
 [owning PR](https://github.com/vib3oh/coder-t3-omid/pull/2); unverified gates remain explicit.
-The [follow-up roadmap cards](roadmap.json) record the deferred validation work
-in the native `RoadmapBoard` format, with stable acceptance criteria. This
-source-controlled snapshot can be appended through the roadmap service; server
-userdata remains the authority for a live project board.
+The [fork delivery roadmap](roadmap.json) was reconciled on 2026-11-27 against
+fork `e889a9b0c6` and upstream `8f8f4501e8`. It ranks upstream convergence, delivery
+gates and the remaining agent/sidebar validation before optional parity work.
+Archived cards retain superseded validation history without claiming a pass. The
+file uses native `RoadmapBoard` format and stable acceptance criteria; apply it
+through the roadmap service with a revision check. Server userdata remains the
+authority for a live project board.
 
 Start with the [UX](ux.md) for how a person launches and follows work, then the
 [spec](spec.md) for acceptance criteria and scope. The
