@@ -231,7 +231,6 @@
         "apps/web/src/components/Sidebar.logic.ts",
         "apps/web/src/components/sidebar/SidebarChrome.tsx",
         "apps/web/src/fork/agents/AgentWorkflowsPage.tsx",
-        "apps/mobile/src/features/threads/NewTaskDraftScreen.tsx",
         "apps/mobile/src/features/threads/new-task-context-presentation.ts"
       ],
       "verificationPaths": [

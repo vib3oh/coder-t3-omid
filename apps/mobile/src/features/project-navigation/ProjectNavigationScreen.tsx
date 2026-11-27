@@ -20,7 +20,7 @@ import { AppText as Text } from "../../components/ui/AppText";
 import { Button } from "../../components/ui/Button";
 import { ScreenScrollView } from "../../components/ui/ScreenScrollView";
 import { scopedProjectKey } from "../../lib/scopedEntities";
-import { uuidv4 } from "../../lib/uuid";
+import { createNewTaskDraft, updateComposerDraftSettings } from "../../state/use-composer-drafts";
 import { useProjects, useQuietThreadShell } from "../../state/entities";
 import { useEnvironments } from "../../state/environments";
 import { mobilePreferencesAtom, saveMobilePreferences } from "../../state/preferences";
@@ -487,20 +487,20 @@ function WorktreeRow({
               worktree.availability !== "available" ||
               worktree.path === null
             }
-            onPress={() =>
-              selectDetail({
-                name: "Thread",
-                params: {
-                  draft: {
-                    requestId: uuidv4(),
-                    environmentId: String(project.environmentId),
-                    projectId: String(project.id),
-                    branch: worktree.branch,
-                    worktreePath: worktree.isMain ? null : worktree.path,
-                  },
+            onPress={() => {
+              const draftId = createNewTaskDraft({
+                environmentId: project.environmentId,
+                projectId: project.id,
+              });
+              updateComposerDraftSettings(draftId, {
+                workspaceSelection: {
+                  mode: "local",
+                  branch: worktree.branch,
+                  worktreePath: worktree.isMain ? null : worktree.path,
                 },
-              })
-            }
+              });
+              selectDetail({ name: "Thread", params: { draft: { draftId } } });
+            }}
           />
         </>
       ) : null}

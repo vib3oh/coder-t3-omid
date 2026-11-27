@@ -473,8 +473,7 @@ export function NewTaskDraftScreen(props: {
           flow.draftKey !== null &&
           selectedProject?.environmentId === directProject.environmentId &&
           selectedProject.id === directProject.id;
-        const workspace = props.initialProjectRef;
-        if (workspace && (workspace.branch || workspace.worktreePath !== undefined)) {
+        if (props.initialProjectRef?.branch) {
           if (!showsDirectProject || !flow.draftKey) {
             setProject(directProject);
             return;
@@ -483,8 +482,8 @@ export function NewTaskDraftScreen(props: {
           updateComposerDraftSettings(flow.draftKey, {
             workspaceSelection: {
               mode: "local",
-              branch: workspace.branch ?? null,
-              worktreePath: workspace.worktreePath ?? null,
+              branch: props.initialProjectRef.branch,
+              worktreePath: props.initialProjectRef.worktreePath ?? null,
               startFromOrigin: false,
             },
           });
