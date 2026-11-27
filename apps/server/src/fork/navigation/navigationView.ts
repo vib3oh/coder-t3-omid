@@ -105,7 +105,7 @@ export function navigationWorktrees(input: {
             : input.paths.get(path!)?.exists === true
               ? "available"
               : "unknown",
-      stage: "building",
+      stage: "idle",
       completion: null,
       cards: [],
       workflows: [],
@@ -234,6 +234,8 @@ export function navigationWorktrees(input: {
               pr.snapshot.isDraft,
           ),
       );
+      const hasAssociatedWork =
+        native.length > 0 || target.cards.length > 0 || target.workflows.length > 0;
       const stage: NavigationWorktree["stage"] =
         open.some((pr) => !pr.isDraft) || cardStages.includes("ready")
           ? "ready"
@@ -247,7 +249,9 @@ export function navigationWorktrees(input: {
                   ? "done"
                   : parked
                     ? "parked"
-                    : "building";
+                    : hasAssociatedWork
+                      ? "building"
+                      : "idle";
       const attention = new Set(
         target.threads
           .filter(

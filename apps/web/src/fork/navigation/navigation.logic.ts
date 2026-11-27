@@ -90,6 +90,7 @@ export const WORKTREE_SECTIONS = [
   ["building", "Building"],
   ["done", "Done"],
   ["parked", "Parked / Settled"],
+  ["idle", "Idle"],
 ] as const;
 
 export const WORKTREE_STAGE_LABELS = {
@@ -98,6 +99,7 @@ export const WORKTREE_STAGE_LABELS = {
   building: "Building",
   done: "Done",
   parked: "Parked / Settled",
+  idle: "Idle",
 } as const;
 
 export function isScopedUtilityDestination(

@@ -44,6 +44,7 @@ const STAGES = {
   building: "Building",
   done: "Done",
   parked: "Parked / settled",
+  idle: "Idle",
 } as const;
 const CARD_STAGES = { ...STAGES, backlog: "Backlog", upNext: "Up Next" };
 

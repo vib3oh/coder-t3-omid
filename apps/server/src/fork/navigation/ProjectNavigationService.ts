@@ -261,6 +261,8 @@ const make = Effect.gen(function* () {
         const pageSize = input.worktreeKey ? 50 : 3;
         return {
           ...row,
+          // Older clients cannot decode the idle stage.
+          stage: row.stage === "idle" && !input.supportsIdleStage ? "building" : row.stage,
           cards: row.cards.slice(cardStart, cardStart + pageSize),
           cardCount: row.cards.length,
           cardNextOffset: cardStart + pageSize < row.cards.length ? cardStart + pageSize : null,

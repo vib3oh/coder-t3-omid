@@ -184,8 +184,15 @@ describe("ProjectNavigationService", () => {
         expect(emptyTaskFolder.worktrees[0]).toMatchObject({
           path: emptyTaskProjectPath,
           availability: "available",
+          stage: "building",
           threadCount: 0,
         });
+        const withIdleStage = yield* service.read({
+          projectId,
+          worktreeKey: `worktree:${emptyTaskProjectPath}`,
+          supportsIdleStage: true,
+        });
+        expect(withIdleStage.worktrees[0]?.stage).toBe("idle");
         const next = yield* service.read({ projectId, limit: 2, cursor: first.nextCursor! });
         expect(next.worktrees[0]?.key).not.toBe(first.worktrees[1]?.key);
         const revealed = yield* service.read({

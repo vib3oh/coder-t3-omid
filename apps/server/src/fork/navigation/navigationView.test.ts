@@ -83,6 +83,7 @@ const view = (
   threads: ReadonlyArray<OrchestrationV2ThreadShell>,
   cards: RoadmapCard[] = [],
   workflows: AgentWorkflow[] = [],
+  inventoriedPaths: ReadonlyArray<string> = [],
 ) =>
   navigationWorktrees({
     projectId,
@@ -94,12 +95,24 @@ const view = (
       ["/main", { canonical: "/main", exists: true }],
       ["/feature", { canonical: "/feature", exists: true }],
     ]),
-    inventoriedPaths: [],
+    inventoriedPaths,
     pathsWithoutSingleBranch: [],
     now: Date.parse(at),
   });
 
 describe("project navigation relationships", () => {
+  it("shows a checkout without associated work as idle", () => {
+    const feature = view([], [], [], ["/feature"]).find((row) => row.path === "/feature");
+    expect(feature).toMatchObject({
+      availability: "available",
+      stage: "idle",
+      completion: null,
+      threadCount: 0,
+      cards: [],
+      workflows: [],
+    });
+  });
+
   it("keeps physical project ownership, older archived work, and explicit completion evidence", () => {
     const owner = thread("owner");
     const foreign = { ...thread("foreign"), projectId: ProjectId.make("other") };

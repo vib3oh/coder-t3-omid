@@ -11,6 +11,7 @@ export const NavigationStage = Schema.Literals([
   "reviewing",
   "done",
   "parked",
+  "idle",
 ]);
 export const NavigationThread = Schema.Struct({
   id: ThreadId,
@@ -83,6 +84,7 @@ export const ProjectNavigationReadInput = Schema.Struct({
   cursor: Schema.optional(Text.check(Schema.isMaxLength(2_000))),
   limit: Schema.optional(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 }))),
   worktreeKey: Schema.optional(Text.check(Schema.isMaxLength(8_000))),
+  supportsIdleStage: Schema.optional(Schema.Boolean),
   threadOffset: Schema.optional(NonNegativeInt),
   cardOffset: Schema.optional(NonNegativeInt),
   workflowOffset: Schema.optional(NonNegativeInt),
