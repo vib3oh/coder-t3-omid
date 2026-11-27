@@ -17,7 +17,7 @@ import {
 } from "@t3tools/contracts";
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
 import * as Context from "effect/Context";
-import * as Crypto from "effect/Crypto";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -150,10 +150,8 @@ export class RoadmapSyncService extends Context.Service<
 
 const make = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const crypto = yield* Crypto.Crypto;
-  const uuid = crypto
-    .randomUUIDv4()
-    .pipe(Effect.mapError(() => new RoadmapSyncError({ reason: "storage" })));
+  const random = yield* SecureRandom.SecureRandom;
+  const uuid = random.uuidV4();
   const path = yield* Path.Path;
   const config = yield* ServerConfig.ServerConfig;
   const projects = yield* ProjectStore.ProjectStoreV2;

@@ -12,7 +12,7 @@ export function createAgentWorkflowState<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry.EnvironmentRegistry | R, E>,
 ) {
   const list = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Agent workflows",
+    label: WS_METHODS.agentWorkflowList,
     tag: WS_METHODS.agentWorkflowList,
     staleTimeMs: 0,
     refreshIntervalMs: 5_000,
@@ -40,19 +40,19 @@ export function createAgentWorkflowState<R, E>(
       }),
   );
   const read = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Agent workflow",
+    label: WS_METHODS.agentWorkflowRead,
     tag: WS_METHODS.agentWorkflowRead,
     staleTimeMs: 0,
     refreshTrigger: (target) => version({ environmentId: target.environmentId, ...target.input }),
   });
   const roles = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Agent roles",
+    label: WS_METHODS.agentRolesRead,
     tag: WS_METHODS.agentRolesRead,
     staleTimeMs: 0,
   });
   const immutableContent = Atom.make(null);
   const content = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Workflow evidence details",
+    label: WS_METHODS.agentWorkflowContent,
     tag: WS_METHODS.agentWorkflowContent,
     staleTimeMs: 60_000,
     refreshTrigger: (target) =>
@@ -61,14 +61,14 @@ export function createAgentWorkflowState<R, E>(
         : immutableContent,
   });
   const preview = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Resolved role readiness",
+    label: WS_METHODS.agentRolePreview,
     tag: WS_METHODS.agentRolePreview,
     staleTimeMs: 0,
     refreshTrigger: (target) =>
       roles({ environmentId: target.environmentId, input: { projectId: target.input.projectId } }),
   });
   const skills = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Built-in role skill metadata",
+    label: WS_METHODS.agentSkillsRead,
     tag: WS_METHODS.agentSkillsRead,
     staleTimeMs: 60_000,
   });
@@ -92,27 +92,27 @@ export function createAgentWorkflowState<R, E>(
         );
     });
   const start = createEnvironmentRpcCommand(runtime, {
-    label: "Start agent workflow",
+    label: WS_METHODS.agentWorkflowStart,
     tag: WS_METHODS.agentWorkflowStart,
     onSuccess: refresh,
   });
   const control = createEnvironmentRpcCommand(runtime, {
-    label: "Control agent workflow",
+    label: WS_METHODS.agentWorkflowControl,
     tag: WS_METHODS.agentWorkflowControl,
     onSuccess: refresh,
   });
   const assignmentControl = createEnvironmentRpcCommand(runtime, {
-    label: "Control workflow assignment",
+    label: WS_METHODS.agentAssignmentControl,
     tag: WS_METHODS.agentAssignmentControl,
     onSuccess: refresh,
   });
   const message = createEnvironmentRpcCommand(runtime, {
-    label: "Send workflow message",
+    label: WS_METHODS.agentTeamMessage,
     tag: WS_METHODS.agentTeamMessage,
     onSuccess: refresh,
   });
   const saveRole = createEnvironmentRpcCommand(runtime, {
-    label: "Save agent role",
+    label: WS_METHODS.agentRoleSave,
     tag: WS_METHODS.agentRoleSave,
     onSuccess: (target, registry) =>
       Effect.sync(() => {
@@ -125,7 +125,7 @@ export function createAgentWorkflowState<R, E>(
       }),
   });
   const settings = createEnvironmentRpcCommand(runtime, {
-    label: "Configure agent workflows",
+    label: WS_METHODS.agentWorkflowSettings,
     tag: WS_METHODS.agentWorkflowSettings,
     onSuccess: (target, registry) =>
       Effect.sync(() => {

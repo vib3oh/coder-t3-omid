@@ -1,4 +1,6 @@
 import type { AgentWorkflow } from "@t3tools/contracts";
+import { mFallback, msg } from "gt-i18n";
+import type { MFunctionType } from "gt-i18n/types";
 
 export interface CommunicationMessage {
   readonly id: string;
@@ -68,20 +70,24 @@ export interface CommunicationGroup {
 }
 
 const DELIVERY_LABELS = {
-  persisted: "Saved",
-  queued: "Queued for the next turn",
-  submitted: "Sent",
-  acknowledged: "Received",
-  failed: "Delivery failed",
+  persisted: msg("Saved"),
+  queued: msg("Queued for the next turn"),
+  submitted: msg("Sent"),
+  acknowledged: msg("Received"),
+  failed: msg("Delivery failed"),
 } as const;
 
-export function communicationStatus(message: CommunicationMessage) {
-  if (message.delivery === "failed") return DELIVERY_LABELS.failed;
-  if (message.questionState === "answered") return "Answered";
-  if (message.questionState === "expired") return "Question expired";
-  if (message.questionState === "cancelled") return "Question cancelled";
-  if (message.kind === "question" && message.questionState === "open") return "Awaiting answer";
-  return DELIVERY_LABELS[message.delivery];
+export function communicationStatus(
+  message: CommunicationMessage,
+  resolve: MFunctionType = mFallback,
+) {
+  if (message.delivery === "failed") return resolve(DELIVERY_LABELS.failed);
+  if (message.questionState === "answered") return resolve(msg("Answered"));
+  if (message.questionState === "expired") return resolve(msg("Question expired"));
+  if (message.questionState === "cancelled") return resolve(msg("Question cancelled"));
+  if (message.kind === "question" && message.questionState === "open")
+    return resolve(msg("Awaiting answer"));
+  return resolve(DELIVERY_LABELS[message.delivery]);
 }
 
 function summaryFor(message: CommunicationMessage, names: ReadonlyMap<string, string>) {

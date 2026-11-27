@@ -7,19 +7,19 @@ import * as Effect from "effect/Effect";
 import { connectionAtomRuntime } from "../connection/runtime";
 
 export const roadmapRead = createEnvironmentRpcQueryAtomFamily(connectionAtomRuntime, {
-  label: "Roadmap",
+  label: WS_METHODS.roadmapRead,
   tag: WS_METHODS.roadmapRead,
   staleTimeMs: 0,
   refreshIntervalMs: 5_000,
 });
 
 export const roadmapLaunch = createEnvironmentRpcCommand(connectionAtomRuntime, {
-  label: "Start roadmap work",
+  label: ORCHESTRATION_V2_WS_METHODS.launchThread,
   tag: ORCHESTRATION_V2_WS_METHODS.launchThread,
 });
 
 export const roadmapSave = createEnvironmentRpcCommand(connectionAtomRuntime, {
-  label: "Save roadmap",
+  label: WS_METHODS.roadmapSave,
   tag: WS_METHODS.roadmapSave,
   onSuccess: (target, registry) => {
     registry.refresh(

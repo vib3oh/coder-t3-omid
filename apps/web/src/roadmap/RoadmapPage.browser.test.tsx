@@ -454,15 +454,14 @@ it("loads comparisons on request and requires refreshed review before retrying a
     remote: { ...fields, title: "Hypercoder title" },
     conflictingFields: ["title"],
   };
-  state.syncResolve.mockImplementation(
-    async ({ input }: { input: { expectedRevision: number } }) =>
-      input.expectedRevision !== state.sync!.revision
-        ? AsyncResult.failure(Cause.fail(new RoadmapSyncError({ reason: "conflict" })))
-        : AsyncResult.success({
-            ...state.sync!,
-            rows: [],
-            counts: { ...state.sync!.counts, conflicts: 0 },
-          }),
+  state.syncResolve.mockImplementation(async ({ input }: { input: { expectedRevision: number } }) =>
+    input.expectedRevision !== state.sync!.revision
+      ? AsyncResult.failure(Cause.fail(new RoadmapSyncError({ reason: "conflict" })))
+      : AsyncResult.success({
+          ...state.sync!,
+          rows: [],
+          counts: { ...state.sync!.counts, conflicts: 0 },
+        }),
   );
   await using screen = await render(<RoadmapPage />, { router: "/roadmap" });
   await userEvent.click(screen.getByRole("button", { name: "Sync with Hypercoder", exact: true }));

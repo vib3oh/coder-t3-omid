@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
 import {
@@ -137,6 +138,7 @@ const testLayer = (port: HyperCoderRoadmap.HyperCoderRoadmap["Service"]) =>
           Effect.succeedSome({
             projectId,
             title: "Fixture",
+            hasCustomTitle: true,
             workspaceRoot: "/fixture/repository",
             defaultModelSelection: null,
             defaultThreadEnvMode: null,
@@ -144,6 +146,7 @@ const testLayer = (port: HyperCoderRoadmap.HyperCoderRoadmap["Service"]) =>
             faviconPath: null,
             projectIcon: null,
             scripts: [],
+            trackedFolders: [],
             pinnedAt: null,
             archivedAt: null,
             createdAt: "2026-01-01T00:00:00.000Z",
@@ -154,7 +157,7 @@ const testLayer = (port: HyperCoderRoadmap.HyperCoderRoadmap["Service"]) =>
     ),
     Layer.provideMerge(Layer.mock(ProjectionStore.ProjectionStoreV2)({})),
     Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "t3-roadmap-sync-" })),
-    Layer.provideMerge(NodeServices.layer),
+    Layer.provideMerge(Layer.merge(NodeServices.layer, NodeCrypto.layer)),
   );
 const remoteCard = (
   id = "external",

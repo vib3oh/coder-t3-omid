@@ -1,3 +1,5 @@
+import { T, Var, msg, useGT, useMessages } from "gt-react";
+import { m as resolveMessage } from "../../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { scopedProjectKey } from "@t3tools/client-runtime/environment";
@@ -63,6 +65,7 @@ const STATE_LABELS = {
 } as const;
 
 export function AgentWorkflowsPage() {
+  const gt = useGT();
   const { environments } = useEnvironments();
   const search = useSearch({ from: "/_chat/agent-workflows" });
   const projects = useProjects().filter((project) => !project.archivedAt);
@@ -78,20 +81,24 @@ export function AgentWorkflowsPage() {
       <WorkspacePageHeader electron={isElectron}>
         <SidebarTrigger />
         <UsersIcon className="size-4 text-muted-foreground" />
-        <h1 className="text-sm font-medium">Agent workflows</h1>
+        <h1 className="text-sm font-medium">
+          <T>Agent workflows</T>
+        </h1>
       </WorkspacePageHeader>
       <div className="scrollbar-gutter-both min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold">A clear handoff at every stage</h2>
+              <h2 className="text-xl font-semibold">
+                <T>A clear handoff at every stage</T>
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Plan, build and independently review work in your project’s environment.
+                <T>Plan, build and independently review work in your project’s environment.</T>
               </p>
             </div>
             <select
               className={`${SELECT} w-full min-w-0 max-w-full sm:w-auto`}
-              aria-label="Workflow project"
+              aria-label={gt("Workflow project")}
               value={
                 project
                   ? scopedProjectKey({
@@ -117,7 +124,7 @@ export function AgentWorkflowsPage() {
             >
               {!project ? (
                 <option value="" disabled>
-                  Choose a project
+                  <T>Choose a project</T>
                 </option>
               ) : null}
               {projects.map((entry) => (
@@ -131,7 +138,7 @@ export function AgentWorkflowsPage() {
                   {entry.title} ·{" "}
                   {environments.find(
                     (environment) => environment.environmentId === entry.environmentId,
-                  )?.label ?? "Unavailable environment"}{" "}
+                  )?.label ?? gt("Unavailable environment")}{" "}
                   · {entry.workspaceRoot}
                 </option>
               ))}
@@ -149,8 +156,10 @@ export function AgentWorkflowsPage() {
           ) : (
             <p className="text-sm text-muted-foreground">
               {search.environmentId || search.projectId
-                ? "The selected project is unavailable. Reconnect its environment or choose another project."
-                : "Add or connect a project to use agent workflows."}
+                ? gt(
+                    "The selected project is unavailable. Reconnect its environment or choose another project.",
+                  )
+                : gt("Add or connect a project to use agent workflows.")}
             </p>
           )}
         </div>
@@ -163,7 +172,7 @@ function errorText(result: Parameters<typeof squashAtomCommandFailure>[0]) {
   const cause = squashAtomCommandFailure(result);
   return cause instanceof Error
     ? cause.message
-    : "The operation could not finish. Reload to check its current state.";
+    : resolveMessage(msg("The operation could not finish. Reload to check its current state."));
 }
 
 function ProjectWorkflows({
@@ -179,6 +188,7 @@ function ProjectWorkflows({
   cardId?: string | undefined;
   rolesInitiallyOpen: boolean;
 }) {
+  const gt = useGT();
   const target = { environmentId: project.environmentId, input: { projectId: project.id } };
   const listResult = useAtomValue(agentWorkflows.list(target));
   const rolesResult = useAtomValue(agentWorkflows.roles(target));
@@ -203,10 +213,10 @@ function ProjectWorkflows({
       <div className="flex flex-wrap items-center gap-2">
         <Button disabled={!canStart || !roles?.enabled} onClick={() => setLaunching(!launching)}>
           <PlusIcon />
-          Start workflow
+          <T>Start workflow</T>
         </Button>
         <Button variant="outline" onClick={() => setRolesOpen(!rolesOpen)}>
-          Project roles
+          <T>Project roles</T>
         </Button>
         <Button
           variant="ghost"
@@ -214,7 +224,7 @@ function ProjectWorkflows({
           onClick={() => void Promise.all([reload(target), reloadRoles(target)])}
         >
           <RefreshCwIcon />
-          Refresh
+          <T>Refresh</T>
         </Button>
         {roles && canConfigure ? (
           <Button
@@ -237,7 +247,7 @@ function ProjectWorkflows({
               });
             }}
           >
-            {roles.enabled ? "Disable new starts" : "Enable workflows"}
+            {roles.enabled ? gt("Disable new starts") : gt("Enable workflows")}
           </Button>
         ) : null}
       </div>
@@ -248,34 +258,42 @@ function ProjectWorkflows({
       ) : null}
       {!canStart ? (
         <p className="text-sm text-muted-foreground">
-          This connection can inspect workflows. Starting or changing work requires operate
-          permission in this environment.
+          <T>
+            This connection can inspect workflows. Starting or changing work requires operate
+            permission in this environment.
+          </T>
         </p>
       ) : null}
       {AsyncResult.isFailure(listResult) ? (
         <p role="alert" className="text-sm text-muted-foreground">
-          Could not load workflows. Check this environment’s connection, version and read
-          permission.
+          <T>
+            Could not load workflows. Check this environment’s connection, version and read
+            permission.
+          </T>
         </p>
       ) : null}
       {AsyncResult.isFailure(rolesResult) ? (
         <p role="alert" className="text-sm text-destructive">
-          Could not load project roles. Check this environment’s connection and read permission,
-          then refresh.
+          <T>
+            Could not load project roles. Check this environment’s connection and read permission,
+            then refresh.
+          </T>
         </p>
       ) : null}
       {!list && !AsyncResult.isFailure(listResult) ? (
         <p role="status" className="text-sm text-muted-foreground">
-          Loading workflows…
+          <T>Loading workflows…</T>
         </p>
       ) : null}
       {roles && !roles.enabled ? (
         <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          New workflows are disabled for this project. Existing history and lifecycle controls
-          remain available.
+          <T>
+            New workflows are disabled for this project. Existing history and lifecycle controls
+            remain available.
+          </T>
           {canConfigure
-            ? " Enable workflows when you are ready to start."
-            : " An operator can enable new workflows."}
+            ? gt(" Enable workflows when you are ready to start.")
+            : gt(" An operator can enable new workflows.")}
         </p>
       ) : null}
       {rolesOpen && roles ? (
@@ -295,10 +313,10 @@ function ProjectWorkflows({
         />
       ) : null}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <nav aria-label="Project agent workflows" className="min-w-0 space-y-2">
+        <nav aria-label={gt("Project agent workflows")} className="min-w-0 space-y-2">
           {list?.workflows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No workflows yet. Creating a role does not start an agent.
+              <T>No workflows yet. Creating a role does not start an agent.</T>
             </p>
           ) : null}
           {list?.workflows.map((workflow) => (
@@ -310,11 +328,13 @@ function ProjectWorkflows({
               className={`w-full rounded-lg border p-3 text-left focus-visible:outline-2 focus-visible:outline-ring ${workflow.id === selectedId ? "border-primary bg-accent" : "border-border"}`}
             >
               <span className="block text-sm font-medium">
-                {workflow.title || "Agent workflow"}
+                {workflow.title || gt("Agent workflow")}
               </span>
               <span className="mt-1 block text-xs text-muted-foreground">
-                {workflow.humanInputPending ? "Needs your input" : STATE_LABELS[workflow.status]} ·{" "}
-                {workflow.acceptedCount}/{workflow.assignmentCount} accepted
+                {workflow.humanInputPending
+                  ? gt("Needs your input")
+                  : STATE_LABELS[workflow.status]}{" "}
+                · {workflow.acceptedCount}/{workflow.assignmentCount} accepted
               </span>
               {workflow.currentStage ? (
                 <span className="mt-1 block text-xs">{workflow.currentStage}</span>
@@ -326,7 +346,9 @@ function ProjectWorkflows({
               ) : null}
               {workflow.pendingQuestions > 0 ? (
                 <span className="mt-1 block text-xs">
-                  {workflow.pendingQuestions} pending questions
+                  <T>
+                    <Var>{workflow.pendingQuestions}</Var> pending questions
+                  </T>
                 </span>
               ) : null}
             </button>
@@ -335,10 +357,12 @@ function ProjectWorkflows({
         {selectedId ? (
           <div className="min-w-0 space-y-4">
             <label className="block space-y-1 text-sm">
-              <span>Search workflow communications</span>
+              <span>
+                <T>Search workflow communications</T>
+              </span>
               <Input
-                aria-label="Search all workflow messages"
-                placeholder="Search all messages"
+                aria-label={gt("Search all workflow messages")}
+                placeholder={gt("Search all messages")}
                 maxLength={200}
                 value={messageSearch}
                 onChange={(event) => setMessageSearch(event.target.value)}
@@ -354,7 +378,7 @@ function ProjectWorkflows({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Choose a workflow to follow its assignments and evidence.
+            <T>Choose a workflow to follow its assignments and evidence.</T>
           </p>
         )}
       </div>
@@ -377,6 +401,7 @@ function WorkflowLaunch({
   canStart: boolean;
   onStarted: (workflow: AgentWorkflow) => void;
 }) {
+  const gt = useGT();
   const config = useAtomValue(serverEnvironment.configValueAtom(project.environmentId));
   const source = useThreadShells().find(
     (thread) => thread.environmentId === project.environmentId && thread.id === sourceThreadId,
@@ -525,33 +550,50 @@ function WorkflowLaunch({
       }}
     >
       <div>
-        <h3 className="font-semibold">Start a supervised workflow</h3>
+        <h3 className="font-semibold">
+          <T>Start a supervised workflow</T>
+        </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Planner → Builder → independent Reviewer. The finish is a reviewed result; publishing and
-          merging follow your project’s authorization.
+          <T>
+            Planner → Builder → independent Reviewer. The finish is a reviewed result; publishing
+            and merging follow your project’s authorization.
+          </T>
         </p>
       </div>
       {source ? (
         <p className="text-sm">
-          Context from: {source.title}. The original conversation stays intact.
+          <T>
+            Context from: <Var>{source.title}</Var>. The original conversation stays intact.
+          </T>
         </p>
       ) : null}
       {sourceThreadId && !source ? (
         <p role="alert" className="text-sm text-destructive">
-          The source conversation is unavailable. Reconnect its environment or open the thread
-          before starting so its context is preserved.
+          <T>
+            The source conversation is unavailable. Reconnect its environment or open the thread
+            before starting so its context is preserved.
+          </T>
         </p>
       ) : null}
       {cardId ? (
         <p className="text-sm">
-          The server will snapshot the saved roadmap card and its criteria before starting.
+          <T>The server will snapshot the saved roadmap card and its criteria before starting.</T>
         </p>
       ) : null}
       {card ? (
         <div className="space-y-1 rounded-lg border border-border p-3 text-sm">
-          <p>Saved card revision {boardView!.board.revision}. Criteria are snapshotted at start.</p>
+          <p>
+            <T>
+              Saved card revision <Var>{boardView!.board.revision}</Var>. Criteria are snapshotted
+              at start.
+            </T>
+          </p>
           {card.specPath ? (
-            <p className="break-words text-muted-foreground">Full spec: {card.specPath}</p>
+            <p className="break-words text-muted-foreground">
+              <T>
+                Full spec: <Var>{card.specPath}</Var>
+              </T>
+            </p>
           ) : null}
           {card.acceptanceCriteria?.map((criterion) => (
             <p key={criterion.id}>• {criterion.text}</p>
@@ -561,12 +603,14 @@ function WorkflowLaunch({
       {cardId && !card ? (
         <p role="status" className="text-sm text-muted-foreground">
           {AsyncResult.isFailure(boardResult)
-            ? "Could not read the saved roadmap card. Check its environment and permission."
-            : "Loading the saved card before launch…"}
+            ? gt("Could not read the saved roadmap card. Check its environment and permission.")
+            : gt("Loading the saved card before launch…")}
         </p>
       ) : null}
       <label className="block space-y-1 text-sm">
-        <span>Title</span>
+        <span>
+          <T>Title</T>
+        </span>
         <Input
           value={titleValue}
           onChange={(event) => setTitle(event.target.value)}
@@ -574,20 +618,24 @@ function WorkflowLaunch({
         />
       </label>
       <label className="block space-y-1 text-sm">
-        <span>Objective and acceptance criteria</span>
+        <span>
+          <T>Objective and acceptance criteria</T>
+        </span>
         <Textarea
           value={objectiveValue}
           onChange={(event) => setObjective(event.target.value)}
           maxLength={40_000}
           required
-          placeholder="What should be different when this work is complete?"
+          placeholder={gt("What should be different when this work is complete?")}
         />
       </label>
       <label className="block space-y-1 text-sm">
-        <span>Workflow model</span>
+        <span>
+          <T>Workflow model</T>
+        </span>
         <select
           className={`${SELECT} w-full`}
-          aria-label="Workflow provider and model"
+          aria-label={gt("Workflow provider and model")}
           value={model ? `${model.instanceId}:${model.model}` : ""}
           onChange={(event) =>
             setChosenModel(
@@ -601,8 +649,8 @@ function WorkflowLaunch({
           {!available ? (
             <option value={model ? `${model.instanceId}:${model.model}` : ""}>
               {model
-                ? "Configured model unavailable. Choose an available model."
-                : "Choose a provider and model"}
+                ? gt("Configured model unavailable. Choose an available model.")
+                : gt("Choose a provider and model")}
             </option>
           ) : null}
           {choices.map((choice) => (
@@ -625,7 +673,11 @@ function WorkflowLaunch({
               onChange={(event) => setRoleIds({ ...roleIds, [kind]: event.target.value })}
             >
               {!roles.some((role) => role.kind === kind && role.enabled) ? (
-                <option value={roleIds[kind]}>No enabled {kind} role</option>
+                <option value={roleIds[kind]}>
+                  <T>
+                    No enabled <Var>{kind}</Var> role
+                  </T>
+                </option>
               ) : null}
               {roles
                 .filter((role) => role.kind === kind && role.enabled)
@@ -640,11 +692,15 @@ function WorkflowLaunch({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1 text-sm">
-          <span>Worktree base</span>
+          <span>
+            <T>Worktree base</T>
+          </span>
           <Input value={baseRef} onChange={(event) => setBaseRef(event.target.value)} required />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span>Execution mode</span>
+          <span>
+            <T>Execution mode</T>
+          </span>
           <select
             className={SELECT}
             value={runtimeMode}
@@ -657,14 +713,20 @@ function WorkflowLaunch({
         </label>
       </div>
       <details className="space-y-3 text-sm">
-        <summary className="cursor-pointer py-2">Role briefs, skills and limits</summary>
+        <summary className="cursor-pointer py-2">
+          <T>Role briefs, skills and limits</T>
+        </summary>
         <p className="text-muted-foreground">
-          Roles keep project/provider guidance. Required skills and provider restrictions are
-          resolved by the environment before launch. A role prompt alone is not an enforced
-          read-only sandbox.
+          <T>
+            Roles keep project/provider guidance. Required skills and provider restrictions are
+            resolved by the environment before launch. A role prompt alone is not an enforced
+            read-only sandbox.
+          </T>
         </p>
         <label className="block space-y-1">
-          <span>Required checks (one command per line)</span>
+          <span>
+            <T>Required checks (one command per line)</T>
+          </span>
           <Textarea
             value={requiredChecksText}
             maxLength={40_000}
@@ -673,12 +735,14 @@ function WorkflowLaunch({
         </label>
         {!requiredChecksText.trim() ? (
           <p className="text-xs text-muted-foreground">
-            No project checks declared; reviewer must assess testing sufficiency.
+            <T>No project checks declared; reviewer must assess testing sufficiency.</T>
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            These required commands are frozen for the workflow. A result cannot remove them by
-            changing its own checklist.
+            <T>
+              These required commands are frozen for the workflow. A result cannot remove them by
+              changing its own checklist.
+            </T>
           </p>
         )}
         {previews.map((preview) =>
@@ -689,7 +753,7 @@ function WorkflowLaunch({
             >
               <p className="font-medium">
                 {preview.snapshot.role.name} · v{preview.snapshot.role.version} ·{" "}
-                {preview.ready ? "Ready" : "Unavailable"}
+                {preview.ready ? gt("Ready") : gt("Unavailable")}
               </p>
               <p>{preview.snapshot.role.mission}</p>
               <p className="text-xs text-muted-foreground">
@@ -706,14 +770,16 @@ function WorkflowLaunch({
               <ul className="space-y-1 text-xs text-muted-foreground">
                 {preview.snapshot.skills.map((skill) => (
                   <li key={skill.id}>
-                    {skill.id} · {skill.required ? "Required" : "Optional"} ·{" "}
+                    {skill.id} · {skill.required ? gt("Required") : gt("Optional")} ·{" "}
                     {skill.state.replaceAll("_", " ")} · {skill.source}
                     {skill.reason ? ` · ${skill.reason}` : ""}
                   </li>
                 ))}
               </ul>
               <details>
-                <summary className="cursor-pointer py-1">Resolved role instructions</summary>
+                <summary className="cursor-pointer py-1">
+                  <T>Resolved role instructions</T>
+                </summary>
                 <p className="whitespace-pre-wrap">{preview.snapshot.role.instructions}</p>
               </details>
             </div>
@@ -724,10 +790,10 @@ function WorkflowLaunch({
             <label key={key} className="space-y-1">
               <span>
                 {key === "maxConcurrent"
-                  ? "Concurrent assignments"
+                  ? gt("Concurrent assignments")
                   : key === "maxAttempts"
-                    ? "Assignment attempts"
-                    : "Correction rounds"}
+                    ? gt("Assignment attempts")
+                    : gt("Correction rounds")}
               </span>
               <Input
                 type="number"
@@ -739,7 +805,9 @@ function WorkflowLaunch({
             </label>
           ))}
           <label className="space-y-1">
-            <span>Message limit</span>
+            <span>
+              <T>Message limit</T>
+            </span>
             <Input
               type="number"
               min={1}
@@ -751,7 +819,9 @@ function WorkflowLaunch({
             />
           </label>
           <label className="space-y-1">
-            <span>Question timeout (minutes)</span>
+            <span>
+              <T>Question timeout (minutes)</T>
+            </span>
             <Input
               type="number"
               min={1}
@@ -764,13 +834,17 @@ function WorkflowLaunch({
           </label>
         </div>
         <p className="text-xs text-muted-foreground">
-          Known attempt/concurrency limits are enforced. Subscription usage and cost coverage may be
-          incomplete.
+          <T>
+            Known attempt/concurrency limits are enforced. Subscription usage and cost coverage may
+            be incomplete.
+          </T>
         </p>
       </details>
       {error ? (
         <p role="alert" className="text-sm text-destructive">
-          {error} You can retry the same launch safely.
+          <T>
+            <Var>{error}</Var> You can retry the same launch safely.
+          </T>
         </p>
       ) : null}
       <Button
@@ -790,12 +864,14 @@ function WorkflowLaunch({
             );
         }}
       >
-        Recheck role readiness
+        <T>Recheck role readiness</T>
       </Button>
       {!ready ? (
         <p role="status" className="text-sm text-muted-foreground">
-          All three roles must resolve their required skills and provider capabilities before
-          starting. Expand role briefs for details.
+          <T>
+            All three roles must resolve their required skills and provider capabilities before
+            starting. Expand role briefs for details.
+          </T>
         </p>
       ) : null}
       {(
@@ -807,8 +883,10 @@ function WorkflowLaunch({
       ).map(({ name, result }) =>
         AsyncResult.isFailure(result) ? (
           <p key={name} role="alert" className="text-sm text-destructive">
-            {name}: {errorText(result)} Recheck readiness after fixing the provider or role
-            configuration.
+            <T>
+              <Var>{name}</Var>: <Var>{errorText(result)}</Var> Recheck readiness after fixing the
+              provider or role configuration.
+            </T>
           </p>
         ) : null,
       )}
@@ -825,7 +903,7 @@ function WorkflowLaunch({
           (Boolean(cardId) && !card)
         }
       >
-        {busy ? "Starting…" : "Start workflow"}
+        {busy ? gt("Starting…") : gt("Start workflow")}
       </Button>
     </form>
   );
@@ -840,6 +918,7 @@ function RoleSettings({
   roles: ReadonlyArray<AgentRolePreset>;
   revision: number;
 }) {
+  const gt = useGT();
   const [editing, setEditing] = useState<AgentRolePreset | null>(null);
   const [editingRevision, setEditingRevision] = useState(revision);
   const [skillDrafts, setSkillDrafts] = useState({ requiredSkills: "", optionalSkills: "" });
@@ -880,12 +959,14 @@ function RoleSettings({
   return (
     <section
       className="space-y-4 rounded-xl border border-border p-5"
-      aria-label="Project role settings"
+      aria-label={gt("Project role settings")}
     >
       <div>
-        <h3 className="font-semibold">Project roles</h3>
+        <h3 className="font-semibold">
+          <T>Project roles</T>
+        </h3>
         <p className="text-sm text-muted-foreground">
-          Saving a role uses no model turn. Active assignments retain their original version.
+          <T>Saving a role uses no model turn. Active assignments retain their original version.</T>
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -893,7 +974,7 @@ function RoleSettings({
           <div key={role.id} className="space-y-2 rounded-lg border border-border p-3">
             <p className="text-sm font-medium">
               {role.name} · v{role.version}
-              {!role.enabled ? " · Disabled" : ""}
+              {!role.enabled ? gt(" · Disabled") : ""}
             </p>
             <p className="text-sm text-muted-foreground">{role.mission}</p>
             <div className="flex gap-2">
@@ -903,7 +984,7 @@ function RoleSettings({
                 disabled={!canSave}
                 onClick={() => beginEditing(role)}
               >
-                Edit
+                <T>Edit</T>
               </Button>
               <Button
                 variant="ghost"
@@ -913,7 +994,7 @@ function RoleSettings({
                   beginEditing({ ...role, id: randomUUID(), name: `${role.name} copy`, version: 0 })
                 }
               >
-                Clone
+                <T>Clone</T>
               </Button>
             </div>
           </div>
@@ -960,12 +1041,16 @@ function RoleSettings({
         >
           {editingRevision !== revision ? (
             <p role="alert" className="text-sm text-muted-foreground">
-              Project roles changed while you were editing. Your draft is kept; close this editor
-              and reopen the latest role before replacing it.
+              <T>
+                Project roles changed while you were editing. Your draft is kept; close this editor
+                and reopen the latest role before replacing it.
+              </T>
             </p>
           ) : null}
           <label className="block space-y-1 text-sm">
-            <span>Role name</span>
+            <span>
+              <T>Role name</T>
+            </span>
             <Input
               value={editing.name}
               required
@@ -974,7 +1059,9 @@ function RoleSettings({
             />
           </label>
           <label className="block space-y-1 text-sm">
-            <span>Mission</span>
+            <span>
+              <T>Mission</T>
+            </span>
             <Textarea
               value={editing.mission}
               maxLength={2_000}
@@ -982,7 +1069,9 @@ function RoleSettings({
             />
           </label>
           <label className="block space-y-1 text-sm">
-            <span>Working instructions</span>
+            <span>
+              <T>Working instructions</T>
+            </span>
             <Textarea
               value={editing.instructions}
               maxLength={40_000}
@@ -993,7 +1082,8 @@ function RoleSettings({
             {(["requiredSkills", "optionalSkills"] as const).map((key) => (
               <label key={key} className="block space-y-1 text-sm">
                 <span>
-                  {key === "requiredSkills" ? "Required skills" : "Optional skills"} (one per line)
+                  {key === "requiredSkills" ? gt("Required skills") : gt("Optional skills")}
+                  <T> (one per line)</T>
                 </span>
                 <Textarea
                   value={skillDrafts[key]}
@@ -1011,15 +1101,23 @@ function RoleSettings({
               checked={editing.enabled}
               onChange={(event) => setEditing({ ...editing, enabled: event.target.checked })}
             />
-            Enabled for future assignments
+            <T>Enabled for future assignments</T>
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1 text-sm">
-              <span>Expected output</span>
-              <span className="py-2">{editing.outputKind} · fixed by role kind</span>
+              <span>
+                <T>Expected output</T>
+              </span>
+              <span className="py-2">
+                <T>
+                  <Var>{editing.outputKind}</Var> · fixed by role kind
+                </T>
+              </span>
             </div>
             <label className="flex flex-col gap-1 text-sm">
-              <span>Preferred provider and model</span>
+              <span>
+                <T>Preferred provider and model</T>
+              </span>
               <select
                 className={SELECT}
                 value={
@@ -1039,7 +1137,9 @@ function RoleSettings({
                   })
                 }
               >
-                <option value="">Use the workflow model</option>
+                <option value="">
+                  <T>Use the workflow model</T>
+                </option>
                 {editing.modelSelection &&
                 !modelChoices.some(
                   (choice) =>
@@ -1049,7 +1149,7 @@ function RoleSettings({
                   <option
                     value={`${editing.modelSelection.instanceId}:${editing.modelSelection.model}`}
                   >
-                    Configured model currently unavailable
+                    <T>Configured model currently unavailable</T>
                   </option>
                 ) : null}
                 {modelChoices.map((choice) => (
@@ -1065,7 +1165,7 @@ function RoleSettings({
           </div>
           <details className="text-xs text-muted-foreground">
             <summary className="cursor-pointer py-2">
-              Skill package provenance and prerequisites
+              <T>Skill package provenance and prerequisites</T>
             </summary>
             {[
               ...new Set(
@@ -1083,28 +1183,34 @@ function RoleSettings({
               return (
                 <div key={id} className="space-y-1 border-t border-border py-2">
                   <p className="font-medium">
-                    {skill?.name ?? id} · {skill?.tier ?? "Native or external"}
+                    {skill?.name ?? id} · {skill?.tier ?? gt("Native or external")}
                   </p>
                   {skill ? (
                     <>
                       <p>{skill.description}</p>
                       <p>
-                        Modes: {skill.modes.join(", ")}. Requires:{" "}
-                        {skill.requiredCapabilities.join(", ") || "No additional tools"}.{" "}
+                        <T>
+                          Modes: <Var>{skill.modes.join(", ")}</Var>. Requires:{" "}
+                        </T>
+                        {skill.requiredCapabilities.join(", ") || gt("No additional tools")}.{" "}
                         {skill.userInvocationOnly
-                          ? "User invocation only."
-                          : "Agent invocation supported within scope."}
+                          ? gt("User invocation only.")
+                          : gt("Agent invocation supported within scope.")}
                       </p>
                       <p>
-                        Version {skill.version} · {skill.contentHash}
+                        <T>
+                          Version <Var>{skill.version}</Var> · <Var>{skill.contentHash}</Var>
+                        </T>
                       </p>
                       {skill.deferredReason ? <p>{skill.deferredReason}</p> : null}
                       <p>{skill.provenance.join("; ")}</p>
                     </>
                   ) : (
                     <p>
-                      The destination provider must resolve this skill. Missing required skills
-                      block launch.
+                      <T>
+                        The destination provider must resolve this skill. Missing required skills
+                        block launch.
+                      </T>
                     </p>
                   )}
                 </div>
@@ -1119,8 +1225,10 @@ function RoleSettings({
             />
           ) : null}
           <p className="text-xs text-muted-foreground">
-            Permissions continue to follow the project and provider. Naming a skill does not grant
-            its capabilities.
+            <T>
+              Permissions continue to follow the project and provider. Naming a skill does not grant
+              its capabilities.
+            </T>
           </p>
           {error ? (
             <p role="alert" className="text-sm text-destructive">
@@ -1132,7 +1240,7 @@ function RoleSettings({
               type="submit"
               disabled={!canSave || busy || !editing.name.trim() || editingRevision !== revision}
             >
-              Save role
+              <T>Save role</T>
             </Button>
             <Button
               type="button"
@@ -1140,7 +1248,7 @@ function RoleSettings({
               disabled={busy}
               onClick={() => setEditing(null)}
             >
-              Cancel
+              <T>Cancel</T>
             </Button>
           </div>
         </form>
@@ -1158,6 +1266,7 @@ function SavedRoleReadiness({
   roleId: string;
   modelSelection: ModelSelection;
 }) {
+  const gt = useGT();
   const result = useAtomValue(
     agentWorkflows.preview({
       environmentId: project.environmentId,
@@ -1168,16 +1277,21 @@ function SavedRoleReadiness({
   return (
     <div className="space-y-2 rounded-lg border border-border p-3 text-xs">
       <p className="font-medium">
-        Saved role readiness{preview ? ` · ${preview.ready ? "Ready" : "Unavailable"}` : ""}
+        <T>Saved role readiness</T>
+        {preview ? ` · ${preview.ready ? "Ready" : "Unavailable"}` : ""}
       </p>
       <p className="text-muted-foreground">
-        Uses the saved version and current project model. Save your draft to check its changed
-        skills or preferences.
+        <T>
+          Uses the saved version and current project model. Save your draft to check its changed
+          skills or preferences.
+        </T>
       </p>
       {AsyncResult.isFailure(result) ? (
         <p role="alert">{errorText(result)}</p>
       ) : !preview ? (
-        <p role="status">Resolving skills and provider capabilities…</p>
+        <p role="status">
+          <T>Resolving skills and provider capabilities…</T>
+        </p>
       ) : null}
       {preview?.issues.map((issue) => (
         <p key={issue} className="text-destructive">
@@ -1186,7 +1300,7 @@ function SavedRoleReadiness({
       ))}
       {preview?.snapshot.skills.map((skill) => (
         <p key={skill.id}>
-          {skill.id} · {skill.required ? "Required" : "Optional"} ·{" "}
+          {skill.id} · {skill.required ? gt("Required") : gt("Optional")} ·{" "}
           {skill.state.replaceAll("_", " ")} · {skill.source}
           {skill.reason ? ` · ${skill.reason}` : ""}
         </p>
@@ -1206,6 +1320,7 @@ function WorkflowDetail({
   workflowId: string;
   search: string;
 }) {
+  const gt = useGT();
   const [messagePage, setMessagePage] = useState<{ search: string; offset: number | undefined }>({
     search,
     offset: undefined,
@@ -1247,8 +1362,8 @@ function WorkflowDetail({
         className="text-sm text-muted-foreground"
       >
         {AsyncResult.isFailure(result)
-          ? "Could not load this workflow. Check your connection and read permission."
-          : "Loading workflow…"}
+          ? gt("Could not load this workflow. Check your connection and read permission.")
+          : gt("Loading workflow…")}
       </p>
     );
   const runControl = (
@@ -1312,8 +1427,13 @@ function WorkflowDetail({
         generation: cancelled.value.generation,
         toThreadId: workflow.managerThreadId,
         kind: "handoff",
-        summary: `Revision requested: ${text.trim().replace(/\s+/g, " ").slice(0, 160)}`,
-        text: `The user cancelled assignment ${assignmentId} and requests a fresh revised assignment.\n\n${text.trim()}\n\nPreserve accepted criterion identities and evidence. Resolve material scope choices through the existing human-input flow before new work.`,
+        summary: gt("Revision requested: {slice}", {
+          slice: text.trim().replace(/\s+/g, " ").slice(0, 160),
+        }),
+        text: gt(
+          "The user cancelled assignment {assignmentId} and requests a fresh revised assignment.\n\n{trim}\n\nPreserve accepted criterion identities and evidence. Resolve material scope choices through the existing human-input flow before new work.",
+          { assignmentId, trim: text.trim() },
+        ),
         artifactIds: [],
         replyTo: null,
         blocking: false,
@@ -1322,7 +1442,10 @@ function WorkflowDetail({
     setBusy(false);
     if (response._tag === "Failure") {
       setError(
-        `The assignment was cancelled, but the revision request was not delivered. ${errorText(response)} Retry the request or open the planner conversation.`,
+        gt(
+          "The assignment was cancelled, but the revision request was not delivered. {errorText} Retry the request or open the planner conversation.",
+          { errorText: errorText(response) },
+        ),
       );
       return false;
     }
@@ -1346,7 +1469,7 @@ function WorkflowDetail({
               )?.senderThreadId ?? workflow.managerThreadId),
         assignmentId: question.assignmentId,
         kind: "answer",
-        summary: `Answer: ${text.trim().slice(0, 160)}`,
+        summary: gt("Answer: {slice}", { slice: text.trim().slice(0, 160) }),
         text: text.trim(),
         artifactIds: [],
         replyTo: question.id,
@@ -1361,7 +1484,7 @@ function WorkflowDetail({
     return true;
   };
   return (
-    <section className="min-w-0 space-y-6" aria-label="Workflow details">
+    <section className="min-w-0 space-y-6" aria-label={gt("Workflow details")}>
       <div className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -1378,7 +1501,7 @@ function WorkflowDetail({
                 disabled={!canControl || busy}
                 onClick={() => runControl("resume")}
               >
-                Resume
+                <T>Resume</T>
               </Button>
             ) : workflow.status === "running" ? (
               <Button
@@ -1387,7 +1510,7 @@ function WorkflowDetail({
                 disabled={!canControl || busy}
                 onClick={() => runControl("pause")}
               >
-                Pause new starts
+                <T>Pause new starts</T>
               </Button>
             ) : null}
             {workflow.status === "failed" ? (
@@ -1397,7 +1520,7 @@ function WorkflowDetail({
                 disabled={!canControl || busy}
                 onClick={() => runControl("retry")}
               >
-                Retry
+                <T>Retry</T>
               </Button>
             ) : null}
             {!["completed", "cancelled"].includes(workflow.status) ? (
@@ -1407,7 +1530,7 @@ function WorkflowDetail({
                 disabled={!canControl || busy}
                 onClick={() => runControl("cancel")}
               >
-                Cancel workflow
+                <T>Cancel workflow</T>
               </Button>
             ) : null}
           </div>
@@ -1416,11 +1539,13 @@ function WorkflowDetail({
         {workflow.humanInputPending ? (
           <div className="space-y-2 rounded-lg border border-border p-3">
             <p role="status" className="text-sm font-medium">
-              Needs your input
+              <T>Needs your input</T>
             </p>
             <p className="text-xs text-muted-foreground">
-              A conversation has a pending native question or approval. Open it to answer using its
-              existing controls.
+              <T>
+                A conversation has a pending native question or approval. Open it to answer using
+                its existing controls.
+              </T>
             </p>
             {(workflow.humanInputThreadIds?.length
               ? workflow.humanInputThreadIds
@@ -1432,12 +1557,12 @@ function WorkflowDetail({
                 params={{ environmentId, threadId }}
                 className="block text-sm text-primary underline"
               >
-                Open{" "}
+                <T>Open </T>
                 {threadId === workflow.managerThreadId
-                  ? (workflow.managerRole?.role.name ?? "Planner")
+                  ? (workflow.managerRole?.role.name ?? gt("Planner"))
                   : (workflow.assignments.find((assignment) =>
                       assignment.attempts.some((attempt) => attempt.childThreadId === threadId),
-                    )?.role.role.name ?? "Agent")}{" "}
+                    )?.role.role.name ?? gt("Agent"))}{" "}
                 conversation
               </Link>
             ))}
@@ -1451,12 +1576,14 @@ function WorkflowDetail({
           params={{ environmentId, threadId: workflow.managerThreadId }}
           className="text-sm text-primary underline"
         >
-          Open planner conversation
+          <T>Open planner conversation</T>
         </Link>
         {workflow.status === "paused" ? (
           <p className="text-xs text-muted-foreground">
-            New assignments are paused. Running tasks may still be active; open their conversations
-            to interrupt them.
+            <T>
+              New assignments are paused. Running tasks may still be active; open their
+              conversations to interrupt them.
+            </T>
           </p>
         ) : null}
       </div>
@@ -1466,10 +1593,12 @@ function WorkflowDetail({
         </p>
       ) : null}
       <section className="space-y-3">
-        <h4 className="font-medium">Assignments</h4>
+        <h4 className="font-medium">
+          <T>Assignments</T>
+        </h4>
         {workflow.assignments.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            The planner is preparing the first assignment.
+            <T>The planner is preparing the first assignment.</T>
           </p>
         ) : null}
         {workflow.assignments.map((assignment) => (
@@ -1482,9 +1611,9 @@ function WorkflowDetail({
               <p className="text-sm">{assignment.objective}</p>
               <p className="text-xs text-muted-foreground">
                 {assignment.writeResponsibility
-                  ? "Owns workflow write responsibility"
-                  : "Does not own workflow write responsibility"}
-                . A stopped provider turn does not mean this assignment is accepted.
+                  ? gt("Owns workflow write responsibility")
+                  : gt("Does not own workflow write responsibility")}
+                <T>. A stopped provider turn does not mean this assignment is accepted.</T>
               </p>
               {assignment.criteria.map((criterion) => (
                 <p key={criterion.id} className="text-sm">
@@ -1493,27 +1622,33 @@ function WorkflowDetail({
               ))}
               {assignment.requiredChecks.length > 0 ? (
                 <div className="space-y-1 text-xs text-muted-foreground">
-                  <p className="font-medium">Required checks</p>
+                  <p className="font-medium">
+                    <T>Required checks</T>
+                  </p>
                   {assignment.requiredChecks.map((command) => (
                     <p key={command}>{command}</p>
                   ))}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  No project checks declared; reviewer must assess testing sufficiency.
+                  <T>No project checks declared; reviewer must assess testing sufficiency.</T>
                 </p>
               )}
               {assignment.dependencies.length > 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  Depends on:{" "}
-                  {assignment.dependencies
-                    .map(
-                      (id) =>
-                        workflow.assignments.find((entry) => entry.id === id)?.role.role.name ??
-                        "Earlier assignment",
-                    )
-                    .join(", ")}
-                  .
+                  <T>
+                    Depends on:{" "}
+                    <Var>
+                      {assignment.dependencies
+                        .map(
+                          (id) =>
+                            workflow.assignments.find((entry) => entry.id === id)?.role.role.name ??
+                            "Earlier assignment",
+                        )
+                        .join(", ")}
+                    </Var>
+                    .
+                  </T>
                 </p>
               ) : null}
               <div className="flex flex-wrap gap-2">
@@ -1528,7 +1663,7 @@ function WorkflowDetail({
                     }
                     onClick={() => runAssignmentControl(assignment.id, "retry")}
                   >
-                    Retry assignment
+                    <T>Retry assignment</T>
                   </Button>
                 ) : !["accepted", "cancelled"].includes(assignment.state) ? (
                   <Button
@@ -1541,13 +1676,15 @@ function WorkflowDetail({
                     }
                     onClick={() => runAssignmentControl(assignment.id, "cancel")}
                   >
-                    Cancel assignment
+                    <T>Cancel assignment</T>
                   </Button>
                 ) : null}
               </div>
               {assignment.checkpoint ? (
                 <p className="break-all text-xs text-muted-foreground">
-                  Pinned checkpoint: {assignment.checkpoint.commitSha}
+                  <T>
+                    Pinned checkpoint: <Var>{assignment.checkpoint.commitSha}</Var>
+                  </T>
                 </p>
               ) : null}
               <div className="flex flex-wrap gap-2">
@@ -1560,7 +1697,9 @@ function WorkflowDetail({
                       params={{ environmentId, threadId: attempt.childThreadId! }}
                       className="text-sm text-primary underline"
                     >
-                      Attempt {attempt.ordinal + 1}
+                      <T>
+                        Attempt <Var>{attempt.ordinal + 1}</Var>
+                      </T>
                     </Link>
                   ))}
               </div>
@@ -1582,7 +1721,9 @@ function WorkflowDetail({
       </section>
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="font-medium">Communication</h4>
+          <h4 className="font-medium">
+            <T>Communication</T>
+          </h4>
         </div>
         <AgentCommunication
           environmentId={environmentId}
@@ -1606,21 +1747,23 @@ function WorkflowDetail({
               size="sm"
               onClick={() => setMessageOffset(workflow.messageNextOffset ?? undefined)}
             >
-              Older exchanges
+              <T>Older exchanges</T>
             </Button>
           ) : null}
           {messageOffset !== undefined ? (
             <Button variant="ghost" size="sm" onClick={() => setMessageOffset(undefined)}>
-              Newest exchanges
+              <T>Newest exchanges</T>
             </Button>
           ) : null}
         </div>
       </section>
       <section className="space-y-3">
-        <h4 className="font-medium">Evidence and results</h4>
+        <h4 className="font-medium">
+          <T>Evidence and results</T>
+        </h4>
         {workflow.artifacts.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No result artifacts have been submitted yet.
+            <T>No result artifacts have been submitted yet.</T>
           </p>
         ) : null}
         {workflow.artifacts.map((artifact) => (
@@ -1637,28 +1780,41 @@ function WorkflowDetail({
             size="sm"
             onClick={() => setArtifactOffset(workflow.artifactNextOffset ?? undefined)}
           >
-            Older artifacts
+            <T>Older artifacts</T>
           </Button>
         ) : null}
         {artifactOffset !== undefined ? (
           <Button variant="ghost" size="sm" onClick={() => setArtifactOffset(undefined)}>
-            Newest artifacts
+            <T>Newest artifacts</T>
           </Button>
         ) : null}
       </section>
       <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer py-2">Limits and execution facts</summary>
+        <summary className="cursor-pointer py-2">
+          <T>Limits and execution facts</T>
+        </summary>
         <p>
-          {workflow.limits.maxConcurrent} concurrent assignments · {workflow.limits.maxAttempts}{" "}
-          attempts · {workflow.limits.maxReviewRounds} correction rounds. Cost coverage is unknown
-          when providers do not report it.
+          <T>
+            <Var>{workflow.limits.maxConcurrent}</Var> concurrent assignments ·{" "}
+            <Var>{workflow.limits.maxAttempts}</Var> attempts ·{" "}
+            <Var>{workflow.limits.maxReviewRounds}</Var> correction rounds. Cost coverage is unknown
+            when providers do not report it.
+          </T>
         </p>
         <p>
-          Base: {workflow.baseRef ?? "Preparing"}. Workspace:{" "}
-          {workflow.workspacePath ?? "Preparing"}. Generation {workflow.generation}.
+          <T>Base: </T>
+          {workflow.baseRef ?? gt("Preparing")}
+          <T>. Workspace: </T>
+          {workflow.workspacePath ?? gt("Preparing")}
+          <T>
+            . Generation <Var>{workflow.generation}</Var>.
+          </T>
         </p>
         <p>
-          Workflow completion does not imply a merged PR, board completion or permission to publish.
+          <T>
+            Workflow completion does not imply a merged PR, board completion or permission to
+            publish.
+          </T>
         </p>
         {!["draft", "completed", "cancelled"].includes(workflow.status) ? (
           <WorkflowLimitsEditor
@@ -1681,6 +1837,8 @@ function WorkflowLimitsEditor({
   disabled: boolean;
   onApply: (action: "pause" | "resume" | "retry", limits: AgentWorkflowLimits) => void;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const [draft, setDraft] = useState(() => workflowLimitDraft(workflow.limits));
   const limits = parseWorkflowLimits(draft);
   const action =
@@ -1700,7 +1858,7 @@ function WorkflowLimitsEditor({
       <div className="grid gap-3 sm:grid-cols-2">
         {WORKFLOW_LIMIT_FIELDS.map(({ key, label, min, max }) => (
           <label key={key} className="block space-y-1">
-            <span>{label}</span>
+            <span>{messages(label)}</span>
             <Input
               type="number"
               min={min}
@@ -1714,16 +1872,22 @@ function WorkflowLimitsEditor({
         ))}
       </div>
       <p>
-        Limits govern future assignment dispatch. Existing work may continue; manager coordination
-        and incomplete provider usage are not a dollar ceiling.
+        <T>
+          Limits govern future assignment dispatch. Existing work may continue; manager coordination
+          and incomplete provider usage are not a dollar ceiling.
+        </T>
       </p>
-      {!limits ? <p role="status">Enter all values within their allowed ranges.</p> : null}
+      {!limits ? (
+        <p role="status">
+          <T>Enter all values within their allowed ranges.</T>
+        </p>
+      ) : null}
       <Button type="submit" variant="outline" size="sm" disabled={disabled || !limits}>
         {action === "pause"
-          ? "Apply limits and pause new starts"
+          ? gt("Apply limits and pause new starts")
           : action === "resume"
-            ? "Apply limits and resume"
-            : "Retry with these limits"}
+            ? gt("Apply limits and resume")
+            : gt("Retry with these limits")}
       </Button>
     </form>
   );
@@ -1742,11 +1906,16 @@ function FrozenSpec({
       onToggle={(event) => setExpanded(event.currentTarget.open)}
       className="rounded-lg border border-border p-3"
     >
-      <summary className="cursor-pointer text-sm">Frozen source spec</summary>
+      <summary className="cursor-pointer text-sm">
+        <T>Frozen source spec</T>
+      </summary>
       {expanded ? (
         <div className="mt-3 space-y-2">
           <p className="break-words text-xs text-muted-foreground">
-            {workflow.specSnapshot?.source} · SHA-256 {workflow.specSnapshot?.contentHash}
+            <T>
+              <Var>{workflow.specSnapshot?.source}</Var> · SHA-256{" "}
+              <Var>{workflow.specSnapshot?.contentHash}</Var>
+            </T>
           </p>
           <WorkflowContent
             environmentId={environmentId}
@@ -1771,7 +1940,9 @@ function AssignmentRevisionForm({
   const [submitted, setSubmitted] = useState(false);
   return (
     <details className="text-sm">
-      <summary className="cursor-pointer py-2">Request a revised assignment</summary>
+      <summary className="cursor-pointer py-2">
+        <T>Request a revised assignment</T>
+      </summary>
       <form
         className="mt-2 space-y-2"
         onSubmit={(event) => {
@@ -1786,11 +1957,15 @@ function AssignmentRevisionForm({
         }}
       >
         <p className="text-xs text-muted-foreground">
-          Cancels the current assignment and asks the planner for a fresh assignment. Accepted
-          criteria remain intact; material scope choices still require your input.
+          <T>
+            Cancels the current assignment and asks the planner for a fresh assignment. Accepted
+            criteria remain intact; material scope choices still require your input.
+          </T>
         </p>
         <label className="block space-y-1">
-          <span>Requested change</span>
+          <span>
+            <T>Requested change</T>
+          </span>
           <Textarea
             value={text}
             maxLength={38_000}
@@ -1802,11 +1977,11 @@ function AssignmentRevisionForm({
           />
         </label>
         <Button type="submit" variant="outline" size="sm" disabled={disabled || !text.trim()}>
-          Cancel and request revision
+          <T>Cancel and request revision</T>
         </Button>
         {submitted ? (
           <p role="status" className="text-xs text-muted-foreground">
-            Revision request sent to the planner.
+            <T>Revision request sent to the planner.</T>
           </p>
         ) : null}
       </form>
@@ -1853,6 +2028,7 @@ function ArtifactDetails({
   workflow: AgentWorkflow;
   artifactId: string;
 }) {
+  const gt = useGT();
   const result = useAtomValue(
     agentWorkflows.content({
       environmentId,
@@ -1874,14 +2050,16 @@ function ArtifactDetails({
       >
         {content?.text ??
           (AsyncResult.isFailure(result)
-            ? "Could not load the original evidence. Check your connection and permission."
-            : "Loading evidence…")}
+            ? gt("Could not load the original evidence. Check your connection and permission.")
+            : gt("Loading evidence…"))}
       </p>
       {artifact ? (
         <>
           <p className="text-xs text-muted-foreground">
-            Head: {artifact.headRef ?? "Not recorded"}. Reviewed:{" "}
-            {artifact.reviewedHead ?? "Not a review"}.
+            <T>Head: </T>
+            {artifact.headRef ?? gt("Not recorded")}
+            <T>. Reviewed: </T>
+            {artifact.reviewedHead ?? gt("Not a review")}.
           </p>
           {artifact.checks.map((check) => (
             <div
@@ -1892,8 +2070,10 @@ function ArtifactDetails({
                 {check.status.toUpperCase()}: {check.command}
               </p>
               <p>
-                Revision: {check.revision}
-                {check.required ? " · Required" : ""}
+                <T>
+                  Revision: <Var>{check.revision}</Var>
+                </T>
+                {check.required ? gt(" · Required") : ""}
               </p>
               <p className="whitespace-pre-wrap">{check.evidence}</p>
             </div>
@@ -1908,14 +2088,16 @@ function ArtifactDetails({
           ))}
           {artifact.limitations.map((limitation) => (
             <p key={limitation} className="text-sm text-muted-foreground">
-              Limitation: {limitation}
+              <T>
+                Limitation: <Var>{limitation}</Var>
+              </T>
             </p>
           ))}
           {artifact.criteria.map((criterion) => (
             <div key={criterion.id} className="space-y-1 text-sm">
               <p>
                 {workflow.criteria.find((entry) => entry.id === criterion.id)?.text ?? criterion.id}
-                : {criterion.passed ? "Passed" : "Not passed"}
+                : {criterion.passed ? gt("Passed") : gt("Not passed")}
               </p>
               {criterion.evidence.map((reference) => (
                 <p key={reference} className="break-words text-xs text-muted-foreground">
@@ -1926,7 +2108,7 @@ function ArtifactDetails({
           ))}
           <details className="text-xs text-muted-foreground">
             <summary className="cursor-pointer py-2">
-              Original artifact and verification references
+              <T>Original artifact and verification references</T>
             </summary>
             <pre className="overflow-auto whitespace-pre-wrap break-all">
               {JSON.stringify(artifact, null, 2)}
@@ -1950,7 +2132,9 @@ function AssignmentSnapshot({
   const [expanded, setExpanded] = useState(false);
   return (
     <details onToggle={(event) => setExpanded(event.currentTarget.open)}>
-      <summary className="cursor-pointer text-xs">Role snapshot and instructions</summary>
+      <summary className="cursor-pointer text-xs">
+        <T>Role snapshot and instructions</T>
+      </summary>
       {expanded ? (
         <>
           <WorkflowContent

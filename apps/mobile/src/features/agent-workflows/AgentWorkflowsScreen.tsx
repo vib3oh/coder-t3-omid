@@ -1,3 +1,5 @@
+import { T, Var, msg, useGT, useMessages } from "gt-react-native";
+import { m as resolveMessage } from "../../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
@@ -50,6 +52,7 @@ const STATUS = {
 } as const;
 
 export function AgentWorkflowsScreen({ route }: StaticScreenProps<AgentWorkflowsRouteParams>) {
+  const gt = useGT();
   const params = route.params ?? {};
   const { environments } = useEnvironments();
   const projects = useProjects().filter((project) => !project.archivedAt);
@@ -75,12 +78,16 @@ export function AgentWorkflowsScreen({ route }: StaticScreenProps<AgentWorkflows
       maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
     >
       <View className="gap-2">
-        <Text className="text-2xl font-t3-bold text-foreground">Agent workflows</Text>
+        <Text className="text-2xl font-t3-bold text-foreground">
+          <T>Agent workflows</T>
+        </Text>
         <Text className="text-sm text-foreground-muted">
-          Follow assignments, inspect evidence and answer questions in the project’s environment.
+          <T>
+            Follow assignments, inspect evidence and answer questions in the project’s environment.
+          </T>
         </Text>
       </View>
-      <View className="gap-2" accessibilityLabel="Workflow projects">
+      <View className="gap-2" accessibilityLabel={gt("Workflow projects")}>
         {projects.map((entry) => (
           <Pressable
             key={key(entry)}
@@ -92,7 +99,7 @@ export function AgentWorkflowsScreen({ route }: StaticScreenProps<AgentWorkflows
             <Text className="font-t3-medium text-foreground">{entry.title}</Text>
             <Text className="text-xs text-foreground-muted">
               {environments.find((environment) => environment.environmentId === entry.environmentId)
-                ?.label ?? "Unavailable environment"}{" "}
+                ?.label ?? gt("Unavailable environment")}{" "}
               · {entry.workspaceRoot}
             </Text>
           </Pressable>
@@ -112,8 +119,10 @@ export function AgentWorkflowsScreen({ route }: StaticScreenProps<AgentWorkflows
       ) : (
         <Text className="text-foreground-muted">
           {params.projectId || params.environmentId
-            ? "The selected project is unavailable. Reconnect its environment or choose another project."
-            : "Connect a project to see its workflows."}
+            ? gt(
+                "The selected project is unavailable. Reconnect its environment or choose another project.",
+              )
+            : gt("Connect a project to see its workflows.")}
         </Text>
       )}
     </ScreenScrollView>
@@ -124,7 +133,7 @@ function failureText(result: Parameters<typeof squashAtomCommandFailure>[0]) {
   const cause = squashAtomCommandFailure(result);
   return cause instanceof Error
     ? cause.message
-    : "The operation could not finish. Reload to check its current state.";
+    : resolveMessage(msg("The operation could not finish. Reload to check its current state."));
 }
 
 function ProjectWorkflows({
@@ -136,6 +145,7 @@ function ProjectWorkflows({
   initialWorkflowId?: string | undefined;
   sourceThreadId?: ThreadId | undefined;
 }) {
+  const gt = useGT();
   const listResult = useAtomValue(
     agentWorkflows.list({ environmentId: project.environmentId, input: { projectId: project.id } }),
   );
@@ -164,18 +174,20 @@ function ProjectWorkflows({
     <View className="gap-4">
       {AsyncResult.isFailure(listResult) ? (
         <Text accessibilityRole="alert" className="text-danger">
-          Could not load workflows. Check this environment’s connection, version and read
-          permission.
+          <T>
+            Could not load workflows. Check this environment’s connection, version and read
+            permission.
+          </T>
         </Text>
       ) : null}
       {roles && !roles.enabled ? (
         <Text className="text-foreground-muted">
-          New workflows are disabled. Existing history and controls remain available.
+          <T>New workflows are disabled. Existing history and controls remain available.</T>
         </Text>
       ) : null}
       {roles && canConfigure ? (
         <Button
-          label={roles.enabled ? "Disable new starts" : "Enable workflows"}
+          label={roles.enabled ? gt("Disable new starts") : gt("Enable workflows")}
           disabled={busy}
           onPress={() => {
             setBusy(true);
@@ -195,8 +207,10 @@ function ProjectWorkflows({
         />
       ) : null}
       <Text className="text-xs text-foreground-muted">
-        Start workflows and edit project roles from web or desktop. Mobile supports monitoring,
-        evidence, answers and lifecycle controls.
+        <T>
+          Start workflows and edit project roles from web or desktop. Mobile supports monitoring,
+          evidence, answers and lifecycle controls.
+        </T>
       </Text>
       {error ? (
         <Text accessibilityRole="alert" className="text-danger">
@@ -213,7 +227,7 @@ function ProjectWorkflows({
         >
           <Text className="font-t3-medium text-foreground">{workflow.title}</Text>
           <Text className="text-sm text-foreground-muted">
-            {workflow.humanInputPending ? "Needs your input" : STATUS[workflow.status]} ·{" "}
+            {workflow.humanInputPending ? gt("Needs your input") : STATUS[workflow.status]} ·{" "}
             {workflow.acceptedCount}/{workflow.assignmentCount} accepted
           </Text>
           {workflow.currentStage ? (
@@ -226,19 +240,23 @@ function ProjectWorkflows({
           ) : null}
           {workflow.pendingQuestions > 0 ? (
             <Text className="text-sm text-foreground">
-              {workflow.pendingQuestions} pending questions
+              <T>
+                <Var>{workflow.pendingQuestions}</Var> pending questions
+              </T>
             </Text>
           ) : null}
         </Pressable>
       ))}
       {list?.workflows.length === 0 ? (
-        <Text className="text-foreground-muted">No workflows in this project yet.</Text>
+        <Text className="text-foreground-muted">
+          <T>No workflows in this project yet.</T>
+        </Text>
       ) : null}
       {selectedId ? (
         <View className="gap-4">
           <TextInput
-            accessibilityLabel="Search all workflow messages"
-            placeholder="Search all messages"
+            accessibilityLabel={gt("Search all workflow messages")}
+            placeholder={gt("Search all messages")}
             className="min-h-12 rounded-lg border border-border p-3 text-foreground"
             value={messageSearch}
             maxLength={200}
@@ -265,6 +283,8 @@ function WorkflowDetail({
   workflowId: string;
   search: string;
 }) {
+  const gt = useGT();
+  const resolveMessage = useMessages();
   const navigation = useNavigation();
   const [messagePage, setMessagePage] = useState<{ search: string; offset: number | undefined }>({
     search,
@@ -307,8 +327,8 @@ function WorkflowDetail({
         className="text-foreground-muted"
       >
         {AsyncResult.isFailure(result)
-          ? "Could not load this workflow. Check your connection and permission."
-          : "Loading workflow…"}
+          ? gt("Could not load this workflow. Check your connection and permission.")
+          : gt("Loading workflow…")}
       </Text>
     );
   const openThread = (threadId: ThreadId) =>
@@ -382,8 +402,13 @@ function WorkflowDetail({
         generation: cancelled.value.generation,
         toThreadId: workflow.managerThreadId,
         kind: "handoff",
-        summary: `Revision requested: ${text.trim().replace(/\s+/g, " ").slice(0, 160)}`,
-        text: `The user cancelled assignment ${assignmentId} and requests a fresh revised assignment.\n\n${text.trim()}\n\nPreserve accepted criterion identities and evidence. Resolve material scope choices through the existing human-input flow before new work.`,
+        summary: gt("Revision requested: {slice}", {
+          slice: text.trim().replace(/\s+/g, " ").slice(0, 160),
+        }),
+        text: gt(
+          "The user cancelled assignment {assignmentId} and requests a fresh revised assignment.\n\n{trim}\n\nPreserve accepted criterion identities and evidence. Resolve material scope choices through the existing human-input flow before new work.",
+          { assignmentId, trim: text.trim() },
+        ),
         artifactIds: [],
         replyTo: null,
         blocking: false,
@@ -392,7 +417,10 @@ function WorkflowDetail({
     setBusy(false);
     if (response._tag === "Failure") {
       setError(
-        `The assignment was cancelled, but the revision request was not delivered. ${failureText(response)} Retry the request or open the planner conversation.`,
+        gt(
+          "The assignment was cancelled, but the revision request was not delivered. {failureText} Retry the request or open the planner conversation.",
+          { failureText: failureText(response) },
+        ),
       );
       return false;
     }
@@ -414,7 +442,7 @@ function WorkflowDetail({
         toThreadId: original?.senderThreadId ?? workflow.managerThreadId,
         assignmentId: question.assignmentId,
         kind: "answer",
-        summary: `Answer: ${text.trim().slice(0, 160)}`,
+        summary: gt("Answer: {slice}", { slice: text.trim().slice(0, 160) }),
         text: text.trim(),
         artifactIds: [],
         replyTo: question.id,
@@ -452,11 +480,13 @@ function WorkflowDetail({
         {workflow.humanInputPending ? (
           <View className="gap-2 rounded-xl border border-border p-3">
             <Text accessibilityLiveRegion="polite" className="font-t3-medium text-foreground">
-              Needs your input
+              <T>Needs your input</T>
             </Text>
             <Text className="text-xs text-foreground-muted">
-              A conversation has a pending native question or approval. Open it to answer using its
-              existing controls.
+              <T>
+                A conversation has a pending native question or approval. Open it to answer using
+                its existing controls.
+              </T>
             </Text>
             {(workflow.humanInputThreadIds?.length
               ? workflow.humanInputThreadIds
@@ -464,49 +494,59 @@ function WorkflowDetail({
             ).map((threadId) => (
               <Button
                 key={threadId}
-                label={`Open ${threadId === workflow.managerThreadId ? (workflow.managerRole?.role.name ?? "Planner") : (workflow.assignments.find((assignment) => assignment.attempts.some((attempt) => attempt.childThreadId === threadId))?.role.role.name ?? "Agent")} conversation`}
+                label={gt("Open {value} conversation", {
+                  value:
+                    threadId === workflow.managerThreadId
+                      ? (workflow.managerRole?.role.name ?? "Planner")
+                      : (workflow.assignments.find((assignment) =>
+                          assignment.attempts.some((attempt) => attempt.childThreadId === threadId),
+                        )?.role.role.name ?? "Agent"),
+                })}
                 onPress={() => openThread(threadId)}
               />
             ))}
           </View>
         ) : null}
         {workflow.specSnapshot ? (
-          <NativeDisclosure title="Frozen source spec">
+          <NativeDisclosure title={gt("Frozen source spec")}>
             <Text selectable className="text-xs text-foreground-muted">
-              {workflow.specSnapshot.source} · SHA-256 {workflow.specSnapshot.contentHash}
+              <T>
+                <Var>{workflow.specSnapshot.source}</Var> · SHA-256{" "}
+                <Var>{workflow.specSnapshot.contentHash}</Var>
+              </T>
             </Text>
             <NativeContent project={project} workflowId={workflowId} kind="spec" id={workflow.id} />
           </NativeDisclosure>
         ) : null}
         <Button
-          label="Open planner conversation"
+          label={gt("Open planner conversation")}
           onPress={() => openThread(workflow.managerThreadId)}
         />
       </View>
       <View className="flex-row flex-wrap gap-2">
         {workflow.status === "paused" || workflow.status === "waiting_user" ? (
           <Button
-            label="Resume"
+            label={gt("Resume")}
             disabled={!canControl || busy}
             onPress={() => controlWorkflow("resume")}
           />
         ) : workflow.status === "running" ? (
           <Button
-            label="Pause new starts"
+            label={gt("Pause new starts")}
             disabled={!canControl || busy}
             onPress={() => controlWorkflow("pause")}
           />
         ) : null}
         {workflow.status === "failed" ? (
           <Button
-            label="Retry"
+            label={gt("Retry")}
             disabled={!canControl || busy}
             onPress={() => controlWorkflow("retry")}
           />
         ) : null}
         {!["completed", "cancelled"].includes(workflow.status) ? (
           <Button
-            label="Cancel workflow"
+            label={gt("Cancel workflow")}
             tone="danger"
             disabled={!canControl || busy}
             onPress={() => controlWorkflow("cancel")}
@@ -515,8 +555,10 @@ function WorkflowDetail({
       </View>
       {workflow.status === "paused" ? (
         <Text className="text-xs text-foreground-muted">
-          New assignments are paused. Running work may continue; open its conversation to interrupt
-          it.
+          <T>
+            New assignments are paused. Running work may continue; open its conversation to
+            interrupt it.
+          </T>
         </Text>
       ) : null}
       {error ? (
@@ -524,7 +566,9 @@ function WorkflowDetail({
           {error}
         </Text>
       ) : null}
-      <Text className="text-lg font-t3-medium text-foreground">Assignments</Text>
+      <Text className="text-lg font-t3-medium text-foreground">
+        <T>Assignments</T>
+      </Text>
       {workflow.assignments.map((assignment) => (
         <NativeDisclosure
           key={assignment.id}
@@ -535,9 +579,9 @@ function WorkflowDetail({
           </Text>
           <Text className="text-xs text-foreground-muted">
             {assignment.writeResponsibility
-              ? "Owns workflow write responsibility"
-              : "Does not own write responsibility"}
-            . A stopped provider turn does not mean accepted work.
+              ? gt("Owns workflow write responsibility")
+              : gt("Does not own write responsibility")}
+            <T>. A stopped provider turn does not mean accepted work.</T>
           </Text>
           {assignment.criteria.map((criterion) => (
             <Text key={criterion.id} className="text-sm text-foreground">
@@ -546,7 +590,9 @@ function WorkflowDetail({
           ))}
           {assignment.requiredChecks.length > 0 ? (
             <View className="gap-1">
-              <Text className="text-xs font-t3-medium text-foreground">Required checks</Text>
+              <Text className="text-xs font-t3-medium text-foreground">
+                <T>Required checks</T>
+              </Text>
               {assignment.requiredChecks.map((command) => (
                 <Text key={command} className="text-xs text-foreground-muted">
                   {command}
@@ -555,25 +601,29 @@ function WorkflowDetail({
             </View>
           ) : (
             <Text className="text-xs text-foreground-muted">
-              No project checks declared; reviewer must assess testing sufficiency.
+              <T>No project checks declared; reviewer must assess testing sufficiency.</T>
             </Text>
           )}
           {assignment.dependencies.length > 0 ? (
             <Text className="text-xs text-foreground-muted">
-              Depends on:{" "}
-              {assignment.dependencies
-                .map(
-                  (id) =>
-                    workflow.assignments.find((entry) => entry.id === id)?.role.role.name ??
-                    "Earlier assignment",
-                )
-                .join(", ")}
-              .
+              <T>
+                Depends on:{" "}
+                <Var>
+                  {assignment.dependencies
+                    .map(
+                      (id) =>
+                        workflow.assignments.find((entry) => entry.id === id)?.role.role.name ??
+                        "Earlier assignment",
+                    )
+                    .join(", ")}
+                </Var>
+                .
+              </T>
             </Text>
           ) : null}
           {["failed", "cancelled", "needs_changes"].includes(assignment.state) ? (
             <Button
-              label="Retry assignment"
+              label={gt("Retry assignment")}
               disabled={
                 !canControlAssignment ||
                 busy ||
@@ -583,7 +633,7 @@ function WorkflowDetail({
             />
           ) : !["accepted", "cancelled"].includes(assignment.state) ? (
             <Button
-              label="Cancel assignment"
+              label={gt("Cancel assignment")}
               disabled={
                 !canControlAssignment ||
                 busy ||
@@ -594,19 +644,21 @@ function WorkflowDetail({
           ) : null}
           {assignment.checkpoint ? (
             <Text selectable className="text-xs text-foreground-muted">
-              Pinned checkpoint: {assignment.checkpoint.commitSha}
+              <T>
+                Pinned checkpoint: <Var>{assignment.checkpoint.commitSha}</Var>
+              </T>
             </Text>
           ) : null}
           {assignment.attempts.map((attempt) =>
             attempt.childThreadId ? (
               <Button
                 key={attempt.id}
-                label={`Open attempt ${attempt.ordinal + 1}`}
+                label={gt("Open attempt {value}", { value: attempt.ordinal + 1 })}
                 onPress={() => openThread(attempt.childThreadId!)}
               />
             ) : null,
           )}
-          <NativeDisclosure title="Role snapshot and skill availability">
+          <NativeDisclosure title={gt("Role snapshot and skill availability")}>
             <NativeContent
               project={project}
               workflowId={workflowId}
@@ -622,7 +674,7 @@ function WorkflowDetail({
           </NativeDisclosure>
           {assignment.state !== "accepted" &&
           !["completed", "cancelled"].includes(workflow.status) ? (
-            <NativeDisclosure title="Request a revised assignment">
+            <NativeDisclosure title={gt("Request a revised assignment")}>
               <NativeRevisionForm
                 disabled={!canControlAssignment || !canReply || busy}
                 onRequest={(text) => revise(assignment.id, text)}
@@ -633,30 +685,34 @@ function WorkflowDetail({
       ))}
       {workflow.assignments.length === 0 ? (
         <Text className="text-sm text-foreground-muted">
-          The planner is preparing the first assignment.
+          <T>The planner is preparing the first assignment.</T>
         </Text>
       ) : null}
-      <Text className="text-lg font-t3-medium text-foreground">Communication</Text>
+      <Text className="text-lg font-t3-medium text-foreground">
+        <T>Communication</T>
+      </Text>
       {presentation.groups.map((group) => (
         <NativeDisclosure
           key={group.id}
           title={group.summary}
-          subtitle={`${presentation.names.get(group.latest.senderId) ?? "Agent"} → ${presentation.names.get(group.latest.recipientId) ?? "Agent"} · ${communicationStatus(group.latest)}${group.messages.length > 1 ? ` · ${group.messages.length} updates` : ""}`}
+          subtitle={`${presentation.names.get(group.latest.senderId) ?? "Agent"} → ${presentation.names.get(group.latest.recipientId) ?? "Agent"} · ${communicationStatus(group.latest, resolveMessage)}${group.messages.length > 1 ? ` · ${group.messages.length} updates` : ""}`}
         >
           <Text className="text-xs text-foreground-muted">
-            Summary from sender. Delivery status does not establish task completion.
+            <T>Summary from sender. Delivery status does not establish task completion.</T>
           </Text>
           {group.latest.delivery === "failed" ? (
             <View className="gap-2">
               <Text className="text-sm text-foreground">
-                Delivery stopped. Open the conversation to resolve the failure and request another
-                send.
+                <T>
+                  Delivery stopped. Open the conversation to resolve the failure and request another
+                  send.
+                </T>
               </Text>
               <Button
                 label={
                   messages.find((entry) => entry.id === group.latest.id)?.senderThreadId
-                    ? "Open sender conversation"
-                    : "Open planner conversation"
+                    ? gt("Open sender conversation")
+                    : gt("Open planner conversation")
                 }
                 onPress={() =>
                   openThread(
@@ -669,8 +725,10 @@ function WorkflowDetail({
           ) : null}
           {group.latest.questionState === "expired" ? (
             <Text className="text-sm text-foreground">
-              This question expired. Resume the workflow or open the planner conversation to resolve
-              the blocking decision.
+              <T>
+                This question expired. Resume the workflow or open the planner conversation to
+                resolve the blocking decision.
+              </T>
             </Text>
           ) : null}
           {group.messages.map((message) => (
@@ -691,7 +749,7 @@ function WorkflowDetail({
                     key={id}
                     title={
                       workflow.artifacts.find((artifact) => artifact.id === id)?.summary ??
-                      "Referenced artifact"
+                      gt("Referenced artifact")
                     }
                   >
                     <NativeArtifactDetails
@@ -707,7 +765,7 @@ function WorkflowDetail({
           {group.latest.kind === "question" && group.latest.questionState === "open" ? (
             <AnswerForm question={group.latest} disabled={!canReply || busy} onReply={reply} />
           ) : null}
-          <NativeDisclosure title="Diagnostics and delivery facts">
+          <NativeDisclosure title={gt("Diagnostics and delivery facts")}>
             <Text selectable className="text-xs text-foreground-muted">
               {JSON.stringify(
                 messages.filter((entry) => group.messages.some((row) => row.id === entry.id)),
@@ -719,24 +777,28 @@ function WorkflowDetail({
         </NativeDisclosure>
       ))}
       {presentation.groups.length === 0 ? (
-        <Text className="text-sm text-foreground-muted">No matching communications yet.</Text>
+        <Text className="text-sm text-foreground-muted">
+          <T>No matching communications yet.</T>
+        </Text>
       ) : null}
       <View className="flex-row flex-wrap gap-2">
         {workflow.messageNextOffset !== null ? (
           <Button
-            label="Older exchanges"
+            label={gt("Older exchanges")}
             onPress={() => setMessageOffset(workflow.messageNextOffset ?? undefined)}
           />
         ) : null}
         {messageOffset !== undefined ? (
           <Button
-            label="Newest exchanges"
+            label={gt("Newest exchanges")}
             tone="text"
             onPress={() => setMessageOffset(undefined)}
           />
         ) : null}
       </View>
-      <Text className="text-lg font-t3-medium text-foreground">Evidence and results</Text>
+      <Text className="text-lg font-t3-medium text-foreground">
+        <T>Evidence and results</T>
+      </Text>
       {workflow.artifacts.map((artifact) => (
         <NativeDisclosure
           key={artifact.id}
@@ -754,30 +816,35 @@ function WorkflowDetail({
       <View className="flex-row flex-wrap gap-2">
         {workflow.artifactNextOffset !== null ? (
           <Button
-            label="Older artifacts"
+            label={gt("Older artifacts")}
             onPress={() => setArtifactOffset(workflow.artifactNextOffset ?? undefined)}
           />
         ) : null}
         {artifactOffset !== undefined ? (
           <Button
-            label="Newest artifacts"
+            label={gt("Newest artifacts")}
             tone="text"
             onPress={() => setArtifactOffset(undefined)}
           />
         ) : null}
       </View>
-      <NativeDisclosure title="Limits and execution facts">
+      <NativeDisclosure title={gt("Limits and execution facts")}>
         <Text className="text-xs text-foreground-muted">
-          {workflow.limits.maxConcurrent} concurrent assignments · {workflow.limits.maxAttempts}{" "}
-          attempts · {workflow.limits.maxReviewRounds} correction rounds. Provider cost coverage may
-          be unknown.
+          <T>
+            <Var>{workflow.limits.maxConcurrent}</Var> concurrent assignments ·{" "}
+            <Var>{workflow.limits.maxAttempts}</Var> attempts ·{" "}
+            <Var>{workflow.limits.maxReviewRounds}</Var> correction rounds. Provider cost coverage
+            may be unknown.
+          </T>
         </Text>
         <Text selectable className="text-xs text-foreground-muted">
-          Base: {workflow.baseRef ?? "Preparing"}. Workspace:{" "}
-          {workflow.workspacePath ?? "Preparing"}.
+          <T>Base: </T>
+          {workflow.baseRef ?? gt("Preparing")}
+          <T>. Workspace: </T>
+          {workflow.workspacePath ?? gt("Preparing")}.
         </Text>
         <Text className="text-xs text-foreground-muted">
-          A reviewed result does not imply a merged PR or board completion.
+          <T>A reviewed result does not imply a merged PR or board completion.</T>
         </Text>
         {!["draft", "completed", "cancelled"].includes(workflow.status) ? (
           <NativeLimitsEditor
@@ -800,6 +867,8 @@ function NativeLimitsEditor({
   disabled: boolean;
   onApply: (action: "pause" | "resume" | "retry", limits: AgentWorkflowLimits) => void;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const [draft, setDraft] = useState(() => workflowLimitDraft(workflow.limits));
   const limits = parseWorkflowLimits(draft);
   const action =
@@ -813,10 +882,10 @@ function NativeLimitsEditor({
       {WORKFLOW_LIMIT_FIELDS.map(({ key, label, min, max }) => (
         <View key={key} className="gap-1">
           <Text className="text-xs text-foreground">
-            {label} ({min}–{max})
+            {messages(label)} ({min}–{max})
           </Text>
           <TextInput
-            accessibilityLabel={label}
+            accessibilityLabel={messages(label)}
             className="min-h-12 rounded-lg border border-border p-3 text-foreground"
             keyboardType="numeric"
             editable={!disabled}
@@ -826,22 +895,24 @@ function NativeLimitsEditor({
         </View>
       ))}
       <Text className="text-xs text-foreground-muted">
-        Limits govern future assignment dispatch. Existing work may continue; manager coordination
-        and incomplete provider usage are not a dollar ceiling.
+        <T>
+          Limits govern future assignment dispatch. Existing work may continue; manager coordination
+          and incomplete provider usage are not a dollar ceiling.
+        </T>
       </Text>
       {!limits ? (
         <Text accessibilityLiveRegion="polite" className="text-xs text-foreground-muted">
-          Enter all values within their allowed ranges.
+          <T>Enter all values within their allowed ranges.</T>
         </Text>
       ) : null}
       <Button
         disabled={disabled || !limits}
         label={
           action === "pause"
-            ? "Apply limits and pause new starts"
+            ? gt("Apply limits and pause new starts")
             : action === "resume"
-              ? "Apply limits and resume"
-              : "Retry with these limits"
+              ? gt("Apply limits and resume")
+              : gt("Retry with these limits")
         }
         onPress={() => {
           if (limits && !disabled) onApply(action, limits);
@@ -858,16 +929,19 @@ function NativeRevisionForm({
   disabled: boolean;
   onRequest: (text: string) => Promise<boolean>;
 }) {
+  const gt = useGT();
   const [text, setText] = useState("");
   const [submitted, setSubmitted] = useState(false);
   return (
     <View className="gap-2">
       <Text className="text-xs text-foreground-muted">
-        Cancels the current assignment and asks the planner for a fresh assignment. Accepted
-        criteria remain intact; material scope choices still require your input.
+        <T>
+          Cancels the current assignment and asks the planner for a fresh assignment. Accepted
+          criteria remain intact; material scope choices still require your input.
+        </T>
       </Text>
       <TextInput
-        accessibilityLabel="Requested assignment change"
+        accessibilityLabel={gt("Requested assignment change")}
         className="min-h-24 rounded-lg border border-border p-3 text-foreground"
         multiline
         maxLength={38_000}
@@ -879,7 +953,7 @@ function NativeRevisionForm({
         }}
       />
       <Button
-        label="Cancel and request revision"
+        label={gt("Cancel and request revision")}
         disabled={disabled || !text.trim()}
         onPress={() => {
           if (disabled || !text.trim()) return;
@@ -893,7 +967,7 @@ function NativeRevisionForm({
       />
       {submitted ? (
         <Text accessibilityLiveRegion="polite" className="text-xs text-foreground-muted">
-          Revision request sent to the planner.
+          <T>Revision request sent to the planner.</T>
         </Text>
       ) : null}
     </View>
@@ -911,6 +985,7 @@ function NativeArtifactDetails({
   artifactId: string;
   criteria: ReadonlyArray<{ readonly id: string; readonly text: string }>;
 }) {
+  const gt = useGT();
   const result = useAtomValue(
     agentWorkflows.content({
       environmentId: project.environmentId,
@@ -933,14 +1008,16 @@ function NativeArtifactDetails({
       >
         {content?.text ??
           (AsyncResult.isFailure(result)
-            ? "Could not load the original evidence. Check your connection and permission."
-            : "Loading evidence…")}
+            ? gt("Could not load the original evidence. Check your connection and permission.")
+            : gt("Loading evidence…"))}
       </Text>
       {artifact ? (
         <>
           <Text selectable className="text-xs text-foreground-muted">
-            Head: {artifact.headRef ?? "Not recorded"}. Reviewed:{" "}
-            {artifact.reviewedHead ?? "Not a review"}.
+            <T>Head: </T>
+            {artifact.headRef ?? gt("Not recorded")}
+            <T>. Reviewed: </T>
+            {artifact.reviewedHead ?? gt("Not a review")}.
           </Text>
           {artifact.checks.map((check) => (
             <View
@@ -952,7 +1029,7 @@ function NativeArtifactDetails({
               </Text>
               <Text selectable className="text-xs text-foreground-muted">
                 {check.revision}
-                {check.required ? " · Required" : ""}
+                {check.required ? gt(" · Required") : ""}
                 {"\n"}
                 {check.evidence}
               </Text>
@@ -968,14 +1045,16 @@ function NativeArtifactDetails({
           ))}
           {artifact.limitations.map((limitation) => (
             <Text key={limitation} className="text-sm text-foreground-muted">
-              Limitation: {limitation}
+              <T>
+                Limitation: <Var>{limitation}</Var>
+              </T>
             </Text>
           ))}
           {artifact.criteria.map((criterion) => (
             <View key={criterion.id} className="gap-1">
               <Text className="text-sm text-foreground">
                 {criteria.find((entry) => entry.id === criterion.id)?.text ?? criterion.id}:{" "}
-                {criterion.passed ? "Passed" : "Not passed"}
+                {criterion.passed ? gt("Passed") : gt("Not passed")}
               </Text>
               {criterion.evidence.map((reference) => (
                 <Text key={reference} selectable className="text-xs text-foreground-muted">
@@ -984,7 +1063,7 @@ function NativeArtifactDetails({
               ))}
             </View>
           ))}
-          <NativeDisclosure title="Original artifact and verification references">
+          <NativeDisclosure title={gt("Original artifact and verification references")}>
             <Text selectable className="text-xs text-foreground-muted">
               {JSON.stringify(artifact, null, 2)}
             </Text>
@@ -1034,6 +1113,7 @@ function NativeContent({
   kind: "message" | "artifact" | "assignment" | "spec";
   id: string;
 }) {
+  const gt = useGT();
   const result = useAtomValue(
     agentWorkflows.content({
       environmentId: project.environmentId,
@@ -1045,8 +1125,8 @@ function NativeContent({
     <Text selectable className="text-sm text-foreground">
       {content?.text ??
         (AsyncResult.isFailure(result)
-          ? "Could not load the original content."
-          : "Loading content…")}
+          ? gt("Could not load the original content.")
+          : gt("Loading content…"))}
     </Text>
   );
 }
@@ -1060,12 +1140,15 @@ function AnswerForm({
   disabled: boolean;
   onReply: (question: CommunicationMessage, text: string) => Promise<boolean>;
 }) {
+  const gt = useGT();
   const [answer, setAnswer] = useState("");
   return (
     <View className="gap-2">
-      <Text className="text-sm font-t3-medium text-foreground">Answer as you</Text>
+      <Text className="text-sm font-t3-medium text-foreground">
+        <T>Answer as you</T>
+      </Text>
       <TextInput
-        accessibilityLabel="Your answer"
+        accessibilityLabel={gt("Your answer")}
         className="min-h-24 rounded-lg border border-border p-3 text-foreground"
         multiline
         maxLength={40_000}
@@ -1074,10 +1157,10 @@ function AnswerForm({
         editable={!disabled}
       />
       <Text className="text-xs text-foreground-muted">
-        Your answer is attributed to you. Peer questions do not require your intervention.
+        <T>Your answer is attributed to you. Peer questions do not require your intervention.</T>
       </Text>
       <Button
-        label="Send answer"
+        label={gt("Send answer")}
         disabled={disabled || !answer.trim()}
         onPress={() => {
           void onReply(question, answer).then((sent) => {

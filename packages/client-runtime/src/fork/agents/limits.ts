@@ -1,13 +1,14 @@
 import { AgentWorkflowLimits } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
+import { msg } from "gt-i18n";
 const isWorkflowLimits = Schema.is(AgentWorkflowLimits);
 
 export const WORKFLOW_LIMIT_FIELDS = [
-  { key: "maxConcurrent", label: "Concurrent assignments", min: 1, max: 8 },
-  { key: "maxAttempts", label: "Assignment attempts", min: 1, max: 100 },
-  { key: "maxReviewRounds", label: "Correction rounds", min: 0, max: 10 },
-  { key: "maxMessages", label: "Messages", min: 1, max: 2_000 },
-  { key: "questionTimeoutSeconds", label: "Question timeout (seconds)", min: 1, max: 604_800 },
+  { key: "maxConcurrent", label: msg("Concurrent assignments"), min: 1, max: 8 },
+  { key: "maxAttempts", label: msg("Assignment attempts"), min: 1, max: 100 },
+  { key: "maxReviewRounds", label: msg("Correction rounds"), min: 0, max: 10 },
+  { key: "maxMessages", label: msg("Messages"), min: 1, max: 2_000 },
+  { key: "questionTimeoutSeconds", label: msg("Question timeout (seconds)"), min: 1, max: 604_800 },
 ] as const;
 
 export type WorkflowLimitDraft = Record<(typeof WORKFLOW_LIMIT_FIELDS)[number]["key"], string>;

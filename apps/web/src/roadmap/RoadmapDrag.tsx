@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import {
   DndContext,
   DragOverlay,
@@ -120,6 +121,7 @@ export function RoadmapDragCard({
   onOpen: () => void;
   children: ReactNode;
 }) {
+  const gt = useGT();
   const {
     attributes,
     listeners,
@@ -158,7 +160,7 @@ export function RoadmapDragCard({
           variant="ghost"
           size="icon-sm"
           disabled={disabled}
-          aria-label={`Drag ${card.title}`}
+          aria-label={gt("Drag {title}", { title: card.title })}
           className="touch-none"
         >
           <GripVerticalIcon className="size-3.5" />

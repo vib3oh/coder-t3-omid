@@ -217,10 +217,6 @@ function codexBuiltinSkillRoots(pkg: BuiltinSkillPackage) {
   return { extraRoots: [pkg.codexRoot] };
 }
 
-export function claudeBuiltinSkillPlugin(pkg: BuiltinSkillPackage) {
-  return { type: "local" as const, path: pkg.claudePluginRoot };
-}
-
 export const optionalServerBuiltinSkillPackage = Effect.fn("BuiltinSkillService.optionalPackage")(
   function* () {
     const config = yield* Effect.serviceOption(ServerConfig.ServerConfig);

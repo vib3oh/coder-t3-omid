@@ -1,3 +1,4 @@
+import { T, Var, useGT } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import {
   scopeProjectRef,
@@ -45,6 +46,7 @@ import { useEnvironmentScope } from "../../state/session";
 import { openCommandPalette } from "../../commandPaletteBus";
 import { ProjectFavicon } from "../../components/ProjectFavicon";
 import { SidebarChromeHeader, SidebarChromeFooter } from "../../components/sidebar/SidebarChrome";
+import { SidebarFolderDrop } from "../../components/sidebar/SidebarFolderDrop";
 import ThreadSidebar, { useSidebarProviderEntries } from "../../components/Sidebar";
 import type { SidebarRouteReveal } from "../../components/sidebar/routeReveal";
 import { useActiveRowReveal } from "../../components/sidebar/routeReveal";
@@ -91,6 +93,7 @@ const EMPTY_NAVIGATION = Atom.make<AsyncResult.AsyncResult<ProjectNavigationRead
 );
 
 export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: SidebarRouteReveal }) {
+  const gt = useGT();
   const groups = useSidebarProjectGroups();
   const threads = useQuietThreadShells();
   const routeRef = useThreadRouteRef();
@@ -209,151 +212,163 @@ export function ProjectNavigationSidebar({ routeReveal }: { routeReveal: Sidebar
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-project-navigation="">
-      <SidebarChromeHeader isElectron={isElectron} />
-      <div className="flex min-h-0 flex-1">
-        <nav
-          aria-label="Projects"
-          className="scrollbar-gutter-both flex w-14 shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-sidebar-border px-1 py-3"
-        >
-          <RailButton
-            label="All threads and projectless work"
-            active={globalThreads}
-            onClick={() => setGlobalThreads(true)}
+    <SidebarFolderDrop>
+      <div className="flex h-full min-h-0 flex-col" data-project-navigation="">
+        <SidebarChromeHeader isElectron={isElectron} />
+        <div className="flex min-h-0 flex-1">
+          <nav
+            aria-label={gt("Projects")}
+            className="scrollbar-gutter-both flex w-14 shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-sidebar-border px-1 py-3"
           >
-            <MessageSquareIcon className="size-5" />
-          </RailButton>
-          <RailButton label="Search projects and threads" onClick={() => openCommandPalette()}>
-            <SearchIcon className="size-5" />
-          </RailButton>
-          <div className="my-1 w-7 border-t border-sidebar-border" />
-          {groups.map((group) => {
-            const member = resolveProjectGroupMember({
-              projects: group.memberProjects,
-              selectedProject: selectedKey,
-              rememberedProject: preferences.lastMembers?.[group.projectKey],
-              connectedEnvironmentIds: connected,
-            });
-            if (!member) return null;
-            const groupThreads = threads.filter((thread) =>
-              group.memberProjects.some(
-                (project) =>
-                  thread.projectId === project.id && thread.environmentId === project.environmentId,
-              ),
-            );
-            const isSelectedGroup = selectedGroup?.projectKey === group.projectKey;
-            const hasLoadedAttention = groupThreads.some(
-              (thread) =>
-                (thread.hasPendingApprovals ||
-                  thread.hasPendingUserInput ||
-                  thread.hasActionableProposedPlan ||
-                  thread.pendingSubagentRequest ||
-                  (thread.pendingGuestMessageCount ?? 0) > 0) &&
-                !effectiveSnoozed(thread, { now: snoozeNow }),
-            );
-            const needsYou =
-              isSelectedGroup && aggregate ? aggregate.attentionCount : hasLoadedAttention ? 1 : 0;
-            const partial =
-              !isSelectedGroup || !aggregate?.complete || group.memberProjects.length > 1;
-            const unread = groupThreads.some(hasUnseenCompletion);
-            return (
-              <RailButton
-                key={group.projectKey}
-                label={`${group.displayName}${group.pinned ? ", pinned" : ""}${partial ? `, ${needsYou ? `at least ${needsYou} worktrees need you; ` : ""}additional metadata not loaded` : needsYou ? `, ${needsYou} worktrees need you` : ""}`}
-                active={!globalThreads && selectedGroup?.projectKey === group.projectKey}
-                onClick={() => selectProject(member)}
-              >
-                <ProjectFavicon project={group} className="size-8" />
-                {needsYou > 0 ? (
-                  <span className="absolute -right-0.5 -top-0.5 rounded-full bg-primary px-1 text-3xs text-primary-foreground">
-                    {needsYou}
-                    {partial ? "+" : ""}
-                  </span>
-                ) : partial ? (
-                  <span
-                    className="absolute right-1 top-1 text-3xs text-muted-foreground"
-                    aria-label="Attention details not loaded"
+            <RailButton
+              label={gt("All threads and projectless work")}
+              active={globalThreads}
+              onClick={() => setGlobalThreads(true)}
+            >
+              <MessageSquareIcon className="size-5" />
+            </RailButton>
+            <RailButton
+              label={gt("Search projects and threads")}
+              onClick={() => openCommandPalette()}
+            >
+              <SearchIcon className="size-5" />
+            </RailButton>
+            <div className="my-1 w-7 border-t border-sidebar-border" />
+            {groups.map((group) => {
+              const member = resolveProjectGroupMember({
+                projects: group.memberProjects,
+                selectedProject: selectedKey,
+                rememberedProject: preferences.lastMembers?.[group.projectKey],
+                connectedEnvironmentIds: connected,
+              });
+              if (!member) return null;
+              const groupThreads = threads.filter(
+                (thread) =>
+                  thread.lineage.workflowStep !== true &&
+                  group.memberProjects.some(
+                    (project) =>
+                      thread.projectId === project.id &&
+                      thread.environmentId === project.environmentId,
+                  ),
+              );
+              const isSelectedGroup = selectedGroup?.projectKey === group.projectKey;
+              const hasLoadedAttention = groupThreads.some(
+                (thread) =>
+                  (thread.hasPendingApprovals ||
+                    thread.hasPendingUserInput ||
+                    thread.hasActionableProposedPlan ||
+                    thread.pendingSubagentRequest ||
+                    (thread.pendingGuestMessageCount ?? 0) > 0) &&
+                  !effectiveSnoozed(thread, { now: snoozeNow }),
+              );
+              const needsYou =
+                isSelectedGroup && aggregate
+                  ? aggregate.attentionCount
+                  : hasLoadedAttention
+                    ? 1
+                    : 0;
+              const partial =
+                !isSelectedGroup || !aggregate?.complete || group.memberProjects.length > 1;
+              const unread = groupThreads.some(hasUnseenCompletion);
+              return (
+                <RailButton
+                  key={group.projectKey}
+                  label={`${group.displayName}${group.pinned ? ", pinned" : ""}${partial ? `, ${needsYou ? `at least ${needsYou} worktrees need you; ` : ""}additional metadata not loaded` : needsYou ? `, ${needsYou} worktrees need you` : ""}`}
+                  active={!globalThreads && selectedGroup?.projectKey === group.projectKey}
+                  onClick={() => selectProject(member)}
+                >
+                  <ProjectFavicon project={group} className="size-8" />
+                  {needsYou > 0 ? (
+                    <span className="absolute -right-0.5 -top-0.5 rounded-full bg-primary px-1 text-3xs text-primary-foreground">
+                      {needsYou}
+                      {partial ? "+" : ""}
+                    </span>
+                  ) : partial ? (
+                    <span
+                      className="absolute right-1 top-1 text-3xs text-muted-foreground"
+                      aria-label={gt("Attention details not loaded")}
+                    >
+                      ?
+                    </span>
+                  ) : null}
+                  {unread ? (
+                    <span
+                      className="absolute bottom-1 right-1 size-2 rounded-full bg-primary"
+                      aria-label={gt("Unread work")}
+                    />
+                  ) : null}
+                </RailButton>
+              );
+            })}
+            <RailButton
+              label={gt("Add project")}
+              onClick={() => openCommandPalette({ open: "add-project" })}
+            >
+              <PlusIcon className="size-5" />
+            </RailButton>
+          </nav>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {globalThreads ? (
+              <ThreadSidebar routeReveal={routeReveal} hideChrome />
+            ) : selectedProject && selectedGroup ? (
+              <>
+                <header className="space-y-3 px-3 pb-3 pt-2">
+                  <h2 className="truncate text-base font-semibold">{selectedGroup.displayName}</h2>
+                  <Select
+                    items={projectOptions}
+                    value={scopedProjectKey({
+                      environmentId: selectedProject.environmentId,
+                      projectId: selectedProject.id,
+                    })}
+                    onValueChange={(key) => {
+                      const member = selectedGroup.memberProjects.find(
+                        (project) =>
+                          scopedProjectKey({
+                            environmentId: project.environmentId,
+                            projectId: project.id,
+                          }) === key,
+                      );
+                      if (member) selectProject(member);
+                    }}
                   >
-                    ?
-                  </span>
-                ) : null}
-                {unread ? (
-                  <span
-                    className="absolute bottom-1 right-1 size-2 rounded-full bg-primary"
-                    aria-label="Unread work"
-                  />
-                ) : null}
-              </RailButton>
-            );
-          })}
-          <RailButton
-            label="Add project"
-            onClick={() => openCommandPalette({ open: "add-project" })}
-          >
-            <PlusIcon className="size-5" />
-          </RailButton>
-        </nav>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {globalThreads ? (
-            <ThreadSidebar routeReveal={routeReveal} hideChrome />
-          ) : selectedProject && selectedGroup ? (
-            <>
-              <header className="space-y-3 px-3 pb-3 pt-2">
-                <h2 className="truncate text-base font-semibold">{selectedGroup.displayName}</h2>
-                <Select
-                  items={projectOptions}
-                  value={scopedProjectKey({
+                    <SelectTrigger size="compact" aria-label={gt("Project environment")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectPopup>
+                      {projectOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectPopup>
+                  </Select>
+                  <ProjectActions project={selectedProject} />
+                </header>
+                <ProjectWorktrees
+                  key={scopedProjectKey({
                     environmentId: selectedProject.environmentId,
                     projectId: selectedProject.id,
                   })}
-                  onValueChange={(key) => {
-                    const member = selectedGroup.memberProjects.find(
-                      (project) =>
-                        scopedProjectKey({
-                          environmentId: project.environmentId,
-                          projectId: project.id,
-                        }) === key,
-                    );
-                    if (member) selectProject(member);
-                  }}
-                >
-                  <SelectTrigger size="compact" aria-label="Project environment">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectPopup>
-                    {projectOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectPopup>
-                </Select>
-                <ProjectActions project={selectedProject} />
-              </header>
-              <ProjectWorktrees
-                key={scopedProjectKey({
-                  environmentId: selectedProject.environmentId,
-                  projectId: selectedProject.id,
-                })}
-                project={selectedProject}
-                routeReveal={routeReveal}
-                aggregateResult={aggregateResult}
-              />
-            </>
-          ) : (
-            <p className="p-3 text-sm text-muted-foreground">
-              {selectedKey
-                ? "This project is unavailable. Choose another project."
-                : "Add a project to organize its worktrees."}
-            </p>
-          )}
+                  project={selectedProject}
+                  routeReveal={routeReveal}
+                  aggregateResult={aggregateResult}
+                />
+              </>
+            ) : (
+              <p className="p-3 text-sm text-muted-foreground">
+                {selectedKey
+                  ? gt("This project is unavailable. Choose another project.")
+                  : gt("Add a project to organize its worktrees.")}
+              </p>
+            )}
+          </div>
         </div>
+        <SidebarChromeFooter />
+        <span className="sr-only" aria-live="polite">
+          {location.pathname === "/roadmap" ? gt("Roadmap") : ""}
+        </span>
       </div>
-      <SidebarChromeFooter />
-      <span className="sr-only" aria-live="polite">
-        {location.pathname === "/roadmap" ? "Roadmap" : ""}
-      </span>
-    </div>
+    </SidebarFolderDrop>
   );
 }
 
@@ -392,6 +407,7 @@ function RailButton({
 }
 
 function ProjectActions({ project }: { project: EnvironmentProject }) {
+  const gt = useGT();
   const navigate = useNavigate();
   const newThread = useNewThreadHandler();
   const canOperate = useEnvironmentScope(project.environmentId, AuthOrchestrationOperateScope);
@@ -410,7 +426,7 @@ function ProjectActions({ project }: { project: EnvironmentProject }) {
         }}
       >
         <KanbanIcon />
-        Roadmap
+        <T>Roadmap</T>
       </Button>
       <Button
         variant="outline"
@@ -424,11 +440,11 @@ function ProjectActions({ project }: { project: EnvironmentProject }) {
         }}
       >
         <PlusIcon />
-        New feature
+        <T>New feature</T>
       </Button>
       <Menu>
         <MenuTrigger
-          render={<Button variant="ghost" size="icon-xs" aria-label="Project actions" />}
+          render={<Button variant="ghost" size="icon-xs" aria-label={gt("Project actions")} />}
         >
           <MoreHorizontalIcon />
         </MenuTrigger>
@@ -440,7 +456,7 @@ function ProjectActions({ project }: { project: EnvironmentProject }) {
             }}
           >
             <UsersIcon />
-            Agent workflows
+            <T>Agent workflows</T>
           </MenuItem>
           <MenuItem
             onClick={() => {
@@ -449,7 +465,7 @@ function ProjectActions({ project }: { project: EnvironmentProject }) {
             }}
           >
             <ListChecksIcon />
-            Changelog
+            <T>Changelog</T>
           </MenuItem>
         </MenuPopup>
       </Menu>
@@ -466,6 +482,7 @@ function ProjectWorktrees({
   routeReveal: SidebarRouteReveal;
   aggregateResult: AsyncResult.AsyncResult<ProjectNavigationReadResult, unknown>;
 }) {
+  const gt = useGT();
   const activeRef = useThreadRouteRef();
   const [cursor, setCursor] = useState<string | undefined>();
   const [previous, setPrevious] = useState<readonly (string | undefined)[]>([]);
@@ -501,16 +518,18 @@ function ProjectWorktrees({
   const pinnedKey = (row: NavigationWorktree) =>
     `${scopedProjectKey({ environmentId: project.environmentId, projectId: project.id })}:${row.key}`;
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4" aria-label="Project worktrees">
+    <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4" aria-label={gt("Project worktrees")}>
       {!connected ? (
         <p role="status" className="p-2 text-xs text-muted-foreground">
-          Offline. Showing available work; reconnect to make changes.
+          <T>Offline. Showing available work; reconnect to make changes.</T>
         </p>
       ) : null}
       {AsyncResult.isFailure(result) ? (
         <p role="alert" className="p-2 text-xs text-muted-foreground">
-          Worktree details are unavailable. This server may need an update. Your threads remain
-          available in All threads.
+          <T>
+            Worktree details are unavailable. This server may need an update. Your threads remain
+            available in All threads.
+          </T>
           {cursor ? (
             <Button
               variant="ghost"
@@ -520,19 +539,19 @@ function ProjectWorktrees({
                 setPrevious([]);
               }}
             >
-              Reload list
+              <T>Reload list</T>
             </Button>
           ) : null}
         </p>
       ) : null}
       {!data && !AsyncResult.isFailure(result) ? (
         <p role="status" className="p-2 text-sm text-muted-foreground">
-          Loading worktrees…
+          <T>Loading worktrees…</T>
         </p>
       ) : null}
       {data && !data.complete ? (
         <p role="status" className="p-2 text-xs text-muted-foreground">
-          Some work details are unavailable. Counts may be incomplete.
+          <T>Some work details are unavailable. Counts may be incomplete.</T>
         </p>
       ) : null}
       {[
@@ -571,7 +590,9 @@ function ProjectWorktrees({
         ),
       )}
       {data && rows.length === 0 ? (
-        <p className="p-2 text-sm text-muted-foreground">No worktrees on this page.</p>
+        <p className="p-2 text-sm text-muted-foreground">
+          <T>No worktrees on this page.</T>
+        </p>
       ) : null}
       {data ? (
         <div className="mt-3 flex gap-2">
@@ -584,7 +605,7 @@ function ProjectWorktrees({
                 setPrevious(previous.slice(0, -1));
               }}
             >
-              Previous
+              <T>Previous</T>
             </Button>
           ) : null}
           {data.nextCursor ? (
@@ -596,7 +617,7 @@ function ProjectWorktrees({
                 setCursor(data.nextCursor ?? undefined);
               }}
             >
-              More worktrees
+              <T>More worktrees</T>
             </Button>
           ) : null}
         </div>
@@ -616,6 +637,7 @@ function WorktreeRow({
   revision: string;
   routeReveal: SidebarRouteReveal;
 }) {
+  const gt = useGT();
   const [preferences, setPreferences] = useProjectNavigationPreferences();
   const activeRef = useThreadRouteRef();
   const active = row.threads.some(
@@ -669,13 +691,13 @@ function WorktreeRow({
           )}
           <span className="min-w-0 flex-1">
             <span className="block truncate font-medium">
-              {row.isMain ? "Main checkout" : title}
+              {row.isMain ? gt("Main checkout") : title}
             </span>
             <span className="block truncate text-3xs text-muted-foreground">
               {row.availability === "missing"
-                ? "Worktree missing"
+                ? gt("Worktree missing")
                 : row.availability === "preparing"
-                  ? "Preparing worktree"
+                  ? gt("Preparing worktree")
                   : `${row.branch ?? row.label}${row.isMain ? "" : ` · ${status}`}${row.cards.length > 1 ? ` · ${row.cards.length} cards` : ""}`}
             </span>
           </span>
@@ -689,7 +711,7 @@ function WorktreeRow({
           <Button
             variant="ghost"
             size="icon-xs"
-            aria-label={pinned ? "Unpin worktree" : "Pin worktree"}
+            aria-label={pinned ? gt("Unpin worktree") : gt("Pin worktree")}
             onClick={() =>
               setPreferences({
                 ...preferences,
@@ -716,9 +738,9 @@ function WorktreeRow({
               <span className="truncate">{card.title}</span>
               <span className="ml-auto shrink-0 text-3xs">
                 {card.stage === "ready"
-                  ? "Your review"
+                  ? gt("Your review")
                   : card.stage === "reviewing"
-                    ? "Agent review"
+                    ? gt("Agent review")
                     : card.stage}
               </span>
             </button>
@@ -764,7 +786,9 @@ function WorktreeRow({
                   variant="ghost"
                   onClick={() => setThreadOffset(row.threadNextOffset!)}
                 >
-                  More threads ({row.threadCount})
+                  <T>
+                    More threads (<Var>{row.threadCount}</Var>)
+                  </T>
                 </Button>
               ) : null}
             </>
@@ -772,15 +796,17 @@ function WorktreeRow({
           {(row.cardNextOffset !== undefined && row.cardNextOffset !== null) ||
           (row.workflowNextOffset !== undefined && row.workflowNextOffset !== null) ? (
             <p className="px-2 text-xs text-muted-foreground">
-              More linked work is available in Roadmap and Agent workflows.
+              <T>More linked work is available in Roadmap and Agent workflows.</T>
             </p>
           ) : null}
           {row.threads.length === 0 ? (
-            <p className="px-2 py-1 text-xs text-muted-foreground">Idle · No threads</p>
+            <p className="px-2 py-1 text-xs text-muted-foreground">
+              <T>Idle · No threads</T>
+            </p>
           ) : null}
           {row.availability === "missing" ? (
             <p className="px-2 py-1 text-xs text-muted-foreground">
-              The checkout is missing. Open a thread to inspect or recover it.
+              <T>The checkout is missing. Open a thread to inspect or recover it.</T>
             </p>
           ) : null}
           <Button
@@ -801,7 +827,7 @@ function WorktreeRow({
             }
           >
             <PlusIcon />
-            New thread here
+            <T>New thread here</T>
           </Button>
         </div>
       ) : null}
@@ -832,19 +858,19 @@ function ThreadPage({
   return (
     <>
       <Button variant="ghost" size="xs" onClick={() => onOffsetChange(Math.max(0, offset - 50))}>
-        Previous threads
+        <T>Previous threads</T>
       </Button>
       {row?.threads.map((thread) => (
         <ThreadRow key={thread.id} project={project} thread={thread} routeReveal={routeReveal} />
       ))}
       {row?.threadNextOffset !== null && row?.threadNextOffset !== undefined ? (
         <Button variant="ghost" size="xs" onClick={() => onOffsetChange(row.threadNextOffset!)}>
-          More threads
+          <T>More threads</T>
         </Button>
       ) : null}
       {AsyncResult.isFailure(result) ? (
         <p role="alert" className="text-xs text-muted-foreground">
-          Couldn't load more threads.
+          <T>Couldn't load more threads.</T>
         </p>
       ) : null}
     </>
@@ -860,6 +886,7 @@ function ThreadRow({
   thread: NavigationThread;
   routeReveal: SidebarRouteReveal;
 }) {
+  const gt = useGT();
   const ref = scopeThreadRef(project.environmentId, thread.id);
   const native = useQuietThreadShell(ref);
   const provider = useSidebarProviderEntries()
@@ -920,12 +947,12 @@ function ThreadRow({
       useSidebarPendingFileDropStore.getState().queuePendingFileDrop({ threadRef: ref, files });
       openThread();
     },
-    addFolders: () => setError("Attach folders from the thread composer."),
+    addFolders: () => {},
   });
   const run = async (operation: (ref: ScopedThreadRef) => Promise<unknown>) => {
     const result = await operation(ref);
     if (result && typeof result === "object" && "_tag" in result && result._tag === "Failure")
-      setError("The thread action failed. Open the thread and try again.");
+      setError(gt("The thread action failed. Open the thread and try again."));
   };
   return (
     <div className={cn("rounded-md", dragActive && "ring-2 ring-ring")} {...drop}>
@@ -956,23 +983,27 @@ function ThreadRow({
               )}
             >
               {thread.archivedAt
-                ? "Archived"
+                ? gt("Archived")
                 : snoozed
-                  ? "Snoozed"
+                  ? gt("Snoozed")
                   : thread.settledAt
-                    ? "Settled"
+                    ? gt("Settled")
                     : status}
               {provider ? ` · ${provider.displayName ?? provider.driverKind}` : ""}
             </span>
           </span>
           {unseen ? (
-            <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unread" />
+            <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label={gt("Unread")} />
           ) : null}
         </button>
         <Menu>
           <MenuTrigger
             render={
-              <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${thread.title}`} />
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label={gt("Actions for {title}", { title: thread.title })}
+              />
             }
           >
             <MoreHorizontalIcon />
@@ -982,7 +1013,7 @@ function ThreadRow({
               disabled={!native || !canOperate || !connected}
               onClick={() => void run(thread.pinnedAt ? actions.unpinThread : actions.pinThread)}
             >
-              {thread.pinnedAt ? "Unpin thread" : "Pin thread"}
+              {thread.pinnedAt ? gt("Unpin thread") : gt("Pin thread")}
             </MenuItem>
             <MenuItem
               disabled={!native || !canOperate || !connected}
@@ -990,7 +1021,7 @@ function ThreadRow({
                 void run(thread.settledAt ? actions.unsettleThread : actions.settleThread)
               }
             >
-              {thread.settledAt ? "Un-settle thread" : "Settle thread"}
+              {thread.settledAt ? gt("Un-settle thread") : gt("Settle thread")}
             </MenuItem>
             <MenuItem
               disabled={!native || !canOperate || !connected || status === "Needs you"}
@@ -1002,7 +1033,7 @@ function ThreadRow({
                   });
               }}
             >
-              {snoozed ? "Wake thread" : "Snooze thread"}
+              {snoozed ? gt("Wake thread") : gt("Snooze thread")}
             </MenuItem>
             <MenuItem
               disabled={!native || !canOperate || !connected}
@@ -1010,10 +1041,10 @@ function ThreadRow({
                 void run(thread.archivedAt ? actions.unarchiveThread : actions.archiveThread)
               }
             >
-              {thread.archivedAt ? "Restore thread" : "Archive thread"}
+              {thread.archivedAt ? gt("Restore thread") : gt("Archive thread")}
             </MenuItem>
             <MenuItem disabled={!native} onClick={() => void actions.markThreadUnread(ref)}>
-              Mark unread
+              <T>Mark unread</T>
             </MenuItem>
           </MenuPopup>
         </Menu>

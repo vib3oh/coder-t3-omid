@@ -1,3 +1,5 @@
+import { msg, useGT } from "gt-react";
+import { m as resolveMessage } from "../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import {
   CommandId,
@@ -24,6 +26,7 @@ export function useRoadmapWork(
   project: EnvironmentProject,
   save: (cards: ReadonlyArray<RoadmapCard>, revision: number) => Promise<RoadmapBoard | null>,
 ) {
+  const gt = useGT();
   const config = useAtomValue(serverEnvironment.configValueAtom(project.environmentId));
   const launch = useAtomCommand(roadmapLaunch, { reportFailure: false });
   const startTurn = useAtomCommand(threadEnvironment.startTurn, { reportFailure: false });
@@ -72,7 +75,7 @@ export function useRoadmapWork(
       });
       return sent._tag === "Failure" ? failureMessage(sent) : null;
     }
-    if (!config) return "Connect to the project's environment before starting work.";
+    if (!config) return gt("Connect to the project's environment before starting work.");
     const settings = resolveProjectSettings(config.settings, project.id, project).settings;
     const modelSelection = resolveNewThreadModelSelection({
       defaultSelection:
@@ -85,7 +88,7 @@ export function useRoadmapWork(
       now: Date.now(),
     }).selection;
     if (!modelSelection)
-      return "Choose a default model for this project before starting work from the board.";
+      return gt("Choose a default model for this project before starting work from the board.");
     const threadId = card.threadId ?? ThreadId.make(randomUUID());
     if (!card.threadId) {
       const linked = await save(
@@ -95,7 +98,7 @@ export function useRoadmapWork(
         board.revision,
       );
       if (!linked)
-        return "The card changed before work could start. Reload the board and try again.";
+        return gt("The card changed before work could start. Reload the board and try again.");
     }
     const launched = await launch({
       environmentId: project.environmentId,
@@ -119,7 +122,9 @@ export function useRoadmapWork(
       },
     });
     return launched._tag === "Failure"
-      ? `${failureMessage(launched)} The card keeps its thread link so retrying can recover this launch.`
+      ? gt("{failureMessage} The card keeps its thread link so retrying can recover this launch.", {
+          failureMessage: failureMessage(launched),
+        })
       : null;
   }
 
@@ -130,5 +135,5 @@ function failureMessage(result: Parameters<typeof squashAtomCommandFailure>[0]) 
   const cause = squashAtomCommandFailure(result);
   return cause instanceof Error
     ? cause.message
-    : "The work could not be started. Reload and try again.";
+    : resolveMessage(msg("The work could not be started. Reload and try again."));
 }

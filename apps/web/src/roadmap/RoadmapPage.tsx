@@ -1,3 +1,5 @@
+import { T, Var, msg, useGT, useMessages } from "gt-react";
+import { m as resolveMessage } from "../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import { scopedProjectKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
@@ -40,6 +42,7 @@ import { RoadmapSyncControl } from "./RoadmapSync";
 const SELECT = "rounded-md border border-input bg-background px-2 py-1.5 text-sm";
 
 export function RoadmapPage() {
+  const gt = useGT();
   const projects = useProjects().filter((p) => !p.archivedAt);
   const routeSearch = useSearch({ strict: false });
   const search = {
@@ -54,18 +57,22 @@ export function RoadmapPage() {
       <WorkspacePageHeader electron={isElectron}>
         <SidebarTrigger />
         <KanbanIcon className="size-4 text-muted-foreground" />
-        <h1 className="text-sm font-medium">Roadmap</h1>
+        <h1 className="text-sm font-medium">
+          <T>Roadmap</T>
+        </h1>
       </WorkspacePageHeader>
       <div className="flex min-h-0 flex-1 flex-col gap-5 p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold">From idea to shipped</h2>
+            <h2 className="text-xl font-semibold">
+              <T>From idea to shipped</T>
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Plan the next change. Follow the work as it happens.
+              <T>Plan the next change. Follow the work as it happens.</T>
             </p>
           </div>
           <select
-            aria-label="Roadmap project"
+            aria-label={gt("Roadmap project")}
             className={SELECT}
             value={
               project
@@ -76,7 +83,7 @@ export function RoadmapPage() {
           >
             {!project ? (
               <option value="" disabled>
-                Choose a project
+                <T>Choose a project</T>
               </option>
             ) : null}
             {projects.map((p) => {
@@ -98,8 +105,8 @@ export function RoadmapPage() {
         ) : (
           <p className="text-muted-foreground">
             {search.project
-              ? "This project is unavailable. Choose a project to open its roadmap."
-              : "Add a project to start its roadmap. A GitHub repository is optional."}
+              ? gt("This project is unavailable. Choose a project to open its roadmap.")
+              : gt("Add a project to start its roadmap. A GitHub repository is optional.")}
           </p>
         )}
       </div>
@@ -114,6 +121,8 @@ function ProjectBoard({
   project: EnvironmentProject;
   cardId?: string | undefined;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const navigate = useNavigate();
   const target = { environmentId: project.environmentId, input: { projectId: project.id } };
   const result = useAtomValue(roadmapRead(target));
@@ -198,7 +207,7 @@ function ProjectBoard({
     if (!board || busy || !canSave || showArchived || transitionPending.current) return;
     const card = board.cards.find((row) => row.id === id);
     if (!card || card.archived) return;
-    const reason = roadmapReadOnlyReason(card);
+    const reason = roadmapReadOnlyReason(card, messages);
     if (reason) {
       setError(reason);
       return;
@@ -210,7 +219,9 @@ function ProjectBoard({
       if (moved !== board.cards) await save(moved);
       else if (!roadmapOrderGuard(board.cards)(id, beforeId))
         setError(
-          "This move would reorder a read-only Hypercoder card. Resolve its sync status or disconnect first.",
+          gt(
+            "This move would reorder a read-only Hypercoder card. Resolve its sync status or disconnect first.",
+          ),
         );
       return;
     }
@@ -221,7 +232,9 @@ function ProjectBoard({
     }
     if (action.type === "plan" && !roadmapOrderGuard(board.cards)(id, beforeId)) {
       setError(
-        "This move would reorder a read-only Hypercoder card. Resolve its sync status or disconnect first.",
+        gt(
+          "This move would reorder a read-only Hypercoder card. Resolve its sync status or disconnect first.",
+        ),
       );
       return;
     }
@@ -242,8 +255,10 @@ function ProjectBoard({
         else
           setNotice(
             action.mode === "review"
-              ? "Agent review started. The card follows the pull request as the review progresses."
-              : "Work started in the linked thread.",
+              ? gt(
+                  "Agent review started. The card follows the pull request as the review progresses.",
+                )
+              : gt("Work started in the linked thread."),
           );
       }
     } else if (action.type === "park" || (action.type === "plan" && action.archiveThread)) {
@@ -288,11 +303,13 @@ function ProjectBoard({
     return (
       <div role="status" className="text-sm text-muted-foreground">
         {AsyncResult.isFailure(result)
-          ? "Could not load this roadmap. Check the connection and that this environment runs the roadmap fork."
-          : "Loading roadmap…"}
+          ? gt(
+              "Could not load this roadmap. Check the connection and that this environment runs the roadmap fork.",
+            )
+          : gt("Loading roadmap…")}
         <div className="mt-3">
           <Button variant="outline" size="sm" onClick={() => void reload(target)}>
-            Retry
+            <T>Retry</T>
           </Button>
         </div>
       </div>
@@ -305,7 +322,7 @@ function ProjectBoard({
   const disabled = busy || !canSave || showArchived;
   const canReorder = roadmapOrderGuard(board.cards);
   const patch = (card: RoadmapCard) => {
-    if (roadmapReadOnlyReason(card)) return;
+    if (roadmapReadOnlyReason(card, messages)) return;
     return save(board.cards.map((row) => (row.id === card.id ? card : row)));
   };
 
@@ -315,7 +332,7 @@ function ProjectBoard({
         key={card.id}
         card={card}
         column={column}
-        disabled={disabled || Boolean(roadmapReadOnlyReason(card))}
+        disabled={disabled || Boolean(roadmapReadOnlyReason(card, messages))}
         onOpen={() => {
           setError(null);
           setEditing({ card, board: board! });
@@ -338,23 +355,35 @@ function ProjectBoard({
         {card.sync ? (
           <div className="space-y-1 text-xs text-muted-foreground">
             <p>
-              Hypercoder · {card.sync.status}
-              {card.sync.remoteColumn ? ` · source: ${card.sync.remoteColumn}` : ""}
+              <T>
+                Hypercoder · <Var>{card.sync.status}</Var>
+              </T>
+              {card.sync.remoteColumn
+                ? gt(" · source: {remoteColumn}", { remoteColumn: card.sync.remoteColumn })
+                : ""}
             </p>
-            {roadmapReadOnlyReason(card) ? <p>Read only: {roadmapReadOnlyReason(card)}</p> : null}
+            {roadmapReadOnlyReason(card, messages) ? (
+              <p>
+                <T>
+                  Read only: <Var>{roadmapReadOnlyReason(card, messages)}</Var>
+                </T>
+              </p>
+            ) : null}
           </div>
         ) : null}
         {card.acceptanceCriteria?.length ? (
           <p className="text-xs text-muted-foreground">
-            {card.acceptanceCriteria.filter((row) => row.checked).length}/
-            {card.acceptanceCriteria.length} criteria complete
+            <T>
+              <Var>{card.acceptanceCriteria.filter((row) => row.checked).length}</Var>/
+              <Var>{card.acceptanceCriteria.length}</Var> criteria complete
+            </T>
           </p>
         ) : null}
         <CardThread
           card={card}
           thread={threadFor(card)}
           project={project}
-          disabled={busy || !canSave || Boolean(roadmapReadOnlyReason(card))}
+          disabled={busy || !canSave || Boolean(roadmapReadOnlyReason(card, messages))}
         />
         <div className="flex flex-wrap items-center gap-1">
           {(column === "backlog" || column === "upNext") && !showArchived ? (
@@ -365,12 +394,12 @@ function ProjectBoard({
                 disabled={disabled || !canReorder(card.id)}
                 onClick={() => void drop(card.id, column === "backlog" ? "upNext" : "backlog")}
               >
-                {column === "backlog" ? "Prioritize" : "Backlog"}
+                {column === "backlog" ? gt("Prioritize") : gt("Backlog")}
               </Button>
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Move ${card.title} up`}
+                aria-label={gt("Move {title} up", { title: card.title })}
                 disabled={disabled || index === 0 || !canReorder(card.id, rows[index - 1]?.id)}
                 onClick={() => void drop(card.id, column, rows[index - 1]?.id)}
               >
@@ -379,7 +408,7 @@ function ProjectBoard({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Move ${card.title} down`}
+                aria-label={gt("Move {title} down", { title: card.title })}
                 disabled={
                   disabled || index === rows.length - 1 || !canReorder(card.id, rows[index + 2]?.id)
                 }
@@ -394,10 +423,10 @@ function ProjectBoard({
           <Button
             variant="ghost"
             size="sm"
-            disabled={busy || !canSave || Boolean(roadmapReadOnlyReason(card))}
+            disabled={busy || !canSave || Boolean(roadmapReadOnlyReason(card, messages))}
             onClick={() => void patch({ ...card, archived: !card.archived })}
           >
-            {card.archived ? "Restore" : "Archive"}
+            {card.archived ? gt("Restore") : gt("Archive")}
           </Button>
         </div>
       </RoadmapDragCard>
@@ -410,14 +439,14 @@ function ProjectBoard({
         <div className="w-full sm:w-64">
           <Input
             type="search"
-            aria-label="Search roadmap"
-            placeholder="Search cards…"
+            aria-label={gt("Search roadmap")}
+            placeholder={gt("Search cards…")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
         <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
-          {showArchived ? "Show board" : "Archived"}
+          {showArchived ? gt("Show board") : gt("Archived")}
         </Button>
         <Button
           variant="ghost"
@@ -432,7 +461,7 @@ function ProjectBoard({
           }}
         >
           <RefreshCwIcon className="size-3.5" />
-          Reload
+          <T>Reload</T>
         </Button>
         <RoadmapSyncControl project={project} disabled={busy} onBusyChange={setSyncing} />
         <div className="ml-auto">
@@ -458,19 +487,21 @@ function ProjectBoard({
             }}
           >
             <PlusIcon className="size-4" />
-            Add idea
+            <T>Add idea</T>
           </Button>
         </div>
       </div>
       {!canSave ? (
         <p className="text-sm text-muted-foreground">
-          Read only. Roadmap edits require permission to operate this environment.
+          <T>Read only. Roadmap edits require permission to operate this environment.</T>
         </p>
       ) : null}
-      {board.cards.some((card) => Boolean(roadmapReadOnlyReason(card))) ? (
+      {board.cards.some((card) => Boolean(roadmapReadOnlyReason(card, messages))) ? (
         <p className="text-xs text-muted-foreground">
-          Moves that would reorder read-only Hypercoder cards are disabled. Other cards remain
-          editable.
+          <T>
+            Moves that would reorder read-only Hypercoder cards are disabled. Other cards remain
+            editable.
+          </T>
         </p>
       ) : null}
       {error && !editing ? (
@@ -486,7 +517,7 @@ function ProjectBoard({
       <RoadmapDrag cards={cards} onMove={(id, column, before) => void drop(id, column, before)}>
         <div
           className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-3"
-          aria-label={showArchived ? "Archived roadmap" : "Project roadmap"}
+          aria-label={showArchived ? gt("Archived roadmap") : gt("Project roadmap")}
           aria-busy={busy}
         >
           {ROADMAP_COLUMNS.map(([column, title, subtitle]) => {
@@ -517,10 +548,10 @@ function ProjectBoard({
                   {rows.length === 0 ? (
                     <p className="px-2 py-6 text-center text-xs text-muted-foreground">
                       {column === "building"
-                        ? "Drop a card to start building"
+                        ? gt("Drop a card to start building")
                         : column === "inReview"
-                          ? "Drop built work to start an agent review"
-                          : "Drop a card here"}
+                          ? gt("Drop built work to start an agent review")
+                          : gt("Drop a card here")}
                     </p>
                   ) : null}
                   {column === "inReview"
@@ -555,7 +586,7 @@ function ProjectBoard({
       </RoadmapDrag>
       {cardId && board && !routeCard ? (
         <p role="status" className="text-sm text-muted-foreground">
-          This roadmap card is unavailable.
+          <T>This roadmap card is unavailable.</T>
         </p>
       ) : null}
       {editing ? (
@@ -644,7 +675,7 @@ function commandError(result: Parameters<typeof squashAtomCommandFailure>[0]) {
   const cause = squashAtomCommandFailure(result);
   return cause instanceof Error
     ? cause.message
-    : "The roadmap action failed. Reload and try again.";
+    : resolveMessage(msg("The roadmap action failed. Reload and try again."));
 }
 
 function CardThread({
@@ -672,7 +703,7 @@ function CardThread({
           })
         }
       >
-        Open thread
+        <T>Open thread</T>
       </Button>
     );
   return (
@@ -689,7 +720,7 @@ function CardThread({
         )
       }
     >
-      Plan in thread
+      <T>Plan in thread</T>
     </Button>
   );
 }

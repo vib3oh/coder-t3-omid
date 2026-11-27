@@ -1,3 +1,5 @@
+import { T, Var, msg, useGT, useMessages } from "gt-react";
+import { m as resolveMessage, type MessageResolver } from "../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import {
   squashAtomCommandFailure,
@@ -48,6 +50,8 @@ export function RoadmapSyncControl({
   disabled: boolean;
   onBusyChange: (busy: boolean) => void;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const target = { environmentId: project.environmentId, input: { projectId: project.id } };
   const result = useAtomValue(roadmapSyncRead(target));
   const status = Option.getOrNull(AsyncResult.value(result));
@@ -61,18 +65,18 @@ export function RoadmapSyncControl({
         disabled={disabled || !status}
         onClick={() => setOpened(status)}
       >
-        Sync with Hypercoder
+        <T>Sync with Hypercoder</T>
       </Button>
       <span className="text-xs text-muted-foreground" role="status">
         {status
-          ? syncSummary(status)
+          ? syncSummary(status, messages)
           : AsyncResult.isFailure(result)
-            ? "Hypercoder sync status unavailable."
-            : "Loading sync status…"}
+            ? gt("Hypercoder sync status unavailable.")
+            : gt("Loading sync status…")}
       </span>
       {AsyncResult.isFailure(result) ? (
         <Button variant="ghost" size="sm" disabled={disabled} onClick={() => void refresh(target)}>
-          Retry sync status
+          <T>Retry sync status</T>
         </Button>
       ) : null}
       {opened ? (
@@ -88,17 +92,31 @@ export function RoadmapSyncControl({
   );
 }
 
-function syncSummary(status: RoadmapSyncStatus) {
-  if (!status.binding) return "Not connected";
-  if (status.connection !== "ready") return status.message ?? `Connection ${status.connection}`;
-  const mode = status.capabilities.conditionalWrites ? "Connected" : "Read-only connection";
+function syncSummary(status: RoadmapSyncStatus, resolve: MessageResolver) {
+  if (!status.binding) return resolve(msg("Not connected"));
+  if (status.connection !== "ready")
+    return (
+      status.message ?? resolve(msg("Connection {connection}", { connection: status.connection }))
+    );
+  const mode = status.capabilities.conditionalWrites
+    ? resolve(msg("Connected"))
+    : resolve(msg("Read-only connection"));
   const issues = status.counts.conflicts + status.counts.unsupported + status.counts.failed;
-  return `${mode}${issues ? ` · ${issues} cards need attention` : ""}`;
+  return issues > 0
+    ? resolve(
+        msg(
+          "{mode} · {count, plural, one {{count} card needs attention} other {{count} cards need attention}}",
+          { mode, count: issues },
+        ),
+      )
+    : mode;
 }
 
 function syncError(result: Parameters<typeof squashAtomCommandFailure>[0]) {
   const error = squashAtomCommandFailure(result);
-  return error instanceof Error ? error.message : "The sync action failed. Refresh and try again.";
+  return error instanceof Error
+    ? error.message
+    : resolveMessage(msg("The sync action failed. Refresh and try again."));
 }
 
 function SyncDialog({
@@ -114,6 +132,8 @@ function SyncDialog({
   onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const [status, setStatus] = useState(initialStatus);
   const [binding, setBinding] = useState<RoadmapSyncBinding>(
     initialStatus.binding ?? { contextPath: "", backend: "", projectId: "", instanceId: "" },
@@ -168,24 +188,30 @@ function SyncDialog({
     >
       <DialogPopup showCloseButton={!busy}>
         <DialogHeader>
-          <DialogTitle>Sync with Hypercoder</DialogTitle>
+          <DialogTitle>
+            <T>Sync with Hypercoder</T>
+          </DialogTitle>
           <DialogDescription>
-            Manually compare this project’s roadmap with a Hypercoder instance on its environment.
-            Sync does not start agents or publish work.
+            <T>
+              Manually compare this project’s roadmap with a Hypercoder instance on its environment.
+              Sync does not start agents or publish work.
+            </T>
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
           <p className="text-sm font-medium" role="status">
-            {syncSummary(status)}
+            {syncSummary(status, messages)}
           </p>
           {status.message ? (
             <p className="text-sm text-muted-foreground">{status.message}</p>
           ) : null}
           {!status.capabilities.conditionalWrites ? (
             <p className="text-sm text-muted-foreground">
-              Sync can import changes when Hypercoder is available. Sending changes to Hypercoder is
-              unavailable because safe conditional writes have not been verified. Outgoing changes
-              remain read-only with a reason.
+              <T>
+                Sync can import changes when Hypercoder is available. Sending changes to Hypercoder
+                is unavailable because safe conditional writes have not been verified. Outgoing
+                changes remain read-only with a reason.
+              </T>
             </p>
           ) : null}
           {error ? (
@@ -200,7 +226,7 @@ function SyncDialog({
             onClick={() => void execute(() => refresh(target))}
           >
             <RefreshCwIcon className="size-3.5" />
-            Refresh sync status and keep inputs
+            <T>Refresh sync status and keep inputs</T>
           </Button>
           {!status.binding ? (
             <form
@@ -225,17 +251,24 @@ function SyncDialog({
               }}
             >
               <p className="text-sm text-muted-foreground">
-                Run <code>hc roadmap context</code> in this project’s Hypercoder terminal on the
-                machine hosting T3. Copy its context diagnostics below. Keep Hypercoder running and
-                signed in there. Both directories must belong to the same Git repository.
+                <T>Run </T>
+                <code>hc roadmap context</code>
+                <T>
+                  {" "}
+                  in this project’s Hypercoder terminal on the machine hosting T3. Copy its context
+                  diagnostics below. Keep Hypercoder running and signed in there. Both directories
+                  must belong to the same Git repository.
+                </T>
               </p>
               <fieldset disabled={unavailable || !canConnect} className="space-y-3">
                 <label className="block space-y-1 text-sm">
-                  <span>Context diagnostics JSON</span>
+                  <span>
+                    <T>Context diagnostics JSON</T>
+                  </span>
                   <Textarea
                     maxLength={20_000}
                     value={diagnostics}
-                    placeholder="Paste hc roadmap context output; diagnostics only"
+                    placeholder={gt("Paste hc roadmap context output; diagnostics only")}
                     onChange={(event) => setDiagnostics(event.target.value)}
                   />
                 </label>
@@ -253,15 +286,21 @@ function SyncDialog({
                     } else
                       setError(
                         parsed.type === "credentials"
-                          ? "Paste context diagnostics only. Credentials and tokens are not accepted."
-                          : "Include source, backend, projectId and instanceId from hc roadmap context.",
+                          ? gt(
+                              "Paste context diagnostics only. Credentials and tokens are not accepted.",
+                            )
+                          : gt(
+                              "Include source, backend, projectId and instanceId from hc roadmap context.",
+                            ),
                       );
                   }}
                 >
-                  Use diagnostics
+                  <T>Use diagnostics</T>
                 </Button>
                 <details className="space-y-3">
-                  <summary className="text-sm">Review or enter connection fields</summary>
+                  <summary className="text-sm">
+                    <T>Review or enter connection fields</T>
+                  </summary>
                   {(
                     [
                       ["contextPath", "Context path", 2000],
@@ -285,27 +324,37 @@ function SyncDialog({
                   type="submit"
                   disabled={Object.values(binding).some((value) => !value.trim())}
                 >
-                  Connect roadmap
+                  <T>Connect roadmap</T>
                 </Button>
               </fieldset>
               {!canConnect ? (
                 <p className="text-xs text-muted-foreground">
-                  Connecting requires permission to manage this environment’s access.
+                  <T>Connecting requires permission to manage this environment’s access.</T>
                 </p>
               ) : null}
             </form>
           ) : (
             <>
               <details className="text-sm text-muted-foreground">
-                <summary>Connection diagnostics</summary>
+                <summary>
+                  <T>Connection diagnostics</T>
+                </summary>
                 <dl className="mt-2 space-y-1 break-all">
-                  <dt>Context path</dt>
+                  <dt>
+                    <T>Context path</T>
+                  </dt>
                   <dd>{status.binding.contextPath}</dd>
-                  <dt>Backend</dt>
+                  <dt>
+                    <T>Backend</T>
+                  </dt>
                   <dd>{status.binding.backend}</dd>
-                  <dt>Hypercoder project</dt>
+                  <dt>
+                    <T>Hypercoder project</T>
+                  </dt>
                   <dd>{status.binding.projectId}</dd>
-                  <dt>Hypercoder instance</dt>
+                  <dt>
+                    <T>Hypercoder instance</T>
+                  </dt>
                   <dd>{status.binding.instanceId}</dd>
                 </dl>
               </details>
@@ -315,27 +364,39 @@ function SyncDialog({
                   void execute(() => run({ environmentId: project.environmentId, input }))
                 }
               >
-                {busy ? "Working…" : "Sync now"}
+                {busy ? gt("Working…") : gt("Sync now")}
               </Button>
               {!canRun ? (
                 <p className="text-xs text-muted-foreground">
-                  Sync requires permission to operate this environment.
+                  <T>Sync requires permission to operate this environment.</T>
                 </p>
               ) : null}
               <p className="text-sm text-muted-foreground">
-                {status.counts.pulled} imported · {status.counts.pushed} sent ·{" "}
-                {status.counts.unchanged} unchanged · {status.counts.conflicts} conflicts ·{" "}
-                {status.counts.unsupported} unsupported · {status.counts.failed} failed
+                <T>
+                  <Var>{status.counts.pulled}</Var> imported · <Var>{status.counts.pushed}</Var>{" "}
+                  sent · <Var>{status.counts.unchanged}</Var> unchanged ·{" "}
+                  <Var>{status.counts.conflicts}</Var> conflicts ·{" "}
+                  <Var>{status.counts.unsupported}</Var> unsupported ·{" "}
+                  <Var>{status.counts.failed}</Var> failed
+                </T>
               </p>
               {status.lastSyncedAt ? (
-                <p className="text-xs text-muted-foreground">Last sync: {status.lastSyncedAt}</p>
+                <p className="text-xs text-muted-foreground">
+                  <T>
+                    Last sync: <Var>{status.lastSyncedAt}</Var>
+                  </T>
+                </p>
               ) : null}
               {status.rows.length ? (
                 <details
                   className="space-y-3 text-sm"
                   onToggle={(event) => setRowsOpen(event.currentTarget.open)}
                 >
-                  <summary>Card results ({status.rows.length})</summary>
+                  <summary>
+                    <T>
+                      Card results (<Var>{status.rows.length}</Var>)
+                    </T>
+                  </summary>
                   {rowsOpen ? (
                     <>
                       <ul className="space-y-3">
@@ -355,21 +416,26 @@ function SyncDialog({
                             ) : null}
                             {row.conflictingFields.length ? (
                               <p className="text-xs text-muted-foreground">
-                                Conflicting fields: {row.conflictingFields.join(", ")}
+                                <T>
+                                  Conflicting fields: <Var>{row.conflictingFields.join(", ")}</Var>
+                                </T>
                               </p>
                             ) : null}
                             <Button
                               variant="outline"
                               size="sm"
                               disabled={busy}
-                              aria-label={`${detailCard === row.cardId ? "Hide" : "Review"} differences for ${row.title}`}
+                              aria-label={gt("{value} differences for {title}", {
+                                value: detailCard === row.cardId ? "Hide" : "Review",
+                                title: row.title,
+                              })}
                               onClick={() =>
                                 setDetailCard(detailCard === row.cardId ? null : row.cardId)
                               }
                             >
                               {detailCard === row.cardId
-                                ? "Hide differences"
-                                : "Review differences"}
+                                ? gt("Hide differences")
+                                : gt("Review differences")}
                             </Button>
                             {detailCard === row.cardId ? (
                               <SyncDifferences
@@ -397,7 +463,7 @@ function SyncDialog({
                           size="sm"
                           onClick={() => setRowLimit(rowLimit + 100)}
                         >
-                          Show next 100 results
+                          <T>Show next 100 results</T>
                         </Button>
                       ) : null}
                     </>
@@ -405,10 +471,14 @@ function SyncDialog({
                 </details>
               ) : null}
               <details className="space-y-3 text-sm">
-                <summary>Disconnect roadmap</summary>
+                <summary>
+                  <T>Disconnect roadmap</T>
+                </summary>
                 <p className="text-muted-foreground">
-                  Retained cards stay in T3 and become editable local cards. Disconnecting removes
-                  their Hypercoder ownership and sync history. Hypercoder cards are kept there.
+                  <T>
+                    Retained cards stay in T3 and become editable local cards. Disconnecting removes
+                    their Hypercoder ownership and sync history. Hypercoder cards are kept there.
+                  </T>
                 </p>
                 <Button
                   variant="outline"
@@ -417,11 +487,11 @@ function SyncDialog({
                     void execute(() => disconnect({ environmentId: project.environmentId, input }))
                   }
                 >
-                  Disconnect and keep cards
+                  <T>Disconnect and keep cards</T>
                 </Button>
                 {!canDisconnect ? (
                   <p className="text-xs text-muted-foreground">
-                    Disconnecting requires permission to manage this environment’s access.
+                    <T>Disconnecting requires permission to manage this environment’s access.</T>
                   </p>
                 ) : null}
               </details>
@@ -430,7 +500,7 @@ function SyncDialog({
         </DialogPanel>
         <DialogFooter>
           <Button variant="outline" disabled={busy} onClick={onClose}>
-            Close
+            <T>Close</T>
           </Button>
         </DialogFooter>
       </DialogPopup>
@@ -450,13 +520,20 @@ const FIELDS = [
   ["acceptanceCriteria", "Acceptance criteria"],
 ] as const;
 
-function fieldValue(fields: RoadmapSyncFields | null, key: keyof RoadmapSyncFields) {
-  if (!fields) return "Card absent";
+function fieldValue(
+  fields: RoadmapSyncFields | null,
+  key: keyof RoadmapSyncFields,
+  resolve: MessageResolver,
+) {
+  if (!fields) return resolve(msg("Card absent"));
   const value = fields[key];
-  if (value === null) return "None";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "string") return value || "Empty";
-  return value.map((row) => `${row.checked ? "[x]" : "[ ]"} ${row.text}`).join("\n") || "None";
+  if (value === null) return resolve(msg("None"));
+  if (typeof value === "boolean") return value ? resolve(msg("Yes")) : resolve(msg("No"));
+  if (typeof value === "string") return value || resolve(msg("Empty"));
+  return (
+    value.map((row) => `${row.checked ? "[x]" : "[ ]"} ${row.text}`).join("\n") ||
+    resolve(msg("None"))
+  );
 }
 
 function SyncDifferences({
@@ -472,6 +549,7 @@ function SyncDifferences({
   canWrite: boolean;
   onResolve: (choice: "local" | "remote") => void;
 }) {
+  const gt = useGT();
   const target = {
     environmentId: project.environmentId,
     input: { projectId: project.id, cardId: row.cardId },
@@ -484,12 +562,12 @@ function SyncDifferences({
       <div className="space-y-2 text-xs text-muted-foreground">
         <p role="status">
           {AsyncResult.isFailure(result)
-            ? "Could not load field differences."
-            : "Loading field differences…"}
+            ? gt("Could not load field differences.")
+            : gt("Loading field differences…")}
         </p>
         {AsyncResult.isFailure(result) ? (
           <Button variant="outline" size="sm" onClick={() => void refresh(target)}>
-            Retry differences
+            <T>Retry differences</T>
           </Button>
         ) : null}
       </div>
@@ -507,8 +585,12 @@ function SyncDifferences({
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
             {conflict
-              ? "Choose one version for this card’s conflicting fields. Independent changes are preserved."
-              : "Using Hypercoder replaces this card’s retained T3 differences with its Hypercoder version. Unsupported source data may still require attention."}
+              ? gt(
+                  "Choose one version for this card’s conflicting fields. Independent changes are preserved.",
+                )
+              : gt(
+                  "Using Hypercoder replaces this card’s retained T3 differences with its Hypercoder version. Unsupported source data may still require attention.",
+                )}
           </p>
           <div className="flex flex-wrap gap-2">
             {conflict ? (
@@ -518,7 +600,7 @@ function SyncDifferences({
                 disabled={disabled || !canWrite || !detail.local}
                 onClick={() => onResolve("local")}
               >
-                Keep T3 changes
+                <T>Keep T3 changes</T>
               </Button>
             ) : null}
             <Button
@@ -527,13 +609,15 @@ function SyncDifferences({
               disabled={disabled || !detail.remote}
               onClick={() => onResolve("remote")}
             >
-              Use Hypercoder changes
+              <T>Use Hypercoder changes</T>
             </Button>
           </div>
           {conflict && !canWrite ? (
             <p className="text-xs text-muted-foreground">
-              Keeping T3 changes requires safe outgoing writes, which this connection does not
-              support.
+              <T>
+                Keeping T3 changes requires safe outgoing writes, which this connection does not
+                support.
+              </T>
             </p>
           ) : null}
         </div>
@@ -543,6 +627,8 @@ function SyncDifferences({
 }
 
 function FieldDifferences({ detail }: { detail: RoadmapSyncDetail }) {
+  const gt = useGT();
+  const messages = useMessages();
   const fields = FIELDS.filter(
     ([key]) =>
       detail.conflictingFields.includes(key) ||
@@ -554,10 +640,18 @@ function FieldDifferences({ detail }: { detail: RoadmapSyncDetail }) {
     <div className="space-y-3">
       {rankDiffers ? (
         <section className="space-y-2 rounded-md border border-border p-3 text-xs">
-          <h4 className="font-medium">Order</h4>
-          <p>T3: {detail.localRank ?? "Unknown"}</p>
-          <p>Last confirmed: {detail.baselineRank ?? "Unknown"}</p>
-          <p>Hypercoder: {detail.remoteRank ?? "Unknown"}</p>
+          <h4 className="font-medium">
+            <T>Order</T>
+          </h4>
+          <p>T3: {detail.localRank ?? gt("Unknown")}</p>
+          <p>
+            <T>Last confirmed: </T>
+            {detail.baselineRank ?? gt("Unknown")}
+          </p>
+          <p>
+            <T>Hypercoder: </T>
+            {detail.remoteRank ?? gt("Unknown")}
+          </p>
         </section>
       ) : null}
       {fields.map(([key, label]) => (
@@ -572,13 +666,17 @@ function FieldDifferences({ detail }: { detail: RoadmapSyncDetail }) {
           ).map(([source, name]) => (
             <div key={source}>
               <p className="font-medium text-muted-foreground">{name}</p>
-              <p className="whitespace-pre-wrap break-words">{fieldValue(detail[source], key)}</p>
+              <p className="whitespace-pre-wrap break-words">
+                {fieldValue(detail[source], key, messages)}
+              </p>
             </div>
           ))}
         </section>
       ))}
     </div>
   ) : (
-    <p className="text-xs text-muted-foreground">No supported content fields differ.</p>
+    <p className="text-xs text-muted-foreground">
+      <T>No supported content fields differ.</T>
+    </p>
   );
 }

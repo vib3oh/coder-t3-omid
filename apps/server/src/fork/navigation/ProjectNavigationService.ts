@@ -7,10 +7,9 @@ import {
 } from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
-import * as Crypto from "effect/Crypto";
+import * as Digest from "effect/crypto/Digest";
 import * as Schema from "effect/Schema";
 import * as Base64Url from "effect/encoding/Base64Url";
-import * as Hex from "effect/encoding/Hex";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -21,6 +20,7 @@ import * as ProjectStore from "../../orchestration-v2/ProjectStore.ts";
 import * as ProjectionStore from "../../orchestration-v2/ProjectionStore.ts";
 import * as RoadmapService from "../../roadmap/RoadmapService.ts";
 import * as GitVcsDriver from "../../vcs/GitVcsDriver.ts";
+import * as TaskFolderStore from "../../workspace/TaskFolderStore.ts";
 import * as AgentWorkflowStore from "../agents/AgentWorkflowStore.ts";
 import { navigationWorktrees } from "./navigationView.ts";
 
@@ -43,17 +43,23 @@ const encodeCursor = Schema.encodeEffect(Schema.fromJsonString(Cursor));
 const encodeRevision = Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown));
 
 const make = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto;
+  const digest = yield* Digest.Digest;
   const projects = yield* ProjectStore.ProjectStoreV2;
   const projections = yield* ProjectionStore.ProjectionStoreV2;
   const roadmap = yield* RoadmapService.RoadmapService;
   const workflows = yield* AgentWorkflowStore.AgentWorkflowStore;
   const git = yield* GitVcsDriver.GitVcsDriver;
+  const taskFolders = yield* TaskFolderStore.TaskFolderStore;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const inventories = new Map<
     ProjectId,
-    { readonly expires: number; readonly paths: ReadonlyArray<string>; readonly available: boolean }
+    {
+      readonly expires: number;
+      readonly paths: ReadonlyArray<string>;
+      readonly pathsWithoutSingleBranch: ReadonlyArray<string>;
+      readonly available: boolean;
+    }
   >();
 
   const inventory = Effect.fn("ProjectNavigationService.inventory")(function* (
@@ -64,12 +70,32 @@ const make = Effect.gen(function* () {
     const cached = inventories.get(projectId);
     if (cached && cached.expires > now) return cached;
     const hasGit = yield* fs.exists(path.join(root, ".git")).pipe(Effect.orElseSucceed(() => true));
-    const paths = hasGit
-      ? yield* git.listWorktreePaths(root).pipe(Effect.option)
-      : Option.some([] as string[]);
+    const [paths, folders] = yield* Effect.all(
+      [
+        hasGit ? git.listWorktreePaths(root).pipe(Effect.option) : Effect.succeedSome([]),
+        taskFolders.list.pipe(Effect.option),
+      ],
+      { concurrency: 2 },
+    );
+    const native = Option.getOrElse(folders, () => []);
+    const owned = native.filter((folder) => folder.projectId === projectId);
+    const registered = new Set(
+      native.flatMap((folder) => [
+        path.resolve(folder.projectPath),
+        ...folder.repositories.map((repository) => path.resolve(repository.worktreePath)),
+      ]),
+    );
     const next = {
-      paths: Option.getOrElse(paths, () => []),
-      available: Option.isSome(paths),
+      paths: [
+        ...owned.map((folder) => folder.projectPath),
+        ...Option.getOrElse(paths, () => []).filter(
+          (value) => !registered.has(path.resolve(value)),
+        ),
+      ],
+      pathsWithoutSingleBranch: owned.flatMap((folder) =>
+        folder.projectIsWorktree && folder.repositories.length === 0 ? [] : [folder.projectPath],
+      ),
+      available: Option.isSome(paths) && Option.isSome(folders),
       expires: now + 5_000,
     };
     inventories.set(projectId, next);
@@ -160,6 +186,7 @@ const make = Effect.gen(function* () {
         resolved,
       ),
       inventoriedPaths: listed.paths,
+      pathsWithoutSingleBranch: listed.pathsWithoutSingleBranch,
       now,
     });
     const revealed = input.revealThreadId
@@ -198,11 +225,7 @@ const make = Effect.gen(function* () {
         threads: row.threads.map(({ updatedAt: _updatedAt, ...thread }) => thread),
       })),
     ]).pipe(Effect.mapError(() => new ProjectNavigationError({ reason: "storage" })));
-    const revision = Hex.encode(
-      yield* crypto
-        .digest("SHA-256", new TextEncoder().encode(revisionText))
-        .pipe(Effect.mapError(() => new ProjectNavigationError({ reason: "storage" }))),
-    );
+    const revision = yield* digest.digestHex(Digest.sha256, new TextEncoder().encode(revisionText));
     let offset = 0;
     if (input.cursor) {
       const cursor = yield* Effect.fromResult(Base64Url.decodeString(input.cursor)).pipe(

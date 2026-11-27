@@ -95,6 +95,7 @@ const view = (
       ["/feature", { canonical: "/feature", exists: true }],
     ]),
     inventoriedPaths: [],
+    pathsWithoutSingleBranch: [],
     now: Date.parse(at),
   });
 
@@ -103,13 +104,28 @@ describe("project navigation relationships", () => {
     const owner = thread("owner");
     const foreign = { ...thread("foreign"), projectId: ProjectId.make("other") };
     const archived = { ...thread("archived"), archivedAt: DateTime.makeUnsafe(at) };
+    const step = thread("native-workflow-step");
+    const supervisedChild = thread("supervised-child");
     const rows = view(
-      [owner, foreign, archived],
+      [
+        owner,
+        foreign,
+        archived,
+        { ...step, lineage: { ...step.lineage, workflowStep: true } },
+        {
+          ...supervisedChild,
+          lineage: {
+            ...supervisedChild.lineage,
+            relationshipToParent: "subagent",
+            parentThreadId: owner.id,
+          },
+        },
+      ],
       [card("done", "owner", true), card("old", "archived")],
     );
     expect(rows[0]?.key).toBe("main");
     const feature = rows[1]!;
-    expect(feature.threads.map((t) => t.id)).toEqual(["archived", "owner"]);
+    expect(feature.threads.map((t) => t.id)).toEqual(["archived", "owner", "supervised-child"]);
     expect(feature.cards).toEqual([
       { id: "done", title: "done", stage: "done" },
       { id: "old", title: "old", stage: "upNext" },

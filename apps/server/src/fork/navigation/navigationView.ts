@@ -54,14 +54,21 @@ export function navigationWorktrees(input: {
     { readonly canonical: string; readonly exists: boolean | null }
   >;
   readonly inventoriedPaths: ReadonlyArray<string>;
+  readonly pathsWithoutSingleBranch: ReadonlyArray<string>;
   readonly now: number;
 }): NavigationWorktree[] {
   const canonical = (path: string) => input.paths.get(path)?.canonical ?? path;
   const mainPath = canonical(input.workspaceRoot);
+  const pathsWithoutSingleBranch = new Set(input.pathsWithoutSingleBranch.map(canonical));
   const rows = new Map<string, MutableWorktree>();
   const shells = new Map(
     input.threads
-      .filter((t) => t.projectId === input.projectId && t.deletedAt === null)
+      .filter(
+        (t) =>
+          t.projectId === input.projectId &&
+          t.deletedAt === null &&
+          t.lineage.workflowStep !== true,
+      )
       .map((t) => [t.id, t]),
   );
   const preparing = new Set(
@@ -119,7 +126,12 @@ export function navigationWorktrees(input: {
       thread.id,
     );
     target.threads = [...target.threads, navigationThread(thread)];
-    if (!target.branch && thread.branch) target.branch = thread.branch;
+    if (
+      !target.branch &&
+      thread.branch &&
+      (target.path === null || !pathsWithoutSingleBranch.has(target.path))
+    )
+      target.branch = thread.branch;
     threadRows.set(thread.id, target);
   }
   for (const card of input.board?.cards ?? []) {

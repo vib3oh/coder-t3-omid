@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
 import {
@@ -27,7 +28,7 @@ import * as Store from "./AgentWorkflowStore.ts";
 const layer = Service.layer.pipe(
   Layer.provideMerge(Store.layer),
   Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "t3-agent-workflow-test-" })),
-  Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(Layer.merge(NodeServices.layer, NodeCrypto.layer)),
 );
 const projectId = ProjectId.make("project");
 const managerThreadId = ThreadId.make("manager");

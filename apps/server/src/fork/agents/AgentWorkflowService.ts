@@ -32,9 +32,8 @@ import {
 } from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
-import * as Crypto from "effect/Crypto";
+import * as Digest from "effect/crypto/Digest";
 import * as Effect from "effect/Effect";
-import * as Hex from "effect/encoding/Hex";
 import * as Layer from "effect/Layer";
 import * as AgentWorkflowStore from "./AgentWorkflowStore.ts";
 import {
@@ -255,15 +254,14 @@ function intent(
 
 const make = Effect.gen(function* () {
   const store = yield* AgentWorkflowStore.AgentWorkflowStore;
-  const crypto = yield* Crypto.Crypto;
+  const digest = yield* Digest.Digest;
   const fingerprint = Effect.fn("AgentWorkflowService.fingerprint")(function* (
     operation: string,
     value: unknown,
   ) {
-    return Hex.encode(
-      yield* crypto
-        .digest("SHA-256", new TextEncoder().encode(canonical([operation, value])))
-        .pipe(Effect.orDie),
+    return yield* digest.digestHex(
+      Digest.sha256,
+      new TextEncoder().encode(canonical([operation, value])),
     );
   });
 

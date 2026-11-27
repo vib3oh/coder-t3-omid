@@ -6,6 +6,19 @@ modules, with native execution and provider discovery retained. Compatibility
 claims require the checks recorded on the owning PR; source inspection alone
 does not establish seamless integration.
 
+## Native and supervised workflows
+
+T3's durable workflows own their definitions, execution journal and owner tools.
+Supervised workflows keep project roles, assignment limits and evidence in the
+fork's existing records and dispatch through native threads. Project-level
+supervision settings govern new supervised runs. Native workflow settings govern
+the native executor. Both surfaces retain their own history and controls.
+
+Checkpoint and check evidence currently bind to one repository per supervised
+project. Use a single-repository project for supervised evidence. Native work
+can use multi-repository projects and task folders. The project worktree view
+shows supervised assignments and keeps native workflow steps under their run.
+
 ## Current fork base and rebase audit
 
 The implementation was subsequently rebased onto `origin/main`

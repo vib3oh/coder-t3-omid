@@ -180,13 +180,16 @@
         "packages/client-runtime/src/state/commandPermissions.test.ts",
         "packages/client-runtime/src/t3ToolSummary.test.ts",
         "packages/shared/src/t3McpToolPresentation.test.ts",
-        "packages/shared/src/toolOutput.test.ts"
+        "packages/shared/src/toolOutput.test.ts",
+        "apps/server/src/provider/CodexProvider.test.ts",
+        "apps/server/src/provider/ProviderRegistry.test.ts"
       ],
       "constraints": [
         "Native T3 owns provider runs, delegation, thread messages, approvals, worktree preparation and hidden checkpoints. Fork metadata records role snapshots, assignment acceptance and message correlation only.",
-        "Codex extra roots and Claude local plugins feed the existing native catalog and dispatch paths; unsupported native packaging preserves ordinary provider behavior.",
+        "Codex registers the owned skill roots with native skills discovery; Claude uses its native --plugin-dir launch option for the owned plugin alongside user plugins.",
         "Native sibling follow-up tracking preserves authenticated sender lineage. Workflow participants use supervised service entry points for app-owned delegation and messaging.",
-        "Web and desktop share the route and role editor; mobile supports monitoring and lifecycle operations. Ordinary roadmap and changelog actions retain their semantics."
+        "Web and desktop share the route and role editor; mobile supports monitoring and lifecycle operations. Ordinary roadmap and changelog actions retain their semantics.",
+        "Native durable workflows coexist with supervised role and evidence records. Supervised evidence supports one repository per project; native workflows and non-supervised work retain upstream multi-repository support."
       ]
     },
     "projectNavigation": {
@@ -227,7 +230,9 @@
         "apps/web/src/components/Sidebar.tsx",
         "apps/web/src/components/Sidebar.logic.ts",
         "apps/web/src/components/sidebar/SidebarChrome.tsx",
-        "apps/web/src/fork/agents/AgentWorkflowsPage.tsx"
+        "apps/web/src/fork/agents/AgentWorkflowsPage.tsx",
+        "apps/mobile/src/features/threads/NewTaskDraftScreen.tsx",
+        "apps/mobile/src/features/threads/new-task-context-presentation.ts"
       ],
       "verificationPaths": [
         "apps/server/src/ws.test.ts",
@@ -236,12 +241,14 @@
         "apps/server/src/fork/navigation/navigationView.test.ts",
         "apps/web/src/fork/navigation/navigation.logic.test.ts",
         "apps/web/src/roadmap/RoadmapPage.browser.test.tsx",
-        "apps/mobile/src/features/project-navigation/projectNavigationSelection.test.ts"
+        "apps/mobile/src/features/project-navigation/projectNavigationSelection.test.ts",
+        "apps/mobile/src/features/threads/new-task-context-presentation.test.ts"
       ],
       "constraints": [
         "Native T3 owns execution, worktree preparation, permissions and thread actions; navigation only projects metadata.",
         "Roadmap card stages share the existing pure lifecycle; provider activity and human attention remain separate.",
-        "The opt-in layout preserves existing navigation settings and environment-scoped project identity."
+        "The opt-in layout preserves existing navigation settings and environment-scoped project identity.",
+        "Upstream task-folder records supply grouped worktrees across repositories. Native workflow-step threads stay in their workflow, while supervised assignments remain visible in project navigation."
       ]
     }
   }

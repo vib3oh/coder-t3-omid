@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import {
@@ -23,7 +24,7 @@ const layer = ChangelogService.layer.pipe(
   Layer.provideMerge(ProjectionStore.layer),
   Layer.provideMerge(Sqlite.layerMemory),
   Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "changelog-" })),
-  Layer.provide(NodeServices.layer),
+  Layer.provide(Layer.merge(NodeServices.layer, NodeCrypto.layer)),
 );
 const link = (
   number: number,

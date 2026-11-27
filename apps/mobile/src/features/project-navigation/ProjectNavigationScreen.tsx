@@ -1,4 +1,5 @@
-import { useAtomSet, useAtomValue } from "@effect/atom-react";
+import { T, Var, useGT } from "gt-react-native";
+import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
@@ -22,11 +23,12 @@ import { scopedProjectKey } from "../../lib/scopedEntities";
 import { uuidv4 } from "../../lib/uuid";
 import { useProjects, useQuietThreadShell } from "../../state/entities";
 import { useEnvironments } from "../../state/environments";
-import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
+import { mobilePreferencesAtom, saveMobilePreferences } from "../../state/preferences";
 import { useEnvironmentScope } from "../../state/session";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { buildHomeProjectScopes } from "../home/homeThreadList";
 import { useAtomValueWhileVisible } from "../home/home-route-visibility";
-import { useSelectWorkspaceDetail } from "../workspace/useSelectWorkspaceDetail";
+import { useSelectWorkspaceDetail } from "../layout/workspace/useSelectWorkspaceDetail";
 import { projectNavigation } from "./projectNavigationState";
 import { resolveProjectNavigationTarget } from "./projectNavigationSelection";
 import { resolveThreadListV2Status, threadHasUnseenCompletion } from "../threads/threadListV2";
@@ -59,11 +61,12 @@ export function ProjectNavigationPanel({
   visible: boolean;
   initialTarget?: ProjectNavigationRouteParams;
 }) {
+  const gt = useGT();
   const projects = useProjects().filter((project) => !project.archivedAt);
   const { environments } = useEnvironments();
   const preferences = useAtomValue(mobilePreferencesAtom);
   const saved = Option.getOrNull(AsyncResult.value(preferences));
-  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  const savePreferences = useAtomCommand(saveMobilePreferences);
   const [selected, setSelected] = useState<string | null | undefined>();
   const target = resolveProjectNavigationTarget({
     projects,
@@ -83,7 +86,7 @@ export function ProjectNavigationPanel({
     `${project.title} · ${environmentLabel(project.environmentId)}`;
   const pickProject = (project: EnvironmentProject) => {
     setSelected(scopedProjectKey(project.environmentId, project.id));
-    savePreferences({
+    void savePreferences({
       lastThreadProject: { environmentId: project.environmentId, projectId: project.id },
     });
   };
@@ -96,12 +99,12 @@ export function ProjectNavigationPanel({
       maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
     >
       <Text accessibilityRole="header" className="text-2xl font-t3-bold text-foreground">
-        {target?.title ?? "Project worktrees"}
+        {target?.title ?? gt("Project worktrees")}
       </Text>
       {target ? (
         <>
-          <Button label="Choose project" tone="text" onPress={() => setSelected(null)} />
-          <View className="gap-2" accessibilityLabel="Project environments">
+          <Button label={gt("Choose project")} tone="text" onPress={() => setSelected(null)} />
+          <View className="gap-2" accessibilityLabel={gt("Project environments")}>
             {groups
               .find((group) =>
                 group.projects.some(
@@ -131,8 +134,10 @@ export function ProjectNavigationPanel({
         <>
           {initialTarget?.projectId || initialTarget?.environmentId ? (
             <Text accessibilityRole="alert" className="text-foreground-muted">
-              The selected project is unavailable. Reconnect its environment or choose another
-              project.
+              <T>
+                The selected project is unavailable. Reconnect its environment or choose another
+                project.
+              </T>
             </Text>
           ) : null}
           {groups.map((group) => (
@@ -148,7 +153,9 @@ export function ProjectNavigationPanel({
             </View>
           ))}
           {groups.length === 0 ? (
-            <Text className="text-foreground-muted">Connect a project to see its worktrees.</Text>
+            <Text className="text-foreground-muted">
+              <T>Connect a project to see its worktrees.</T>
+            </Text>
           ) : null}
         </>
       )}
@@ -157,6 +164,7 @@ export function ProjectNavigationPanel({
 }
 
 function ProjectWorktrees({ project, visible }: { project: EnvironmentProject; visible: boolean }) {
+  const gt = useGT();
   const { environments } = useEnvironments();
   const connected = environments.some(
     (environment) =>
@@ -176,18 +184,24 @@ function ProjectWorktrees({ project, visible }: { project: EnvironmentProject; v
     <View className="gap-4">
       {!connected ? (
         <Text accessibilityRole="alert" className="text-foreground-muted">
-          This environment is disconnected. Displayed work may be stale; reconnect to continue.
+          <T>
+            This environment is disconnected. Displayed work may be stale; reconnect to continue.
+          </T>
         </Text>
       ) : AsyncResult.isFailure(result) ? (
         <Text accessibilityRole="alert" className="text-danger">
-          Worktree details are unavailable. Check the server version, connection and read
-          permission. All threads remain available in the ordinary thread list.
+          <T>
+            Worktree details are unavailable. Check the server version, connection and read
+            permission. All threads remain available in the ordinary thread list.
+          </T>
         </Text>
       ) : !view ? (
-        <Text className="text-foreground-muted">Loading worktrees…</Text>
+        <Text className="text-foreground-muted">
+          <T>Loading worktrees…</T>
+        </Text>
       ) : null}
       <Button
-        label="Agent workflows"
+        label={gt("Agent workflows")}
         disabled={!connected}
         onPress={() =>
           navigation.navigate("AgentWorkflows", {
@@ -197,17 +211,22 @@ function ProjectWorktrees({ project, visible }: { project: EnvironmentProject; v
         }
       />
       <Text className="text-xs text-foreground-muted">
-        Roadmap cards and Changelog are available in web and desktop. This native view opens agent
-        threads and workflow monitoring; it does not start work when you select a row.
+        <T>
+          Roadmap cards and Changelog are available in web and desktop. This native view opens agent
+          threads and workflow monitoring; it does not start work when you select a row.
+        </T>
       </Text>
       {view && !view.complete ? (
         <Text accessibilityRole="alert" className="text-foreground-muted">
-          Some work details are unavailable. Counts and stages may be incomplete.
+          <T>Some work details are unavailable. Counts and stages may be incomplete.</T>
         </Text>
       ) : null}
       {view ? (
         <Text className="text-sm text-foreground-muted">
-          {view.attentionCount} worktrees need your input · {view.totalWorktrees} worktrees
+          <T>
+            <Var>{view.attentionCount}</Var> worktrees need your input ·{" "}
+            <Var>{view.totalWorktrees}</Var> worktrees
+          </T>
         </Text>
       ) : null}
       {view?.worktrees
@@ -282,6 +301,7 @@ function WorktreePage({
   connected: boolean;
   onCursor: (cursor: string | null) => void;
 }) {
+  const gt = useGT();
   const result = useAtomValueWhileVisible(
     projectNavigation.page({
       environmentId: project.environmentId,
@@ -303,11 +323,11 @@ function WorktreePage({
       ) : (
         <Text accessibilityRole="alert" className="text-foreground-muted">
           {AsyncResult.isFailure(result)
-            ? "Work changed or this page is unavailable. Return to the first page."
-            : "Loading worktrees…"}
+            ? gt("Work changed or this page is unavailable. Return to the first page.")
+            : gt("Loading worktrees…")}
         </Text>
       )}
-      <Button label="First worktrees" onPress={() => onCursor(null)} />
+      <Button label={gt("First worktrees")} onPress={() => onCursor(null)} />
     </>
   );
 }
@@ -325,6 +345,7 @@ function WorktreeFeatureRows({
   connected: boolean;
   onCursor: (cursor: string | null) => void;
 }) {
+  const gt = useGT();
   return (
     <>
       {view.worktrees
@@ -340,7 +361,7 @@ function WorktreeFeatureRows({
           />
         ))}
       {view.nextCursor ? (
-        <Button label="Next worktrees" onPress={() => onCursor(view.nextCursor)} />
+        <Button label={gt("Next worktrees")} onPress={() => onCursor(view.nextCursor)} />
       ) : null}
     </>
   );
@@ -359,6 +380,7 @@ function WorktreeRow({
   visible: boolean;
   connected: boolean;
 }) {
+  const gt = useGT();
   const [expanded, setExpanded] = useState(worktree.isMain || worktree.attentionCount > 0);
   const [threadOffset, setThreadOffset] = useState<number | null>(null);
   const navigation = useNavigation();
@@ -382,11 +404,13 @@ function WorktreeRow({
         <Text className="font-t3-bold text-foreground">{worktree.label}</Text>
         <Text className="text-sm text-foreground-muted">
           {stage} · {worktree.threadCount} threads
-          {worktree.attentionCount > 0 ? " · Needs your input" : ""}
+          {worktree.attentionCount > 0 ? gt(" · Needs your input") : ""}
         </Text>
         {worktree.availability !== "available" ? (
           <Text className="text-xs text-foreground-muted">
-            Worktree {worktree.availability}. Existing conversations remain available.
+            <T>
+              Worktree <Var>{worktree.availability}</Var>. Existing conversations remain available.
+            </T>
           </Text>
         ) : null}
       </Pressable>
@@ -394,13 +418,17 @@ function WorktreeRow({
         <>
           {worktree.cards.map((card) => (
             <Text key={card.id} className="text-sm text-foreground-muted">
-              Roadmap: {card.title} · {CARD_STAGES[card.stage]}
+              <T>
+                Roadmap: <Var>{card.title}</Var> · <Var>{CARD_STAGES[card.stage]}</Var>
+              </T>
             </Text>
           ))}
           {(worktree.cardCount ?? worktree.cards.length) > worktree.cards.length ? (
             <Text className="text-xs text-foreground-muted">
-              Showing {worktree.cards.length} of {worktree.cardCount} cards. Open Roadmap in web or
-              desktop for the complete board.
+              <T>
+                Showing <Var>{worktree.cards.length}</Var> of <Var>{worktree.cardCount}</Var> cards.
+                Open Roadmap in web or desktop for the complete board.
+              </T>
             </Text>
           ) : null}
           {worktree.workflows.map((workflow) => (
@@ -419,7 +447,7 @@ function WorktreeRow({
           ))}
           {(worktree.workflowCount ?? worktree.workflows.length) > worktree.workflows.length ? (
             <Button
-              label={`All ${worktree.workflowCount} workflows`}
+              label={gt("All {workflowCount} workflows", { workflowCount: worktree.workflowCount })}
               disabled={!connected}
               onPress={() =>
                 navigation.navigate("AgentWorkflows", {
@@ -444,15 +472,15 @@ function WorktreeRow({
           )}
           {threadOffset === null && worktree.threadNextOffset !== null ? (
             <Button
-              label="More threads"
+              label={gt("More threads")}
               onPress={() => setThreadOffset(worktree.threadNextOffset)}
             />
           ) : null}
           {threadOffset !== null ? (
-            <Button label="First threads" tone="text" onPress={() => setThreadOffset(null)} />
+            <Button label={gt("First threads")} tone="text" onPress={() => setThreadOffset(null)} />
           ) : null}
           <Button
-            label="New thread here"
+            label={gt("New thread here")}
             disabled={
               !connected ||
               !canOperate ||
@@ -495,6 +523,7 @@ function WorktreeThreadPage({
   connected: boolean;
   onNext: (offset: number) => void;
 }) {
+  const gt = useGT();
   const result = useAtomValueWhileVisible(
     projectNavigation.page({
       environmentId: project.environmentId,
@@ -508,11 +537,16 @@ function WorktreeThreadPage({
       {page ? <ThreadRows threads={page.threads} project={project} connected={connected} /> : null}
       {!page ? (
         <Text className="text-foreground-muted">
-          {AsyncResult.isFailure(result) ? "Could not load more threads." : "Loading threads…"}
+          {AsyncResult.isFailure(result)
+            ? gt("Could not load more threads.")
+            : gt("Loading threads…")}
         </Text>
       ) : null}
       {page?.threadNextOffset !== null && page?.threadNextOffset !== undefined ? (
-        <Button label="More threads" onPress={() => onNext(page.threadNextOffset ?? offset)} />
+        <Button
+          label={gt("More threads")}
+          onPress={() => onNext(page.threadNextOffset ?? offset)}
+        />
       ) : null}
     </View>
   );
@@ -541,6 +575,7 @@ function NavigationThreadRow({
   project: EnvironmentProject;
   connected: boolean;
 }) {
+  const gt = useGT();
   const selectDetail = useSelectWorkspaceDetail();
   const shell = useQuietThreadShell(scopeThreadRef(project.environmentId, thread.id));
   const needsYou =
@@ -579,10 +614,10 @@ function NavigationThreadRow({
         {thread.title}
       </Text>
       <Text className="text-xs text-foreground-muted">
-        {thread.status ?? "Idle"}
-        {needsYou ? " · Needs your input" : ""}
-        {unread ? " · Unread completion" : ""}
-        {thread.archivedAt ? " · Archived" : thread.settledAt ? " · Settled" : ""}
+        {thread.status ?? gt("Idle")}
+        {needsYou ? gt(" · Needs your input") : ""}
+        {unread ? gt(" · Unread completion") : ""}
+        {thread.archivedAt ? gt(" · Archived") : thread.settledAt ? gt(" · Settled") : ""}
       </Text>
     </Pressable>
   );
