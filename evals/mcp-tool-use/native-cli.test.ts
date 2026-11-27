@@ -12,7 +12,7 @@ import {
   runNativeCli,
   subscriptionEnvironment,
 } from "./native-cli.ts";
-import { gradeSample, McpToolUseCase, nativeFixture } from "./run.ts";
+import { gradeSample, McpToolUseCase, nativeFixture, type SampleRun } from "./run.ts";
 import { agentWorkflowFixture } from "./agent-workflow-fixture.ts";
 import { fixtureShellOutput } from "./native-fixtures.ts";
 
@@ -242,9 +242,9 @@ it("uses source workflow context and fixture data, and fails closed on unmodelle
   await expect(exact.call("Bash", { command: "toString" })).rejects.toThrow(
     /Missing native eval fixture/,
   );
-  await expect(exact.call("Bash", { command: `${execution} && git push` })).rejects.toThrow(
-    /Unsupported native fixture shell operator/,
-  );
+  const compound = await exact.call("Bash", { command: `${execution} && git push` });
+  assert.isTrue(compound.isError);
+  assert.notInclude(compound.content[0]!.text, "Tests passed");
   const reviewer = cases().find(({ id }) => id === "WF-REVIEWER")!;
   const fixture = nativeFixture(reviewer, "claude-sonnet-5-5");
   assert.include(fixture.prompt, agentWorkflowFixture("reviewer").instructions);
@@ -294,9 +294,12 @@ it("uses source workflow context and fixture data, and fails closed on unmodelle
   await expect(fixture.call("Bash", { command: "git push" })).rejects.toThrow(
     /Missing native eval fixture/,
   );
-  await expect(fixture.call("Bash", { command: "git diff > /tmp/output" })).rejects.toThrow(
-    /Unsupported native fixture shell operator/,
-  );
+  const unsupported = await fixture.call("Bash", { command: "git diff > /tmp/output" });
+  assert.isTrue(unsupported.isError);
+  assert.include(unsupported.content[0]!.text, "Use separate fixture-backed commands");
+  const recovered = await fixture.call("Bash", { command: "git diff a b" });
+  assert.isFalse(recovered.isError);
+  assert.include(recovered.content[0]!.text, "name != null");
   await expect(fixture.call("Bash", { command: "git diff && git push" })).rejects.toThrow(
     /Missing native eval fixture/,
   );
@@ -330,6 +333,7 @@ it("awaits its owned CLI exit before removing fixture resources on cancellation"
   const binary = NodePath.join(directory, "fake-codex");
   const marker = NodePath.join(directory, "exit.json");
   const controller = new AbortController();
+  let failedCalls: SampleRun["calls"] | undefined;
   try {
     await NodeFSP.writeFile(
       binary,
@@ -368,9 +372,18 @@ await fetch(JSON.parse(option.slice(option.indexOf('=') + 1)), {
           },
         },
         3,
-        { executable: binary, signal: controller.signal },
+        {
+          executable: binary,
+          signal: controller.signal,
+          onFailure: (calls) => {
+            failedCalls = calls;
+          },
+        },
       ),
     ).rejects.toThrow(/cancelled/);
+    expect(failedCalls).toEqual([
+      { step: 0, tool: "finish", input: {}, failed: false, output: "done" },
+    ]);
     const receipt: { cwd: string; cwdExists: boolean } = JSON.parse(
       await NodeFSP.readFile(marker, "utf8"),
     );

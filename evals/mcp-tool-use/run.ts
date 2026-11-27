@@ -2134,15 +2134,14 @@ const simulate = Effect.fn("evaluateMcpToolUse.simulate")(function* (
     typeof command === "string" && exactMocks && Object.hasOwn(exactMocks, command)
       ? exactMocks[command]
       : undefined;
-  if (
-    config.fixtureOnly &&
-    exactOutput === undefined &&
-    typeof command === "string" &&
-    command.split(/\s*&&\s*/).some((part) => /[;&|`$<>\n]/.test(part))
-  )
-    throw new Error("Unsupported native fixture shell operator");
-  let output =
-    exactOutput ?? (typeof command === "string" ? cannedOutput(sample, command) : undefined);
+  let output = exactOutput;
+  if (output === undefined && typeof command === "string") {
+    const unsupported =
+      config.fixtureOnly && command.split(/\s*&&\s*/).some((part) => /[;&|`$<>\n]/.test(part));
+    output = unsupported
+      ? "<tool_use_error>Unsupported native fixture shell operator. Use separate fixture-backed commands or join them with &&. Use Read for fixture files.</tool_use_error>"
+      : cannedOutput(sample, command);
+  }
   if (output === undefined && config.fixtureOnly && typeof command === "string") {
     const parts = command.split(/\s*&&\s*/).map((part) => part.trim());
     const outputs: Array<string | undefined> = [];

@@ -51,8 +51,8 @@ the host. Claude's `--bare` mode is deliberately unused because it disables
 subscription authentication.
 
 `setup.exactShellMocks` maps an entire command string, including a snapshot
-wrapper, to authored output. Unlisted compound syntax remains rejected; these
-literal fixtures do not interpret or execute shell code.
+wrapper, to authored output. Unlisted compound syntax returns a tool error
+with instructions for retrying with fixture-backed commands.
 
 The default cases are the eight supervised-workflow cases. Native runs currently
 support top-level cases without prior turns, device worlds or composer context;
@@ -60,7 +60,8 @@ unsupported setups fail before invoking a model. `--cases`, repeated `--case`,
 `--model`, `--effort`, `--samples` (default 2), `--out` and `--dry-run` are
 supported. Samples run serially and use bounded process and tool budgets. A
 dry-run needs no login. Reports include source HEAD, dirty state, CLI version,
-model and backend; any failed or errored sample produces a nonzero exit.
+model, backend, and fixture calls received before an error. Any failed or
+errored sample produces a nonzero exit.
 
 Native results exercise the real installed provider harness with fixture tools.
 They are separate from the API capture-replay results above and do not establish
