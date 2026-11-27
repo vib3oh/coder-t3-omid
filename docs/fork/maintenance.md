@@ -55,20 +55,9 @@ latest common baseline without maintaining a second version counter.
 
 ## CI and releases
 
-This GitHub fork is public, so the private-repository self-hosted runner policy
-does not enroll it. GitHub Issues provides attended Vibe intake. The inherited
-CI job names, tests and final `Check` aggregate remain the required validation
-contract. CI and the native fingerprint comparison use standard GitHub-hosted
-Ubuntu 24.04 or macOS 26 runners on forks; the original repository retains its
-Blacksmith runners. Longer fork job limits account for the standard runners'
-smaller capacity without changing test timeouts or assertions. The shared task
-cache remains upstream-only and optional; fork jobs need no upstream credentials.
-
-Require the native `Check` and `Agent context budget` checks on `main` after they
-have been published on a real fork PR. Keep pull requests and strict current-base
-checks required; do not replace missing or failed native checks with a synthetic
-passing status. Release/deployment repository guards and manual Windows-test
-triggers remain unchanged. This setup publishes CI, not fork binaries.
+This public fork runs pull-request checks on GitHub-hosted Ubuntu and macOS
+runners. Upstream check names and event guards carry forward. `main` tracks
+`origin/main`. Use the CI and context budget checks for fork delivery.
 
 This checkout has not been packaged or installed. Before distributing a desktop
 build, give it a distinct product name, bundle id, URL scheme and userdata

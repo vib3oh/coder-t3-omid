@@ -1,3 +1,4 @@
+import { T, Var, useGT } from "gt-react";
 import { resolveExplicitProject } from "../fork/navigation/navigation.logic";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -32,7 +33,7 @@ import {
   ListChecksIcon,
   RefreshCwIcon,
   Share2Icon,
-  SparklesIcon,
+  BotIcon,
   SquareArrowOutUpRightIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -75,6 +76,7 @@ const SELECT =
   "min-w-0 max-w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm";
 
 export function ChangelogPage() {
+  const gt = useGT();
   const projects = useProjects();
   const { project: selected, detached = false } = useSearch({ from: "/_chat/changelog" });
   const navigate = useNavigate();
@@ -108,7 +110,7 @@ export function ChangelogPage() {
     try {
       if (window.desktopBridge?.openChangelogWindow) {
         if (!(await window.desktopBridge.openChangelogWindow(selectedKey))) {
-          setWindowError("Couldn't open the changelog window. Try again.");
+          setWindowError(gt("Couldn't open the changelog window. Try again."));
         }
         return;
       }
@@ -119,11 +121,11 @@ export function ChangelogPage() {
       if (popup) popup.focus();
       else
         setWindowError(
-          "Couldn't open the changelog window. Check your pop-up permissions and try again.",
+          gt("Couldn't open the changelog window. Check your pop-up permissions and try again."),
         );
     } catch {
       setWindowError(
-        "Couldn't open the changelog window. Check your pop-up permissions and try again.",
+        gt("Couldn't open the changelog window. Check your pop-up permissions and try again."),
       );
     }
   };
@@ -132,7 +134,7 @@ export function ChangelogPage() {
     try {
       if (window.desktopBridge?.returnChangelogToApp) {
         if (!(await window.desktopBridge.returnChangelogToApp(selectedKey))) {
-          setWindowError("Couldn't return to the app. Try again or close this window.");
+          setWindowError(gt("Couldn't return to the app. Try again or close this window."));
         }
       } else if (window.opener && !window.opener.closed) {
         window.opener.postMessage(
@@ -145,7 +147,7 @@ export function ChangelogPage() {
         void navigate({ to: "/changelog", search: selectedKey ? { project: selectedKey } : {} });
       }
     } catch {
-      setWindowError("Couldn't return to the app. Try again or close this window.");
+      setWindowError(gt("Couldn't return to the app. Try again or close this window."));
     }
   };
   const togglePinned = async () => {
@@ -153,7 +155,7 @@ export function ChangelogPage() {
       setPinned(await window.desktopBridge!.setChangelogWindowPinned!(!pinned));
       setWindowError(null);
     } catch {
-      setWindowError("Couldn't change always-on-top. Try again.");
+      setWindowError(gt("Couldn't change always-on-top. Try again."));
     }
   };
   return (
@@ -165,13 +167,15 @@ export function ChangelogPage() {
           </div>
         )}
         <ListChecksIcon className="size-4 text-muted-foreground" />
-        <h1 className="text-sm font-medium">Changelog</h1>
+        <h1 className="text-sm font-medium">
+          <T>Changelog</T>
+        </h1>
         <div className="ml-auto flex items-center gap-1">
           {detached && window.desktopBridge?.setChangelogWindowPinned && (
             <Button
               variant={pinned ? "secondary" : "ghost"}
               size="icon-sm"
-              aria-label="Always keep changelog on top"
+              aria-label={gt("Always keep changelog on top")}
               aria-pressed={pinned}
               onClick={() => void togglePinned()}
             >
@@ -182,7 +186,7 @@ export function ChangelogPage() {
             variant="ghost"
             size="icon-sm"
             disabled={!project && !detached}
-            aria-label={detached ? "Return changelog to app" : "Pop out changelog"}
+            aria-label={detached ? gt("Return changelog to app") : gt("Pop out changelog")}
             onClick={() => void (detached ? returnToApp() : openWindow())}
           >
             {detached ? <ArrowLeftToLineIcon /> : <SquareArrowOutUpRightIcon />}
@@ -197,14 +201,14 @@ export function ChangelogPage() {
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="border-b border-border px-4 py-3 md:px-6">
           <select
-            aria-label="Changelog project"
+            aria-label={gt("Changelog project")}
             className={SELECT}
             value={project ? keyFor(project) : ""}
             onChange={(event) => setSelected(event.target.value)}
           >
             {!project ? (
               <option value="" disabled>
-                Choose a project
+                <T>Choose a project</T>
               </option>
             ) : null}
             {projects.map((p) => (
@@ -219,8 +223,8 @@ export function ChangelogPage() {
         ) : (
           <p className="p-6 text-muted-foreground">
             {selected
-              ? "This project is unavailable. Choose a project to see what shipped."
-              : "Open a project to see what shipped."}
+              ? gt("This project is unavailable. Choose a project to see what shipped.")
+              : gt("Open a project to see what shipped.")}
           </p>
         )}
       </div>
@@ -233,6 +237,7 @@ function scrollChartToEnd(element: HTMLDivElement | null) {
 }
 
 function ProjectChangelog({ project }: { project: EnvironmentProject }) {
+  const gt = useGT();
   const now = Date.parse(useNowMinute());
   const since = new Date(changelogDayOffset(now, 30)).toISOString();
   const until = new Date(changelogDayOffset(now, -1)).toISOString();
@@ -270,11 +275,11 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
     return (
       <div role="status" className="p-6 text-sm text-muted-foreground">
         {AsyncResult.isFailure(result)
-          ? "Couldn't load the changelog. Check that this environment supports it."
-          : "Loading what shipped…"}
+          ? gt("Couldn't load the changelog. Check that this environment supports it.")
+          : gt("Loading what shipped…")}
         <div className="mt-3">
           <Button variant="outline" size="sm" onClick={() => void reload(target)}>
-            Retry
+            <T>Retry</T>
           </Button>
         </div>
       </div>
@@ -292,10 +297,10 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
     shareId && baseUrl ? new URL(`/api/changelog/shared/${shareId}`, baseUrl).href : null;
   const copy = async (text: string) => {
     try {
-      await writeTextToClipboard(text, "changelog");
-      setNotice("Copied to clipboard.");
+      await writeTextToClipboard(text);
+      setNotice(gt("Copied to clipboard."));
     } catch {
-      setNotice("Couldn't copy. Check clipboard access and try again.");
+      setNotice(gt("Couldn't copy. Check clipboard access and try again."));
     }
   };
   const publish = async (enabled: boolean) => {
@@ -318,14 +323,16 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
     if (outcome._tag === "Success") {
       setShareOverride(outcome.value);
       setNotice(
-        enabled ? "Published the selected entries. Copy the link below." : "Public link revoked.",
+        enabled
+          ? gt("Published the selected entries. Copy the link below.")
+          : gt("Public link revoked."),
       );
     }
   };
   const ask = async (purpose: string) => {
     const prompt = `${purpose} for ${project.title}. Use only these shipped entries from ${new Date(filter.since).toLocaleDateString()} through today${type ? `, filtered to ${type}` : ""}. Cite each PR. Do not invent impact or motivation.\n\n${changelogMarkdown(visible, project.title)}`;
     const draft = await newThread(scopeProjectRef(project.environmentId, project.id), { prompt });
-    if (!draft) setNotice("Couldn't open an agent draft for this project.");
+    if (!draft) setNotice(gt("Couldn't open an agent draft for this project."));
   };
   return (
     <>
@@ -333,8 +340,8 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
         <div className="min-w-40 flex-1">
           <Input
             type="search"
-            aria-label="Search what shipped"
-            placeholder="Search what shipped…"
+            aria-label={gt("Search what shipped")}
+            placeholder={gt("Search what shipped…")}
             maxLength={200}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -345,12 +352,12 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
         </div>
         <Button variant="outline" size="sm" disabled={!canShare} onClick={() => setShareOpen(true)}>
           <Share2Icon />
-          Share
+          <T>Share</T>
         </Button>
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Refresh changelog"
+          aria-label={gt("Refresh changelog")}
           onClick={() => void reload(target)}
         >
           <RefreshCwIcon />
@@ -358,7 +365,7 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
       </div>
       {AsyncResult.isFailure(result) ? (
         <p role="status" className="px-6 py-2 text-sm text-warning">
-          Showing the last loaded changelog. Reconnecting…
+          <T>Showing the last loaded changelog. Reconnecting…</T>
         </p>
       ) : null}
       <div className="space-y-4 border-b border-border bg-muted/20 px-4 py-5 md:px-6">
@@ -366,14 +373,16 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
           <div>
             <h2 className="text-xl font-semibold">
               <span className="font-mono text-primary">{inRange.length}</span> shipped{" "}
-              {range === "today" ? "today" : `in the last ${RANGES[range]}`}
+              {range === "today" ? "today" : gt("in the last {value}", { value: RANGES[range] })}
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Merged PRs linked to this project's threads. Types follow PR title prefixes.
+              <T>Merged PRs linked to this project's threads. Types follow PR title prefixes.</T>
             </p>
             {view.undatedCount > 0 ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                {view.undatedCount} merged PRs have no merge date and aren't listed.
+                <T>
+                  <Var>{view.undatedCount}</Var> merged PRs have no merge date and aren't listed.
+                </T>
               </p>
             ) : null}
           </div>
@@ -385,26 +394,26 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
               onClick={() => void copy(changelogMarkdown(visible, project.title))}
             >
               <CopyIcon />
-              Copy changelog
+              <T>Copy changelog</T>
             </Button>
             <Menu>
               <MenuTrigger
                 render={<Button size="sm" variant="outline" disabled={visible.length === 0} />}
               >
-                <SparklesIcon />
-                Ask an agent
+                <BotIcon />
+                <T>Ask an agent</T>
               </MenuTrigger>
               <MenuPopup align="end">
                 <MenuItem onClick={() => void ask("Write release notes")}>
-                  Write release notes
+                  <T>Write release notes</T>
                 </MenuItem>
                 <MenuItem onClick={() => void ask("Write a short standup note")}>
-                  Write a standup note
+                  <T>Write a standup note</T>
                 </MenuItem>
                 <MenuItem
                   onClick={() => void ask("Choose what to announce to users and explain why")}
                 >
-                  What should I announce?
+                  <T>What should I announce?</T>
                 </MenuItem>
               </MenuPopup>
             </Menu>
@@ -413,7 +422,7 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
         <div ref={scrollChartToEnd} className="overflow-x-auto">
           <div
             role="group"
-            aria-label="Shipped PRs per day, last 31 days"
+            aria-label={gt("Shipped PRs per day, last 31 days")}
             className="flex h-32 min-w-max items-end gap-1"
           >
             {Array.from({ length: 31 }, (_, i) => changelogDayOffset(now, 30 - i)).map((day) => {
@@ -466,7 +475,7 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Range" className="flex gap-1">
+          <div role="group" aria-label={gt("Range")} className="flex gap-1">
             {(Object.keys(RANGES) as ChangelogRange[]).map((value) => (
               <Button
                 key={value}
@@ -482,14 +491,16 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
               </Button>
             ))}
           </div>
-          <div role="group" aria-label="Type" className="flex flex-wrap gap-1">
+          <div role="group" aria-label={gt("Type")} className="flex flex-wrap gap-1">
             <Button
               size="sm"
               variant={type === null ? "secondary" : "ghost"}
               aria-pressed={type === null}
               onClick={() => setType(null)}
             >
-              All {inRange.length}
+              <T>
+                All <Var>{inRange.length}</Var>
+              </T>
             </Button>
             {CHANGELOG_TYPES.map((value) => {
               const count = inRange.filter((entry) => entry.type === value).length;
@@ -519,18 +530,18 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
           <div className="space-y-3 py-14 text-center text-sm text-muted-foreground">
             <p>
               {inRange.length
-                ? "No shipped work matches these filters."
-                : "Nothing shipped in this range."}
+                ? gt("No shipped work matches these filters.")
+                : gt("Nothing shipped in this range.")}
             </p>
             <div className="flex justify-center gap-2">
               {query ? (
                 <Button variant="outline" size="sm" onClick={() => setQuery("")}>
-                  Clear search
+                  <T>Clear search</T>
                 </Button>
               ) : null}
               {type ? (
                 <Button variant="outline" size="sm" onClick={() => setType(null)}>
-                  Show all types
+                  <T>Show all types</T>
                 </Button>
               ) : null}
               {range !== "30d" ? (
@@ -542,7 +553,7 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
                     setType(null);
                   }}
                 >
-                  Show 30 days
+                  <T>Show 30 days</T>
                 </Button>
               ) : null}
             </div>
@@ -558,9 +569,9 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
               <div className="flex items-baseline gap-2 text-muted-foreground sm:sticky sm:top-4 sm:flex-col sm:gap-0 sm:self-start">
                 <span className="text-xs">
                   {day === changelogDay(now)
-                    ? "Today"
+                    ? gt("Today")
                     : day === changelogDayOffset(now, 1)
-                      ? "Yesterday"
+                      ? gt("Yesterday")
                       : new Date(day).toLocaleDateString(undefined, { weekday: "long" })}
                 </span>
                 <span className="font-mono text-3xl text-foreground">
@@ -587,7 +598,7 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
                       );
                       setBusy(false);
                       if (outcome._tag === "Failure")
-                        setNotice("Couldn't unarchive this thread. Try again.");
+                        setNotice(gt("Couldn't unarchive this thread. Try again."));
                     }}
                   />
                 ))}
@@ -599,10 +610,14 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogPopup>
           <DialogHeader>
-            <DialogTitle>Share changelog</DialogTitle>
+            <DialogTitle>
+              <T>Share changelog</T>
+            </DialogTitle>
             <DialogDescription>
-              Publish a snapshot of the current range, type, and search. Anyone with the link can
-              read the published entries. Update it here when you're ready.
+              <T>
+                Publish a snapshot of the current range, type, and search. Anyone with the link can
+                read the published entries. Update it here when you're ready.
+              </T>
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
@@ -613,13 +628,13 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
                   checked={summaries}
                   onChange={(e) => setSummaries(e.target.checked)}
                 />
-                Include summaries
+                <T>Include summaries</T>
               </label>
               {shareUrl ? (
                 <div className="space-y-2">
-                  <Input aria-label="Public changelog link" readOnly value={shareUrl} />
+                  <Input aria-label={gt("Public changelog link")} readOnly value={shareUrl} />
                   <Button size="sm" variant="outline" onClick={() => void copy(shareUrl)}>
-                    Copy link
+                    <T>Copy link</T>
                   </Button>
                   <Button
                     size="sm"
@@ -630,11 +645,13 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
                       )
                     }
                   >
-                    Copy embed
+                    <T>Copy embed</T>
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    This server must be reachable by your readers. Local addresses work only on your
-                    network.
+                    <T>
+                      This server must be reachable by your readers. Local addresses work only on
+                      your network.
+                    </T>
                   </p>
                 </div>
               ) : null}
@@ -647,14 +664,18 @@ function ProjectChangelog({ project }: { project: EnvironmentProject }) {
                 disabled={busy || !canShare}
                 onClick={() => void publish(false)}
               >
-                Revoke link
+                <T>Revoke link</T>
               </Button>
             ) : null}
             <Button
               disabled={busy || !canShare || visible.length === 0}
               onClick={() => void publish(true)}
             >
-              {busy ? "Saving…" : shareId ? "Update public snapshot" : "Publish selected entries"}
+              {busy
+                ? gt("Saving…")
+                : shareId
+                  ? gt("Update public snapshot")
+                  : gt("Publish selected entries")}
             </Button>
           </DialogFooter>
         </DialogPopup>
@@ -710,7 +731,7 @@ function ChangelogRow({
               disabled={!canUnarchive}
               onClick={() => void onUnarchive()}
             >
-              Unarchive and open thread
+              <T>Unarchive and open thread</T>
             </Button>
           ) : (
             <Link
@@ -718,7 +739,7 @@ function ChangelogRow({
               to="/$environmentId/$threadId"
               params={{ environmentId, threadId: entry.threadId }}
             >
-              Open thread
+              <T>Open thread</T>
             </Link>
           )}
           {/^https?:\/\//i.test(entry.url) ? (
@@ -728,7 +749,9 @@ function ChangelogRow({
               target="_blank"
               rel="noreferrer"
             >
-              Open PR #{entry.pullNumber}
+              <T>
+                Open PR #<Var>{entry.pullNumber}</Var>
+              </T>
             </a>
           ) : null}
           <time className="text-muted-foreground" dateTime={entry.at}>

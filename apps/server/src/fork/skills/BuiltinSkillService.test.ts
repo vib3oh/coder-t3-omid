@@ -1,7 +1,9 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { ProviderInstanceId, type AgentRolePreset } from "@t3tools/contracts";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 
@@ -54,6 +56,43 @@ it.layer(NodeServices.layer)("built-in skills", (it) => {
       assert.equal(failure.reason, "modified");
       assert.equal(yield* fs.readFileString(spec.codex.path), "changed externally");
       assert.equal((yield* verifyBuiltinSkillPackage(first).pipe(Effect.flip)).reason, "modified");
+    }),
+  );
+
+  it.effect("finishes a package installation before interrupting the preparing fiber", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const stateDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-builtin-skills-" });
+      const parent = path.join(stateDir, "extensions", "agent-skills");
+      const started = yield* Deferred.make<void>();
+      const proceed = yield* Deferred.make<void>();
+      const gated = FileSystem.FileSystem.of({
+        ...fs,
+        makeDirectory: (directory, options) =>
+          directory === parent
+            ? Deferred.succeed(started, undefined).pipe(
+                Effect.andThen(Deferred.await(proceed)),
+                Effect.andThen(fs.makeDirectory(directory, options)),
+              )
+            : fs.makeDirectory(directory, options),
+      });
+
+      const prepare = yield* prepareBuiltinSkillPackage(stateDir).pipe(
+        Effect.provideService(FileSystem.FileSystem, gated),
+        Effect.forkChild,
+      );
+      yield* Deferred.await(started);
+      const interrupt = yield* Fiber.interrupt(prepare).pipe(
+        Effect.forkChild({ startImmediately: true }),
+      );
+      yield* Deferred.succeed(proceed, undefined);
+      yield* Fiber.join(interrupt);
+
+      assert.isTrue(yield* fs.exists(parent));
+      const installed = yield* fs.readDirectory(parent);
+      assert.lengthOf(installed, 1);
+      assert.notMatch(installed[0]!, /^preparing-/);
     }),
   );
 

@@ -1,3 +1,4 @@
+import { T, useGT, useMessages } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import {
   communicationStatus,
@@ -24,6 +25,7 @@ export function WorkflowContent({
   kind: "message" | "artifact" | "assignment" | "spec";
   id: string;
 }) {
+  const gt = useGT();
   const result = useAtomValue(
     agentWorkflows.content({
       environmentId,
@@ -43,8 +45,8 @@ export function WorkflowContent({
         className="text-sm text-muted-foreground"
       >
         {AsyncResult.isFailure(result)
-          ? "Could not load the original content. Check your connection and permission."
-          : "Loading content…"}
+          ? gt("Could not load the original content. Check your connection and permission.")
+          : gt("Loading content…")}
       </p>
     );
   return <p className="whitespace-pre-wrap break-words text-sm">{content.text}</p>;
@@ -63,12 +65,13 @@ export function AgentCommunication({
   pending: boolean;
   onReply: (question: CommunicationMessage, text: string) => Promise<boolean>;
 }) {
+  const gt = useGT();
   const presentation = workflowCommunications(workflow);
   return (
-    <div className="space-y-2" aria-label="Agent communications">
+    <div className="space-y-2" aria-label={gt("Agent communications")}>
       {presentation.groups.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Agents’ updates, questions and handoffs appear here.
+          <T>Agents’ updates, questions and handoffs appear here.</T>
         </p>
       ) : null}
       {presentation.groups.map((group) => (
@@ -104,6 +107,8 @@ function CommunicationRow({
   pending: boolean;
   onReply: (question: CommunicationMessage, text: string) => Promise<boolean>;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const [expanded, setExpanded] = useState(false);
   const [answer, setAnswer] = useState("");
   const message = group.latest;
@@ -116,7 +121,8 @@ function CommunicationRow({
       <summary className="cursor-pointer rounded-lg px-4 py-3 focus-visible:outline-2 focus-visible:outline-ring">
         <span className="inline-grid w-[calc(100%_-_1rem)] grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 align-middle text-sm">
           <span className="col-start-1 row-start-1 truncate font-medium sm:col-span-2">
-            {names.get(message.senderId) ?? "Agent"} → {names.get(message.recipientId) ?? "Agent"}
+            {names.get(message.senderId) ?? gt("Agent")} →{" "}
+            {names.get(message.recipientId) ?? gt("Agent")}
           </span>
           <span className="col-span-2 row-start-2 truncate sm:col-span-1">{group.summary}</span>
           <span
@@ -126,7 +132,7 @@ function CommunicationRow({
                 : "col-start-2 row-start-1 shrink-0 text-xs text-muted-foreground sm:row-start-2"
             }
           >
-            {communicationStatus(message)}
+            {communicationStatus(message, messages)}
           </span>
           {group.messages.length > 1 ? (
             <span className="col-span-2 text-xs text-muted-foreground">
@@ -138,12 +144,14 @@ function CommunicationRow({
       {expanded ? (
         <div className="space-y-4 border-t border-border p-4">
           <p className="text-xs text-muted-foreground">
-            The summary is sender-reported. Delivery status describes transport, not task
-            completion.
+            <T>
+              The summary is sender-reported. Delivery status describes transport, not task
+              completion.
+            </T>
           </p>
           {message.delivery === "failed" ? (
             <p className="text-sm">
-              Delivery stopped.{" "}
+              <T>Delivery stopped. </T>
               <Link
                 to="/$environmentId/$threadId"
                 params={{
@@ -153,16 +161,18 @@ function CommunicationRow({
                 className="text-primary underline"
               >
                 {original?.senderThreadId
-                  ? "Open the sender conversation"
-                  : "Open the planner conversation"}
-              </Link>{" "}
-              to resolve the failure and request another send.
+                  ? gt("Open the sender conversation")
+                  : gt("Open the planner conversation")}
+              </Link>
+              <T> to resolve the failure and request another send.</T>
             </p>
           ) : null}
           {message.questionState === "expired" ? (
             <p className="text-sm">
-              This question expired. Resume the workflow or open the planner conversation to resolve
-              the blocking decision.
+              <T>
+                This question expired. Resume the workflow or open the planner conversation to
+                resolve the blocking decision.
+              </T>
             </p>
           ) : null}
           {group.messages.map((entry) => (
@@ -205,7 +215,7 @@ function CommunicationRow({
                 className="block text-sm font-medium"
                 htmlFor={`workflow-answer-${message.id}`}
               >
-                Answer as you
+                <T>Answer as you</T>
               </label>
               <Textarea
                 id={`workflow-answer-${message.id}`}
@@ -215,8 +225,10 @@ function CommunicationRow({
                 disabled={!canReply || pending}
               />
               <p className="text-xs text-muted-foreground">
-                Your answer is attributed to you. Waiting for a peer does not require you to
-                intervene.
+                <T>
+                  Your answer is attributed to you. Waiting for a peer does not require you to
+                  intervene.
+                </T>
               </p>
               <Button
                 type="submit"
@@ -224,13 +236,13 @@ function CommunicationRow({
                 size="sm"
                 disabled={!canReply || pending || !answer.trim()}
               >
-                Send answer
+                <T>Send answer</T>
               </Button>
             </form>
           ) : null}
           <details className="text-xs text-muted-foreground">
             <summary className="cursor-pointer py-2">
-              Diagnostics and original delivery facts
+              <T>Diagnostics and original delivery facts</T>
             </summary>
             <pre className="overflow-auto whitespace-pre-wrap break-all">
               {JSON.stringify(
@@ -261,7 +273,7 @@ function ReferencedArtifact({
   return (
     <details className="text-sm" onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary className="cursor-pointer py-2">
-        Referenced artifact
+        <T>Referenced artifact</T>
         {workflow.artifacts.find((artifact) => artifact.id === id)?.summary
           ? `: ${workflow.artifacts.find((artifact) => artifact.id === id)!.summary}`
           : ""}

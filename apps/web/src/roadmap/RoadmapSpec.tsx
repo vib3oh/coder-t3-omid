@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
 import * as Option from "effect/Option";
@@ -12,6 +13,7 @@ export default function RoadmapSpec({
   project: EnvironmentProject;
   path: string;
 }) {
+  const gt = useGT();
   const result = useAtomValue(
     projectEnvironment.readFile({
       environmentId: project.environmentId,
@@ -23,15 +25,15 @@ export default function RoadmapSpec({
     return (
       <p role="status" className="text-sm text-muted-foreground">
         {AsyncResult.isFailure(result)
-          ? "Could not read this spec. Check its path and your file-read permission."
-          : "Loading spec…"}
+          ? gt("Could not read this spec. Check its path and your file-read permission.")
+          : gt("Loading spec…")}
       </p>
     );
   return (
     <>
       {file.truncated ? (
         <p role="alert" className="text-sm text-muted-foreground">
-          This spec is too large to display in full.
+          <T>This spec is too large to display in full.</T>
         </p>
       ) : null}
       <ChatMarkdown

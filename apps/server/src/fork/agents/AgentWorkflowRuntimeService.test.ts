@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
 import {
@@ -46,6 +47,7 @@ import * as Providers from "../../provider/ProviderRegistry.ts";
 import * as Roadmap from "../../roadmap/RoadmapService.ts";
 import * as Git from "../../vcs/GitVcsDriver.ts";
 import * as Workspace from "../../workspace/WorkspaceFileSystem.ts";
+import * as WorkspaceFolders from "../../workspace/WorkspaceFolders.ts";
 import * as Skills from "../skills/BuiltinSkillService.ts";
 import * as Core from "./AgentWorkflowService.ts";
 import * as Store from "./AgentWorkflowStore.ts";
@@ -168,7 +170,7 @@ function nativeMessage(
 const baseLayer = Core.layer.pipe(
   Layer.provideMerge(Store.layer),
   Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "t3-workflow-runtime-" })),
-  Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(Layer.merge(NodeServices.layer, NodeCrypto.layer)),
 );
 
 const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
@@ -177,6 +179,7 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
     readonly failFirstReservation?: boolean;
     readonly deferWorkspacePreparation?: boolean;
     readonly queueNativeMessages?: boolean;
+    readonly trackSecondRepository?: boolean;
   } = {},
 ) {
   const core = yield* Core.AgentWorkflowService;
@@ -200,6 +203,7 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
   const heads = yield* Ref.make<ReadonlyMap<string, string>>(new Map());
   const gitReads = yield* Ref.make<ReadonlyArray<string>>([]);
   const reservations = yield* Ref.make(0);
+  const secondRepository = yield* Ref.make(options.trackSecondRepository === true);
   const board = yield* Ref.make<RoadmapBoard>({ version: 1, revision: 3, cards: [] });
   const spec = yield* Ref.make("An immutable accepted specification.");
   const provider = {
@@ -488,6 +492,18 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
           })),
         ),
     }),
+    Layer.mock(WorkspaceFolders.WorkspaceFolders)({
+      forThread: () =>
+        Ref.get(secondRepository).pipe(
+          Effect.map((tracked) => ({
+            folders: tracked
+              ? [{ name: "Other", path: "/fixture/other", isGitRepository: true }]
+              : [],
+            extraRoots: [],
+          })),
+        ),
+      submodules: () => Effect.succeed([]),
+    }),
     Layer.mock(Roadmap.RoadmapService)({
       read: () => Ref.get(board),
       save: (request) =>
@@ -569,6 +585,7 @@ const fixture = Effect.fn("test.workflowRuntimeFixture")(function* (
     head,
     board,
     spec,
+    secondRepository,
     put,
     seed,
     recordNativeTask,
@@ -608,6 +625,41 @@ const pendingAssignment = Effect.fn("test.pendingWorkflowAssignment")(function* 
 });
 
 describe("AgentWorkflowRuntimeService", () => {
+  it.effect("refuses to start supervised work across multiple Git repositories", () =>
+    Effect.gen(function* () {
+      const f = yield* fixture({ trackSecondRepository: true });
+      const error = yield* f.runtime.start(input).pipe(Effect.flip);
+      expect(error.detail).toContain("one Git repository");
+      expect(yield* Ref.get(f.launches)).toEqual([]);
+      expect((yield* f.store.read(projectId)).workflows).toEqual([]);
+    }).pipe(Effect.provide(baseLayer)),
+  );
+
+  it.effect.each(["replay", "recover"] as const)(
+    "blocks a pending manager launch when another repository is tracked before %s",
+    (operation) =>
+      Effect.gen(function* () {
+        const f = yield* fixture();
+        const workflow = yield* f.core.create({
+          input,
+          workflowId: "pending-launch",
+          managerThreadId,
+          commandId: CommandId.make("pending-root-command"),
+        });
+        yield* Ref.set(f.secondRepository, true);
+        if (operation === "replay") {
+          const error = yield* f.runtime.start(input).pipe(Effect.flip);
+          expect(error.detail).toContain("one Git repository");
+        } else {
+          yield* f.runtime.reconcile;
+          expect((yield* f.core.read({ projectId, workflowId: workflow.id })).status).toBe(
+            "failed",
+          );
+        }
+        expect(yield* Ref.get(f.launches)).toEqual([]);
+      }).pipe(Effect.provide(baseLayer)),
+  );
+
   it.effect("waits for native worktree preparation before binding the manager workspace", () =>
     Effect.gen(function* () {
       const f = yield* fixture({ deferWorkspacePreparation: true });
@@ -643,6 +695,13 @@ describe("AgentWorkflowRuntimeService", () => {
         requestId: "retry-preparation",
         action: "retry" as const,
       };
+      yield* Ref.set(f.secondRepository, true);
+      const rejectedRetry = yield* f.runtime
+        .control({ ...retry, requestId: "retry-with-tracked-repository" })
+        .pipe(Effect.flip);
+      expect(rejectedRetry.detail).toContain("one Git repository");
+      expect(yield* Ref.get(f.preparationRetries)).toEqual([]);
+      yield* Ref.set(f.secondRepository, false);
       yield* f.runtime.control(retry);
       const pendingRetry = yield* f.core.read({ projectId, workflowId: started.id });
       expect(pendingRetry.intents.find((intent) => intent.operation === "launch")).toMatchObject({

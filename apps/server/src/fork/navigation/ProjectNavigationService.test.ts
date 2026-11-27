@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
 import {
@@ -18,6 +19,7 @@ import * as ProjectStore from "../../orchestration-v2/ProjectStore.ts";
 import * as ProjectionStore from "../../orchestration-v2/ProjectionStore.ts";
 import * as RoadmapService from "../../roadmap/RoadmapService.ts";
 import * as GitVcsDriver from "../../vcs/GitVcsDriver.ts";
+import * as TaskFolderStore from "../../workspace/TaskFolderStore.ts";
 import * as AgentWorkflowStore from "../agents/AgentWorkflowStore.ts";
 import { defaultAgentRoles } from "../agents/WorkflowRules.ts";
 import { v2PullRequestThread } from "../../orchestration-v2/testkit/pullRequestFixtures.ts";
@@ -34,6 +36,11 @@ describe("ProjectNavigationService", () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const root = yield* fs.makeTempDirectoryScoped({ prefix: "navigation-test-" });
+        const taskRoot = yield* fs.makeTempDirectoryScoped({ prefix: "navigation-task-" });
+        const taskProjectPath = yield* fs.realPath(taskRoot);
+        const emptyTaskRoot = `${root}/empty-task`;
+        yield* fs.makeDirectory(emptyTaskRoot);
+        const emptyTaskProjectPath = yield* fs.realPath(emptyTaskRoot);
         const threads = Array.from({ length: 500 }, (_, i) =>
           v2PullRequestThread({
             id: ThreadId.make(`thread-${i}`),
@@ -43,7 +50,7 @@ describe("ProjectNavigationService", () => {
             runtimeMode: "full-access",
             interactionMode: "default",
             branch: `branch-${i}`,
-            worktreePath: `${root}/worktree-${Math.floor(i / 10)}`,
+            worktreePath: i === 1 ? taskRoot : `${root}/worktree-${Math.floor(i / 10)}`,
             pullRequests: [],
             latestUserMessageAt: null,
             createdAt: at,
@@ -115,17 +122,70 @@ describe("ProjectNavigationService", () => {
                 }),
               ),
               Layer.provide(Layer.mock(GitVcsDriver.GitVcsDriver)({})),
+              Layer.provide(
+                Layer.mock(TaskFolderStore.TaskFolderStore)({
+                  list: Effect.succeed([
+                    {
+                      root: taskRoot,
+                      projectId,
+                      projectRoot: root,
+                      anchor: root,
+                      projectPath: taskRoot,
+                      projectIsWorktree: false,
+                      repositories: [],
+                    },
+                    {
+                      root: emptyTaskRoot,
+                      projectId,
+                      projectRoot: root,
+                      anchor: root,
+                      projectPath: emptyTaskRoot,
+                      projectIsWorktree: false,
+                      repositories: [],
+                    },
+                    {
+                      root: `${root}/other-project-task`,
+                      projectId: ProjectId.make("other"),
+                      projectRoot: root,
+                      anchor: root,
+                      projectPath: `${root}/other-project-task`,
+                      projectIsWorktree: false,
+                      repositories: [],
+                    },
+                  ]),
+                }),
+              ),
             ),
           ),
         );
         const first = yield* service.read({ projectId, limit: 2 });
-        expect(first.totalWorktrees).toBe(51);
+        expect(first.totalWorktrees).toBe(53);
         expect(first.worktrees.map((row) => row.isMain)).toEqual([true, false]);
         expect(first.nextCursor).not.toBeNull();
         const populated = yield* service.read({ projectId });
         const encoded = yield* encodeNavigation(populated);
         expect(encoded.length).toBeLessThan(128 * 1024);
         expect(populated.worktrees.every((row) => row.threads.length <= 3)).toBe(true);
+        const taskFolder = yield* service.read({
+          projectId,
+          worktreeKey: `worktree:${taskProjectPath}`,
+        });
+        expect(taskFolder.worktrees[0]).toMatchObject({
+          path: taskProjectPath,
+          availability: "available",
+          branch: null,
+          threadCount: 1,
+          threads: [{ id: threads[1]!.id, branch: "branch-1" }],
+        });
+        const emptyTaskFolder = yield* service.read({
+          projectId,
+          worktreeKey: `worktree:${emptyTaskProjectPath}`,
+        });
+        expect(emptyTaskFolder.worktrees[0]).toMatchObject({
+          path: emptyTaskProjectPath,
+          availability: "available",
+          threadCount: 0,
+        });
         const next = yield* service.read({ projectId, limit: 2, cursor: first.nextCursor! });
         expect(next.worktrees[0]?.key).not.toBe(first.worktrees[1]?.key);
         const revealed = yield* service.read({
@@ -150,11 +210,11 @@ describe("ProjectNavigationService", () => {
         launchDuringRead = true;
         const raced = yield* service.read({ projectId });
         expect(raced.complete).toBe(true);
-        expect(raced.totalWorktrees).toBe(51);
+        expect(raced.totalWorktrees).toBe(53);
         expect(
           raced.worktrees.some((row) => row.threads.some((thread) => thread.id === threads[0]!.id)),
         ).toBe(true);
-      }).pipe(Effect.provide(NodeServices.layer)),
+      }).pipe(Effect.provide(Layer.merge(NodeServices.layer, NodeCrypto.layer))),
   );
 
   it.effect(
@@ -222,6 +282,9 @@ describe("ProjectNavigationService", () => {
                 }),
               ),
               Layer.provide(Layer.mock(GitVcsDriver.GitVcsDriver)({})),
+              Layer.provide(
+                Layer.mock(TaskFolderStore.TaskFolderStore)({ list: Effect.succeed([]) }),
+              ),
             ),
           ),
         );
@@ -244,6 +307,6 @@ describe("ProjectNavigationService", () => {
         const last = yield* service.read({ projectId, worktreeKey: "main", threadOffset: 50 });
         expect(last.worktrees[0]?.threads).toHaveLength(5);
         expect(last.worktrees[0]?.threadNextOffset).toBeNull();
-      }).pipe(Effect.provide(NodeServices.layer)),
+      }).pipe(Effect.provide(Layer.merge(NodeServices.layer, NodeCrypto.layer))),
   );
 });

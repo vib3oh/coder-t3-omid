@@ -187,9 +187,11 @@ export const prepareBuiltinSkillPackage = Effect.fn("BuiltinSkillService.prepare
       yield* verifyBuiltinSkillPackage(pkg);
       return pkg;
     }
-    yield* fs.makeDirectory(parent, { recursive: true, mode: 0o700 });
+    // Filesystem calls can outlive an interrupted fiber. Finish installation and cleanup before
+    // the caller can release its state directory.
     yield* Effect.scoped(
       Effect.gen(function* () {
+        yield* fs.makeDirectory(parent, { recursive: true, mode: 0o700 });
         const temporary = yield* Effect.acquireRelease(
           fs.makeTempDirectory({ directory: parent, prefix: "preparing-" }),
           (directory) => fs.remove(directory, { recursive: true, force: true }).pipe(Effect.orDie),
@@ -201,7 +203,7 @@ export const prepareBuiltinSkillPackage = Effect.fn("BuiltinSkillService.prepare
         }
         yield* fs.rename(temporary, root).pipe(Effect.catch(() => verifyBuiltinSkillPackage(pkg)));
       }),
-    );
+    ).pipe(Effect.uninterruptible);
     yield* verifyBuiltinSkillPackage(pkg);
     return pkg;
   });
@@ -215,10 +217,6 @@ export const prepareBuiltinSkillPackage = Effect.fn("BuiltinSkillService.prepare
 
 function codexBuiltinSkillRoots(pkg: BuiltinSkillPackage) {
   return { extraRoots: [pkg.codexRoot] };
-}
-
-export function claudeBuiltinSkillPlugin(pkg: BuiltinSkillPackage) {
-  return { type: "local" as const, path: pkg.claudePluginRoot };
 }
 
 export const optionalServerBuiltinSkillPackage = Effect.fn("BuiltinSkillService.optionalPackage")(

@@ -7,13 +7,13 @@ export function createProjectNavigationState<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry.EnvironmentRegistry | R, E>,
 ) {
   const read = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Project worktrees",
+    label: WS_METHODS.projectNavigationRead,
     tag: WS_METHODS.projectNavigationRead,
     staleTimeMs: 0,
     refreshIntervalMs: 5_000,
   });
   const page = createEnvironmentRpcQueryAtomFamily(runtime, {
-    label: "Project worktree details",
+    label: "projectNavigation.page",
     tag: WS_METHODS.projectNavigationRead,
     staleTimeMs: 0,
   });

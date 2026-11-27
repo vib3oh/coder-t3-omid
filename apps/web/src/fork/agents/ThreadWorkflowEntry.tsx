@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
@@ -15,6 +16,7 @@ export function ThreadWorkflowEntry({
   projectId: ProjectId;
   threadId: ThreadId;
 }) {
+  const gt = useGT();
   const navigate = useNavigate();
   const result = useAtomValue(agentWorkflows.list({ environmentId, input: { projectId } }));
   const list = Option.getOrNull(AsyncResult.value(result));
@@ -40,8 +42,12 @@ export function ThreadWorkflowEntry({
       >
         <span className="max-w-72 truncate">
           {linked
-            ? `Workflow · ${linked.humanInputPending ? "Needs your input" : (linked.currentStage ?? linked.status.replaceAll("_", " "))}`
-            : "Use agent workflow"}
+            ? gt("Workflow · {value}", {
+                value: linked.humanInputPending
+                  ? "Needs your input"
+                  : (linked.currentStage ?? linked.status.replaceAll("_", " ")),
+              })
+            : gt("Use agent workflow")}
           {linked?.latestSummary ? ` · ${linked.latestSummary}` : ""}
         </span>
       </Button>

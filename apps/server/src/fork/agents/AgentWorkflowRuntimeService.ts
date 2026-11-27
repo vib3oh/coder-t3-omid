@@ -25,9 +25,8 @@ import {
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
-import * as Crypto from "effect/Crypto";
+import * as Digest from "effect/crypto/Digest";
 import * as Effect from "effect/Effect";
-import * as Hex from "effect/encoding/Hex";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
@@ -43,6 +42,7 @@ import * as OrchestrationEventStore from "../../persistence/OrchestrationEventSt
 import * as GitVcsDriver from "../../vcs/GitVcsDriver.ts";
 import * as CheckpointStore from "../../checkpointing/CheckpointStore.ts";
 import * as WorkspaceFileSystem from "../../workspace/WorkspaceFileSystem.ts";
+import * as WorkspaceFolders from "../../workspace/WorkspaceFolders.ts";
 import * as RoadmapService from "../../roadmap/RoadmapService.ts";
 import * as OrchestratorMcpService from "../../mcp/OrchestratorMcpService.ts";
 import { requireThreadScope, type McpInvocationScope } from "../../mcp/McpInvocationContext.ts";
@@ -151,24 +151,46 @@ const make = Effect.gen(function* () {
   const git = yield* GitVcsDriver.GitVcsDriver;
   const checkpoints = yield* CheckpointStore.CheckpointStore;
   const files = yield* WorkspaceFileSystem.WorkspaceFileSystem;
+  const workspaces = yield* WorkspaceFolders.WorkspaceFolders;
   const roadmap = yield* RoadmapService.RoadmapService;
   const skills = yield* BuiltinSkillService.BuiltinSkillService;
   const evidence = yield* WorkflowEvidence.WorkflowEvidence;
-  const crypto = yield* Crypto.Crypto;
+  const digest = yield* Digest.Digest;
   const http = yield* Effect.serviceOption(HttpClient.HttpClient);
   const wake = yield* Queue.sliding<void>(1);
   const locks = yield* KeyedLock.make<string>();
 
   const hash = Effect.fn("AgentWorkflowRuntime.hash")(function* (text: string) {
-    return Hex.encode(
-      yield* crypto.digest("SHA-256", new TextEncoder().encode(text)).pipe(Effect.orDie),
-    );
+    return yield* digest.digestHex(Digest.sha256, new TextEncoder().encode(text));
   });
   const project = Effect.fn("AgentWorkflowRuntime.project")(function* (id: ProjectId) {
     const found = yield* projects.getById(id).pipe(mapFailure);
     if (Option.isNone(found)) return yield* new AgentWorkflowError({ reason: "not_found" });
     return found.value;
   });
+  const requireSingleRepository = Effect.fn("AgentWorkflowRuntime.requireSingleRepository")(
+    function* (projectId: ProjectId, worktreePath: string | null) {
+      const input = { projectId, worktreePath };
+      const { folders } = yield* workspaces.forThread(input).pipe(mapFailure);
+      if (
+        folders.some((folder) => folder.isGitRepository) ||
+        (yield* workspaces.submodules({ ...input, folders }).pipe(mapFailure)).length > 0
+      )
+        return yield* invalid(
+          "Supervised workflow evidence covers one Git repository at the checkout root. Use a single-repository checkout or run a native workflow for this project.",
+        );
+    },
+  );
+  const requireManagerWorkspace = Effect.fn("AgentWorkflowRuntime.requireManagerWorkspace")(
+    function* ({
+      projectId,
+      workspaceStrategy,
+    }: Pick<AgentWorkflow, "projectId" | "workspaceStrategy">) {
+      yield* requireSingleRepository(projectId, null);
+      if (workspaceStrategy.type === "existing_worktree")
+        yield* requireSingleRepository(projectId, workspaceStrategy.worktreePath);
+    },
+  );
   const actor = Effect.fn("AgentWorkflowRuntime.actor")(function* (
     scope: McpInvocationScope,
   ): Effect.fn.Return<Extract<Actor, { type: "agent" }>, Failure> {
@@ -442,6 +464,7 @@ const make = Effect.gen(function* () {
       );
       if (initial) return yield* bindManagerWorkspace(workflow);
     }
+    yield* requireManagerWorkspace(workflow);
     yield* launch
       .launch({
         commandId,
@@ -482,6 +505,8 @@ const make = Effect.gen(function* () {
       });
       return workflowView(replayed.status === "draft" ? yield* launchManager(replayed) : replayed);
     }
+    if (!state.enabled) return yield* new AgentWorkflowError({ reason: "disabled" });
+    yield* requireManagerWorkspace(input);
     let sourceRoot: string | null = null;
     let sourceHead: string | null = null;
     if (input.sourceThreadId) {
@@ -674,6 +699,8 @@ const make = Effect.gen(function* () {
   ) {
     const caller = yield* actor(scope);
     let workflow = yield* core.read(input);
+    if (caller.threadId !== workflow.managerThreadId)
+      return yield* new AgentWorkflowError({ reason: "forbidden" });
     if (workflow.workspacePath === null) workflow = yield* bindManagerWorkspace(workflow);
     if (workflow.workspacePath === null)
       return yield* invalid(
@@ -682,6 +709,11 @@ const make = Effect.gen(function* () {
     const priorIntent = workflow.intents.find(
       (i) => i.operation === "assignment" && i.requestId === input.requestId,
     );
+    if (priorIntent?.state !== "accepted" || priorIntent.entityId !== input.assignmentId)
+      yield* requireSingleRepository(
+        input.projectId,
+        workflow.workspaceStrategy.type === "root" ? null : workflow.workspacePath,
+      );
     const priorAssignment = workflow.assignments.find((a) => a.id === input.assignmentId);
     const role =
       priorAssignment?.role.role ??
@@ -843,6 +875,13 @@ const make = Effect.gen(function* () {
     const workflow = yield* core.read(input);
     const assignment = workflow.assignments.find((a) => a.id === input.assignmentId);
     if (!assignment) return yield* new AgentWorkflowError({ reason: "not_found" });
+    if (assignment.attempts.at(-1)?.childThreadId !== caller.threadId)
+      return yield* new AgentWorkflowError({ reason: "forbidden" });
+    if (input.artifact.outcome !== "blocked")
+      yield* requireSingleRepository(
+        input.projectId,
+        workflow.workspaceStrategy.type === "root" ? null : workflow.workspacePath,
+      );
     const verified = yield* evidence.verify({
       workflow,
       assignment,
@@ -1117,6 +1156,7 @@ const make = Effect.gen(function* () {
         .find((run) => run.status === "failed" && run.workspacePreparation !== undefined);
       if (failedPreparation) {
         yield* Effect.gen(function* () {
+          yield* requireManagerWorkspace(workflow);
           yield* reserveCard(workflow);
           yield* launch
             .retryPreparation({
@@ -1178,6 +1218,10 @@ const make = Effect.gen(function* () {
       !workflow.workspacePath
     )
       return yield* new AgentWorkflowError({ reason: "forbidden" });
+    yield* requireSingleRepository(
+      input.projectId,
+      workflow.workspaceStrategy.type === "root" ? null : workflow.workspacePath,
+    );
     const ref = CheckpointRef.make(
       `refs/t3/workflows/${(yield* hash(`${workflow.id}:${assignment.id}:${input.requestId}`)).slice(0, 40)}`,
     );

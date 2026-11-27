@@ -9,13 +9,13 @@ import { connectionAtomRuntime } from "../connection/runtime";
 import { roadmapRead } from "./roadmapState";
 
 export const roadmapSyncRead = createEnvironmentRpcQueryAtomFamily(connectionAtomRuntime, {
-  label: "Hypercoder roadmap sync",
+  label: WS_METHODS.roadmapSyncRead,
   tag: WS_METHODS.roadmapSyncRead,
   staleTimeMs: 0,
 });
 
 export const roadmapSyncDetail = createEnvironmentRpcQueryAtomFamily(connectionAtomRuntime, {
-  label: "Roadmap sync differences",
+  label: WS_METHODS.roadmapSyncDetail,
   tag: WS_METHODS.roadmapSyncDetail,
   staleTimeMs: 0,
   idleTtlMs: 0,
@@ -35,25 +35,25 @@ const refresh = (
 };
 
 export const roadmapSyncConnect = createEnvironmentRpcCommand(connectionAtomRuntime, {
-  label: "Connect Hypercoder roadmap",
+  label: WS_METHODS.roadmapSyncConnect,
   tag: WS_METHODS.roadmapSyncConnect,
   onSuccess: refresh,
 });
 
 export const roadmapSyncRun = createEnvironmentRpcCommand(connectionAtomRuntime, {
-  label: "Sync Hypercoder roadmap",
+  label: WS_METHODS.roadmapSyncRun,
   tag: WS_METHODS.roadmapSyncRun,
   onSuccess: refresh,
 });
 
 export const roadmapSyncResolve = createEnvironmentRpcCommand(connectionAtomRuntime, {
-  label: "Resolve roadmap sync conflict",
+  label: WS_METHODS.roadmapSyncResolve,
   tag: WS_METHODS.roadmapSyncResolve,
   onSuccess: refresh,
 });
 
 export const roadmapSyncDisconnect = createEnvironmentRpcCommand(connectionAtomRuntime, {
-  label: "Disconnect Hypercoder roadmap",
+  label: WS_METHODS.roadmapSyncDisconnect,
   tag: WS_METHODS.roadmapSyncDisconnect,
   onSuccess: refresh,
 });

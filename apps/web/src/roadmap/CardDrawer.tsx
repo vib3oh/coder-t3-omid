@@ -1,3 +1,4 @@
+import { T, Var, useGT } from "gt-react";
 import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
@@ -55,6 +56,7 @@ export function CardDrawer({
   onClose: () => void;
   onSave: (card: RoadmapCard, mode?: "build" | "review") => Promise<void>;
 }) {
+  const gt = useGT();
   const [draft, setDraft] = useState(card);
   const navigate = useNavigate();
   const [specOpen, setSpecOpen] = useState(false);
@@ -77,19 +79,27 @@ export function CardDrawer({
           <p className="text-xs font-medium uppercase tracking-wide text-primary">
             {STAGE_LABELS[stage]}
           </p>
-          <SheetTitle>{draft.title || "Capture an idea"}</SheetTitle>
-          <SheetDescription>Acceptance criteria, full spec, and work details.</SheetDescription>
+          <SheetTitle>{draft.title || gt("Capture an idea")}</SheetTitle>
+          <SheetDescription>
+            <T>Acceptance criteria, full spec, and work details.</T>
+          </SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
           {syncMetadata ? (
             <p className="text-sm text-muted-foreground">
-              Hypercoder · {syncMetadata.status}
-              {syncMetadata.remoteColumn ? ` · source: ${syncMetadata.remoteColumn}` : ""}
+              <T>
+                Hypercoder · <Var>{syncMetadata.status}</Var>
+              </T>
+              {syncMetadata.remoteColumn
+                ? gt(" · source: {remoteColumn}", { remoteColumn: syncMetadata.remoteColumn })
+                : ""}
             </p>
           ) : null}
           {readOnlyReason ? (
             <p role="status" className="text-sm text-muted-foreground">
-              Read only: {readOnlyReason} Your unsaved draft is kept.
+              <T>
+                Read only: <Var>{readOnlyReason}</Var> Your unsaved draft is kept.
+              </T>
             </p>
           ) : null}
           {error ? (
@@ -103,31 +113,40 @@ export function CardDrawer({
                 disabled={disabled}
                 onClick={() => void onReload()}
               >
-                Reload board and keep my draft
+                <T>Reload board and keep my draft</T>
               </Button>
             </div>
           ) : null}
           {latest && latest !== card ? (
             <details className="text-sm text-muted-foreground">
-              <summary>Latest saved card (review before replacing it)</summary>
+              <summary>
+                <T>Latest saved card (review before replacing it)</T>
+              </summary>
               <p className="mt-2 font-medium">{latest.title}</p>
               <p className="whitespace-pre-wrap">{latest.summary}</p>
               <p>
-                {latest.type} · {latest.effort} · {latest.lane === "upNext" ? "Up Next" : "Backlog"}
+                {latest.type} · {latest.effort} ·{" "}
+                {latest.lane === "upNext" ? gt("Up Next") : gt("Backlog")}
               </p>
               <p>
-                {latest.completed ? "Completed" : "Incomplete"} ·{" "}
-                {latest.archived ? "Archived" : "On board"}
+                {latest.completed ? gt("Completed") : gt("Incomplete")} ·{" "}
+                {latest.archived ? gt("Archived") : gt("On board")}
               </p>
               <p>
-                Thread:{" "}
+                <T>Thread: </T>
                 {threads.find((thread) => thread.id === latest.threadId)?.title ??
-                  "No available linked thread"}
+                  gt("No available linked thread")}
               </p>
-              {latest.specPath ? <p>Full spec: {latest.specPath}</p> : null}
+              {latest.specPath ? (
+                <p>
+                  <T>
+                    Full spec: <Var>{latest.specPath}</Var>
+                  </T>
+                </p>
+              ) : null}
               {latest.acceptanceCriteria?.map((row) => (
                 <p key={row.id}>
-                  {row.checked ? "Complete" : "Incomplete"}: {row.text}
+                  {row.checked ? gt("Complete") : gt("Incomplete")}: {row.text}
                 </p>
               ))}
             </details>
@@ -135,9 +154,15 @@ export function CardDrawer({
           {specOpen && spec.kind === "file" ? (
             <>
               <Button variant="ghost" size="sm" onClick={() => setSpecOpen(false)}>
-                Back to card
+                <T>Back to card</T>
               </Button>
-              <Suspense fallback={<p>Loading spec…</p>}>
+              <Suspense
+                fallback={
+                  <p>
+                    <T>Loading spec…</T>
+                  </p>
+                }
+              >
                 <RoadmapSpec project={project} path={spec.path} />
               </Suspense>
             </>
@@ -146,7 +171,9 @@ export function CardDrawer({
               {spec.kind !== "invalid" ? (
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-4">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">Full spec</p>
+                    <p className="text-sm font-medium">
+                      <T>Full spec</T>
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">{draft.specPath}</p>
                   </div>
                   {spec.kind === "url" ? (
@@ -155,12 +182,12 @@ export function CardDrawer({
                       size="sm"
                       render={<a href={spec.url} target="_blank" rel="noreferrer" />}
                     >
-                      Open full spec
+                      <T>Open full spec</T>
                       <ExternalLinkIcon className="size-3.5" />
                     </Button>
                   ) : (
                     <Button variant="outline" size="sm" onClick={() => setSpecOpen(true)}>
-                      Open full spec
+                      <T>Open full spec</T>
                       <FileTextIcon className="size-3.5" />
                     </Button>
                   )}
@@ -191,7 +218,9 @@ export function CardDrawer({
               >
                 <fieldset disabled={locked} className="space-y-4">
                   <label className="block space-y-1 text-sm">
-                    <span>Title</span>
+                    <span>
+                      <T>Title</T>
+                    </span>
                     <Input
                       autoFocus
                       required
@@ -201,7 +230,9 @@ export function CardDrawer({
                     />
                   </label>
                   <label className="block space-y-1 text-sm">
-                    <span>Summary / brief</span>
+                    <span>
+                      <T>Summary / brief</T>
+                    </span>
                     <Textarea
                       maxLength={20_000}
                       value={draft.summary}
@@ -209,24 +240,26 @@ export function CardDrawer({
                     />
                   </label>
                   <label className="block space-y-1 text-sm">
-                    <span>Full spec path or URL</span>
+                    <span>
+                      <T>Full spec path or URL</T>
+                    </span>
                     <Input
                       value={draft.specPath ?? ""}
                       maxLength={2000}
-                      placeholder="docs/roadmap/feature.md or https://…"
+                      placeholder={gt("docs/roadmap/feature.md or https://…")}
                       aria-invalid={Boolean(draft.specPath) && spec.kind === "invalid"}
                       onChange={(e) => setDraft({ ...draft, specPath: e.target.value })}
                     />
                   </label>
                   {draft.specPath && spec.kind === "invalid" ? (
                     <p role="alert" className="text-xs text-destructive">
-                      Use a project-relative path or an HTTP/HTTPS link.
+                      <T>Use a project-relative path or an HTTP/HTTPS link.</T>
                     </p>
                   ) : null}
-                  <section aria-label="Acceptance criteria" className="space-y-3">
+                  <section aria-label={gt("Acceptance criteria")} className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Acceptance
+                        <T>Acceptance</T>
                       </h3>
                       <span className="text-xs tabular-nums text-muted-foreground">
                         {criteria.filter((row) => row.checked).length} of {criteria.length}
@@ -236,7 +269,7 @@ export function CardDrawer({
                       <div key={row.id} className="flex items-start gap-3">
                         <div className="pt-2">
                           <Checkbox
-                            aria-label={`Complete criterion ${index + 1}`}
+                            aria-label={gt("Complete criterion {value}", { value: index + 1 })}
                             disabled={locked}
                             checked={row.checked}
                             onCheckedChange={(checked) =>
@@ -254,7 +287,7 @@ export function CardDrawer({
                             size="sm"
                             required
                             maxLength={2000}
-                            aria-label={`Acceptance criterion ${index + 1}`}
+                            aria-label={gt("Acceptance criterion {value}", { value: index + 1 })}
                             value={row.text}
                             onChange={(e) =>
                               setDraft({
@@ -270,7 +303,7 @@ export function CardDrawer({
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          aria-label={`Remove criterion ${index + 1}`}
+                          aria-label={gt("Remove criterion {value}", { value: index + 1 })}
                           onClick={() =>
                             setDraft({
                               ...draft,
@@ -298,12 +331,12 @@ export function CardDrawer({
                       }
                     >
                       <PlusIcon className="size-3.5" />
-                      Add criterion
+                      <T>Add criterion</T>
                     </Button>
                   </section>
                   <div className="flex flex-wrap gap-3">
                     <label className="flex flex-col gap-1 text-sm">
-                      Type
+                      <T>Type</T>
                       <select
                         className={SELECT}
                         value={draft.type}
@@ -317,7 +350,7 @@ export function CardDrawer({
                       </select>
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
-                      Effort
+                      <T>Effort</T>
                       <select
                         className={SELECT}
                         value={draft.effort}
@@ -331,7 +364,7 @@ export function CardDrawer({
                       </select>
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
-                      Planning lane
+                      <T>Planning lane</T>
                       <select
                         className={SELECT}
                         value={draft.lane}
@@ -339,13 +372,17 @@ export function CardDrawer({
                           setDraft({ ...draft, lane: e.target.value as RoadmapCard["lane"] })
                         }
                       >
-                        <option value="backlog">Backlog</option>
-                        <option value="upNext">Up Next</option>
+                        <option value="backlog">
+                          <T>Backlog</T>
+                        </option>
+                        <option value="upNext">
+                          <T>Up Next</T>
+                        </option>
                       </select>
                     </label>
                   </div>
                   <label className="flex flex-col gap-1 text-sm">
-                    Linked thread
+                    <T>Linked thread</T>
                     <select
                       className={SELECT}
                       value={draft.threadId ?? ""}
@@ -356,14 +393,18 @@ export function CardDrawer({
                         })
                       }
                     >
-                      <option value="">No thread linked</option>
+                      <option value="">
+                        <T>No thread linked</T>
+                      </option>
                       {draft.threadId && !threads.some((t) => t.id === draft.threadId) ? (
-                        <option value={draft.threadId}>Thread unavailable</option>
+                        <option value={draft.threadId}>
+                          <T>Thread unavailable</T>
+                        </option>
                       ) : null}
                       {threads.map((t) => (
                         <option value={t.id} key={t.id}>
                           {t.title}
-                          {t.archivedAt ? " (archived)" : ""}
+                          {t.archivedAt ? gt(" (archived)") : ""}
                         </option>
                       ))}
                     </select>
@@ -374,7 +415,7 @@ export function CardDrawer({
                       checked={draft.completed}
                       onChange={(e) => setDraft({ ...draft, completed: e.target.checked })}
                     />
-                    Mark complete manually
+                    <T>Mark complete manually</T>
                   </label>
                 </fieldset>
               </form>
@@ -398,13 +439,15 @@ export function CardDrawer({
               })
             }
           >
-            Start workflow
+            <T>Start workflow</T>
           </Button>
           {card.threadId ? (
             <div className="w-full space-y-2 text-xs text-muted-foreground">
               <p>
-                Open the stopped linked thread to start a workflow. The card keeps its existing
-                owner.
+                <T>
+                  Open the stopped linked thread to start a workflow. The card keeps its existing
+                  owner.
+                </T>
               </p>
               <Button
                 type="button"
@@ -417,17 +460,17 @@ export function CardDrawer({
                   })
                 }
               >
-                Open linked thread
+                <T>Open linked thread</T>
               </Button>
             </div>
           ) : null}
           {draft !== card ? (
             <p className="w-full text-xs text-muted-foreground">
-              Save card edits before starting a workflow.
+              <T>Save card edits before starting a workflow.</T>
             </p>
           ) : null}
           <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
-            Cancel
+            <T>Cancel</T>
           </Button>
           <Button
             type="submit"
@@ -439,7 +482,7 @@ export function CardDrawer({
               (Boolean(draft.specPath) && spec.kind === "invalid")
             }
           >
-            Save card
+            <T>Save card</T>
           </Button>
           <Button
             type="submit"
@@ -452,7 +495,7 @@ export function CardDrawer({
               (Boolean(draft.specPath) && spec.kind === "invalid")
             }
           >
-            Start building
+            <T>Start building</T>
           </Button>
           {draft.threadId ? (
             <Button
@@ -467,7 +510,7 @@ export function CardDrawer({
                 (Boolean(draft.specPath) && spec.kind === "invalid")
               }
             >
-              Start agent review
+              <T>Start agent review</T>
             </Button>
           ) : null}
         </div>

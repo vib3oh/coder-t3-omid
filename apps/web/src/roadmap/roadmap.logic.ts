@@ -1,3 +1,5 @@
+import { msg } from "gt-react";
+import { m as resolveMessage, type MessageResolver } from "../i18n/messages";
 import { roadmapColumn } from "@t3tools/shared/roadmapLifecycle";
 export { roadmapColumn } from "@t3tools/shared/roadmapLifecycle";
 import type { RoadmapCard } from "@t3tools/contracts";
@@ -71,10 +73,16 @@ interface RoadmapThread {
 
 export type RoadmapColumn = ReturnType<typeof roadmapColumn>;
 
-export function roadmapReadOnlyReason(card: RoadmapCard) {
+export function roadmapReadOnlyReason(
+  card: RoadmapCard,
+  resolve: MessageResolver = resolveMessage,
+) {
   if (!card.sync) return null;
   if (card.sync.readOnly || ["conflict", "unsupported", "failed"].includes(card.sync.status))
-    return card.sync.reason ?? "Resolve this card’s Hypercoder sync status before changing it.";
+    return (
+      card.sync.reason ??
+      resolve(msg("Resolve this card’s Hypercoder sync status before changing it."))
+    );
   return null;
 }
 
@@ -102,7 +110,9 @@ export function roadmapDropAction(
   )
     return {
       type: "blocked",
-      message: "This work is already merged. Create a new card for follow-up work.",
+      message: resolveMessage(
+        msg("This work is already merged. Create a new card for follow-up work."),
+      ),
     } as const;
   if (target === "building") return { type: "work", mode: "build" } as const;
   if (target === "reviewing" || target === "ready")
@@ -110,27 +120,34 @@ export function roadmapDropAction(
       ? ({ type: "work", mode: "review" } as const)
       : ({
           type: "blocked",
-          message: "Start building or link an existing thread before requesting review.",
+          message: resolveMessage(
+            msg("Start building or link an existing thread before requesting review."),
+          ),
         } as const);
   if (target === "parked")
     return open.length > 0 && open.every((pr) => pr.isDraft) && thread
       ? ({ type: "park" } as const)
       : ({
           type: "blocked",
-          message: "Only work with a draft pull request can be parked.",
+          message: resolveMessage(msg("Only work with a draft pull request can be parked.")),
         } as const);
   if (target === "done")
     return open.length > 0
       ? ({
           type: "blocked",
-          message: "Merge the linked pull request before completing this card.",
+          message: resolveMessage(
+            msg("Merge the linked pull request before completing this card."),
+          ),
         } as const)
       : ({ type: "complete" } as const);
   if (open.length > 0 || snapshots.some((pr) => pr.state === "merged")) {
     return {
       type: "blocked",
-      message:
-        "This card follows its pull request. Resolve or unlink that work before returning it to planning.",
+      message: resolveMessage(
+        msg(
+          "This card follows its pull request. Resolve or unlink that work before returning it to planning.",
+        ),
+      ),
     } as const;
   }
   return {

@@ -1,4 +1,4 @@
-import * as Crypto from "effect/Crypto";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as DateTime from "effect/DateTime";
 import {
   ChangelogError,
@@ -42,7 +42,7 @@ export class ChangelogService extends Context.Service<
 >()("t3/roadmap/ChangelogService") {}
 
 const make = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto;
+  const random = yield* SecureRandom.SecureRandom;
   const sql = yield* SqlClient.SqlClient;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -164,16 +164,21 @@ const make = Effect.gen(function* () {
           type: input.type,
           query: input.query,
         }).map((entry) => (input.summaries ? entry : { ...entry, summary: "" }));
-        const shareId = previous.shareId ?? (yield* crypto.randomUUIDv4());
+        const shareId = previous.shareId ?? (yield* random.uuidV4());
         const file = pagePath(shareId);
-        const html = yield* Effect.try(() => changelogHtml(entries, input.title, input.timeZone));
+        const html = yield* Effect.try({
+          try: () => changelogHtml(entries, input.title, input.timeZone),
+          catch: (cause) => new ChangelogError({ cause }),
+        });
         yield* fs.writeFileString(`${file}.tmp`, html, { mode: 0o600 });
         yield* fs.rename(`${file}.tmp`, file);
         yield* writeShareState(input.projectId, shareId);
         return { shareId };
       }).pipe(
         Effect.uninterruptible,
-        Effect.mapError((cause) => new ChangelogError({ cause })),
+        Effect.mapError((cause) =>
+          cause._tag === "ChangelogError" ? cause : new ChangelogError({ cause }),
+        ),
       ),
     ),
   );

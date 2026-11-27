@@ -3,6 +3,7 @@ import { vi } from "vite-plus/test";
 import {
   EnvironmentRegistry,
   EnvironmentSupervisor,
+  PrimaryConnectionTarget,
   AVAILABLE_CONNECTION_STATE,
 } from "@t3tools/client-runtime/connection";
 import type { RpcSession } from "@t3tools/client-runtime/rpc";
@@ -123,7 +124,12 @@ it.effect("updates the mounted board and connection summary immediately after a 
         } as unknown as RpcSession),
       );
       const supervisor = EnvironmentSupervisor.EnvironmentSupervisor.of({
-        target: { environmentId },
+        target: new PrimaryConnectionTarget({
+          environmentId,
+          label: "Roadmap test",
+          httpBaseUrl: "http://localhost",
+          wsBaseUrl: "ws://localhost",
+        }),
         state: supervisorState,
         session,
       } as EnvironmentSupervisor.EnvironmentSupervisor["Service"]);
@@ -154,14 +160,10 @@ it.effect("updates the mounted board and connection summary immediately after a 
         (yield* AtomRegistry.getResult(registry, statusAtom, { suspendOnWaiting: true })).counts
           .pulled,
       ).toBe(0);
-      expect(
-        (yield* Effect.promise(() =>
-          roadmapSyncRun.run(registry, {
-            environmentId,
-            input: { projectId, expectedRevision: 1 },
-          }),
-        ))._tag,
-      ).toBe("Success");
+      yield* roadmapSyncRun.run(registry, {
+        environmentId,
+        input: { projectId, expectedRevision: 1 },
+      });
       expect(
         (yield* AtomRegistry.getResult(registry, boardAtom, { suspendOnWaiting: true })).board
           .cards[0]?.title,
