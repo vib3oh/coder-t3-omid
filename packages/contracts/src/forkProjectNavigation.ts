@@ -11,6 +11,7 @@ export const NavigationStage = Schema.Literals([
   "reviewing",
   "done",
   "parked",
+  "idle",
 ]);
 export const NavigationThread = Schema.Struct({
   id: ThreadId,
